@@ -24,29 +24,32 @@ import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.ExampleMode;
 import org.kohsuke.args4j.Option;
 
+import com.redhat.rcm.version.mgr.VersionManager;
+import com.redhat.rcm.version.mgr.VersionManagerSession;
+
 import java.io.File;
 
 public class Cli
 {
-
-    private static final String PATTERN_PREFIX = "**/";
-
-    @Argument( index = 0, usage = "POM file (or directory containing POM files) which should be modified.", required = true )
+    @Argument( index = 0, metaVar = "target", usage = "POM file (or directory containing POM files) to modify." )
     private File target;
 
-    @Argument( index = 1, usage = "Bill-of-Materials POM file supplying versions.", required = true )
+    @Argument( index = 1, metaVar = "BOM", usage = "Bill-of-Materials POM file supplying versions." )
     private File bom;
 
     @Option( name = "-p", usage = "POM path pattern (glob)" )
-    private String pomPattern = PATTERN_PREFIX + "*.pom";
+    private String pomPattern = "**/*.pom";
 
     @Option( name = "-D", usage = "Don't rename directories" )
     private final boolean preserveDirs = false;
 
-    @Option( name = "-b", usage = "Location where original files should be backed up before modifying." )
+    @Option( name = "-b", usage = "Backup original files here up before modifying." )
     private File backups;
 
-    @Option( name = "-h", usage = "Print this help message and quit" )
+    @Option( name = "-r", usage = "Write reports here." )
+    private final File reports = new File( "vman-reports" );
+
+    @Option( name = "-h", usage = "Print this message and quit" )
     private boolean help = false;
 
     public static void main( final String[] args )
@@ -59,6 +62,10 @@ public class Cli
             parser.parseArgument( args );
 
             if ( cli.help )
+            {
+                printUsage( parser, null );
+            }
+            else if ( cli.target == null || cli.bom == null )
             {
                 printUsage( parser, null );
             }
@@ -86,8 +93,8 @@ public class Cli
     public void run()
         throws EMBException
     {
-        final VersionManipulator vman = new VersionManipulator();
-        final ManipulationSession session = new ManipulationSession( backups, preserveDirs );
+        final VersionManager vman = new VersionManager();
+        final VersionManagerSession session = new VersionManagerSession( backups, preserveDirs );
         if ( target.isDirectory() )
         {
             vman.modifyVersions( target, pomPattern, bom, session );
@@ -97,7 +104,8 @@ public class Cli
             vman.modifyVersions( bom, bom, session );
         }
 
-        // TODO: Run reports on the session!
+        reports.mkdirs();
+        vman.generateReports( reports, session );
     }
 
     private static void printUsage( final CmdLineParser parser, final CmdLineException error )
@@ -109,6 +117,8 @@ public class Cli
         }
 
         parser.printUsage( System.err );
+        System.err.println( "Usage: $0 [OPTIONS] <target-path> <BOM-path>" );
+        System.err.println();
         System.err.println();
         System.err.println( parser.printExample( ExampleMode.ALL ) );
         System.err.println();

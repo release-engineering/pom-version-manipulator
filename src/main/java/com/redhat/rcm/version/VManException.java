@@ -19,7 +19,7 @@ package com.redhat.rcm.version;
 
 import java.text.MessageFormat;
 
-public class VersionManipulationException
+public class VManException
     extends Exception
 {
     private static final long serialVersionUID = 1L;
@@ -28,25 +28,25 @@ public class VersionManipulationException
 
     private String formattedMessage;
 
-    public VersionManipulationException( final String message, final Throwable cause )
+    public VManException( final String message, final Throwable cause )
     {
         super( message, cause );
         params = null;
     }
 
-    public VersionManipulationException( final String message )
+    public VManException( final String message )
     {
         super( message );
         params = null;
     }
 
-    public VersionManipulationException( final String message, final Throwable cause, final Object... params )
+    public VManException( final String message, final Throwable cause, final Object... params )
     {
         super( message, cause );
         this.params = params;
     }
 
-    public VersionManipulationException( final String message, final Object... params )
+    public VManException( final String message, final Object... params )
     {
         super( message );
         this.params = params;

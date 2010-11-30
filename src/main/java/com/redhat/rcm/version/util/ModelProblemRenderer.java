@@ -15,7 +15,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.redhat.rcm.version;
+package com.redhat.rcm.version.util;
 
 import org.apache.maven.model.building.ModelProblem;
 import org.apache.maven.model.building.ModelProblem.Severity;

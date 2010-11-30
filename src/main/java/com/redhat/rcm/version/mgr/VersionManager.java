@@ -15,8 +15,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.redhat.rcm.version;
+package com.redhat.rcm.version.mgr;
 
+import org.apache.log4j.Logger;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
@@ -35,6 +36,10 @@ import org.codehaus.plexus.util.WriterFactory;
 import org.commonjava.emb.EMBException;
 import org.commonjava.emb.app.AbstractEMBApplication;
 
+import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.report.Report;
+import com.redhat.rcm.version.util.ModelProblemRenderer;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
@@ -42,22 +47,50 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Component( role = VersionManipulator.class )
-public class VersionManipulator
+@Component( role = VersionManager.class )
+public class VersionManager
     extends AbstractEMBApplication
 {
+
+    private static final Logger LOGGER = Logger.getLogger( VersionManager.class );
 
     @Requirement
     private ModelBuilder modelBuilder;
 
-    public VersionManipulator()
+    @Requirement( role = Report.class )
+    private Map<String, Report> reports;
+
+    public VersionManager()
         throws EMBException
     {
         load();
     }
 
+    public VersionManager( final ModelBuilder modelBuilder )
+    {
+        this.modelBuilder = modelBuilder;
+    }
+
+    public void generateReports( final File reportsDir, final VersionManagerSession sessionData )
+    {
+        if ( reports != null )
+        {
+            for ( final Map.Entry<String, Report> entry : reports.entrySet() )
+            {
+                try
+                {
+                    entry.getValue().generate( reportsDir, sessionData );
+                }
+                catch ( final VManException e )
+                {
+                    LOGGER.error( "Failed to generate report: " + entry.getKey(), e );
+                }
+            }
+        }
+    }
+
     public void modifyVersions( final File dir, final String pomNamePattern, final File bom,
-                                final ManipulationSession session )
+                                final VersionManagerSession session )
     {
         final DirectoryScanner scanner = new DirectoryScanner();
         scanner.setBasedir( dir );
@@ -76,13 +109,13 @@ public class VersionManipulator
         }
     }
 
-    public void modifyVersions( final File pom, final File bom, final ManipulationSession session )
+    public void modifyVersions( final File pom, final File bom, final VersionManagerSession session )
     {
         mapBOMDependencyManagement( bom, session );
         modVersions( pom, pom.getParentFile(), session );
     }
 
-    private void modVersions( final File pom, final File basedir, final ManipulationSession session )
+    private void modVersions( final File pom, final File basedir, final VersionManagerSession session )
     {
         final Map<String, String> depMap = session.getDependencyMap();
         final ModelBuildingResult result = buildModel( pom, session );
@@ -92,13 +125,12 @@ public class VersionManipulator
         }
 
         final Model model = result.getRawModel();
-        modifyCoord( model, depMap, pom, session );
-
+        boolean changed = modifyCoord( model, depMap, pom, session );
         if ( model.getDependencies() != null )
         {
             for ( final Dependency dep : model.getDependencies() )
             {
-                modifyDep( dep, depMap, pom, session, false );
+                changed = changed || modifyDep( dep, depMap, pom, session, false );
             }
         }
 
@@ -106,14 +138,22 @@ public class VersionManipulator
         {
             for ( final Dependency dep : model.getDependencyManagement().getDependencies() )
             {
-                modifyDep( dep, depMap, pom, session, true );
+                changed = changed || modifyDep( dep, depMap, pom, session, true );
             }
         }
 
-        writePom( model, pom, basedir, session );
+        if ( changed )
+        {
+            writePom( model, pom, basedir, session );
+
+            if ( !session.isPreserveDirs() )
+            {
+
+            }
+        }
     }
 
-    private void writePom( final Model model, final File pom, final File basedir, final ManipulationSession session )
+    private void writePom( final Model model, final File pom, final File basedir, final VersionManagerSession session )
     {
         File out = pom;
 
@@ -126,7 +166,7 @@ public class VersionManipulator
             final File dir = new File( backupDir, path );
             if ( !dir.mkdirs() )
             {
-                session.addError( pom, new VersionManipulationException( "Failed to create backup subdirectory: %s" ) );
+                session.setError( pom, new VManException( "Failed to create backup subdirectory: %s" ) );
                 return;
             }
 
@@ -137,10 +177,8 @@ public class VersionManipulator
             }
             catch ( final IOException e )
             {
-                session.addError( pom,
-                                  new VersionManipulationException(
-                                                                    "Error making backup of POM: %s.\nTarget: %s\nReason: %s",
-                                                                    e, pom, out, e.getMessage() ) );
+                session.setError( pom, new VManException( "Error making backup of POM: %s.\nTarget: %s\nReason: %s", e,
+                                                          pom, out, e.getMessage() ) );
                 return;
             }
         }
@@ -153,8 +191,9 @@ public class VersionManipulator
         }
         catch ( final IOException e )
         {
-            session.addError( pom, new VersionManipulationException( "Failed to write modified POM to: %s\nReason: %s",
-                                                                     e, out, e.getMessage() ) );
+            session.setError( pom,
+                              new VManException( "Failed to write modified POM to: %s\nReason: %s", e, out,
+                                                 e.getMessage() ) );
         }
         finally
         {
@@ -162,92 +201,118 @@ public class VersionManipulator
         }
     }
 
-    private void modifyDep( final Dependency dep, final Map<String, String> depMap, final File pom,
-                            final ManipulationSession session, final boolean isManaged )
+    private boolean modifyDep( final Dependency dep, final Map<String, String> depMap, final File pom,
+                               final VersionManagerSession session, final boolean isManaged )
     {
-        String version = dep.getVersion();
-        if ( version == null )
-        {
-            return;
-        }
+        boolean changed = false;
 
         final String key = dep.getManagementKey();
+        String version = dep.getVersion();
+
+        if ( version == null )
+        {
+            session.getLog( pom ).add( "NOT changing version for: %s%s. Version is inherited.", key,
+                                       isManaged ? " [MANAGED]" : "" );
+            return false;
+        }
 
         version = depMap.get( key );
         if ( version != null )
         {
-            dep.setVersion( version );
+            if ( !version.equals( dep.getVersion() ) )
+            {
+                session.getLog( pom ).add( "Changing version for: %s%s.\nFrom: %s\nTo: %s.", key,
+                                           isManaged ? " [MANAGED]" : "", dep.getVersion(), version );
+                dep.setVersion( version );
+                changed = true;
+            }
+            else
+            {
+                session.getLog( pom ).add( "Version for: %s%s is already correct.", key, isManaged ? " [MANAGED]" : "" );
+            }
         }
         else
         {
             session.addMissingVersion( pom, key );
         }
+
+        return changed;
     }
 
-    private void modifyCoord( final Model model, final Map<String, String> depMap, final File pom,
-                              final ManipulationSession session )
+    private boolean modifyCoord( final Model model, final Map<String, String> depMap, final File pom,
+                                 final VersionManagerSession session )
     {
-        final Parent parent = model.getParent();
-        String groupId = model.getGroupId();
-        String artifactId = model.getArtifactId();
+        boolean changed = false;
+        if ( model.getGroupId() != null && model.getArtifactId() != null )
+        {
+            final String key = model.getGroupId() + ":" + model.getArtifactId() + ":pom";
 
+            String version = model.getVersion();
+            if ( version != null )
+            {
+                version = depMap.get( key );
+                if ( version != null )
+                {
+                    if ( !version.equals( model.getVersion() ) )
+                    {
+                        session.getLog( pom ).add( "Changing POM version from: %s to: %s", model.getVersion(), version );
+                        model.setVersion( version );
+                        changed = true;
+                    }
+                    else
+                    {
+                        session.getLog( pom ).add( "POM version is already in line with BOM: %s", model.getVersion() );
+                    }
+                }
+                else
+                {
+                    session.addMissingVersion( pom, key );
+                }
+            }
+            else
+            {
+                session.getLog( pom )
+                       .add( "No POM version found. Any version change will have to happen in the parent reference" );
+            }
+        }
+
+        final Parent parent = model.getParent();
         if ( parent != null )
         {
-            if ( groupId == null )
-            {
-                groupId = parent.getGroupId();
-            }
+            final String key = parent.getGroupId() + ":" + parent.getArtifactId() + ":pom";
 
-            if ( artifactId == null )
-            {
-                artifactId = parent.getArtifactId();
-            }
-        }
-
-        if ( groupId == null || artifactId == null )
-        {
-            session.addError( pom, new VersionManipulationException( "INVALID POM: Missing groupId or artifactId." ) );
-            return;
-        }
-
-        final String key = groupId + ":" + artifactId + ":pom";
-
-        String version = model.getVersion();
-        if ( version != null )
-        {
-            version = depMap.get( key );
-            if ( version != null )
-            {
-                model.setVersion( version );
-            }
-            else
-            {
-                session.addMissingVersion( pom, key );
-            }
-        }
-        else
-        {
-            version = parent.getVersion();
+            String version = parent.getVersion();
             if ( version == null )
             {
-                session.addError( pom,
-                                  new VersionManipulationException( "INVALID POM: Missing version / parent version." ) );
-                return;
+                session.setError( pom, new VManException( "INVALID POM: Missing parent version." ) );
+                return false;
             }
 
             version = depMap.get( key );
             if ( version != null )
             {
-                parent.setVersion( version );
+                if ( !version.equals( model.getVersion() ) )
+                {
+                    session.getLog( pom ).add( "Changing POM parent (%s) version\nFrom: %s\nTo: %s", key,
+                                               parent.getVersion(), version );
+                    parent.setVersion( version );
+                    changed = true;
+                }
+                else
+                {
+                    session.getLog( pom ).add( "POM parent (%s) version is correct: %s", key, parent.getVersion() );
+                }
             }
             else
             {
                 session.addMissingVersion( pom, key );
             }
         }
+
+        return changed;
     }
 
-    private Map<String, String> mapBOMDependencyManagement( final File bom, final ManipulationSession session )
+    private Map<String, String> mapBOMDependencyManagement( final File bom, final VersionManagerSession session )
     {
         Map<String, String> depMap = session.getDependencyMap();
         if ( depMap == null )
@@ -276,7 +341,7 @@ public class VersionManipulator
         return depMap;
     }
 
-    private ModelBuildingResult buildModel( final File pom, final ManipulationSession session )
+    private ModelBuildingResult buildModel( final File pom, final VersionManagerSession session )
     {
         final DefaultModelBuildingRequest mbr = new DefaultModelBuildingRequest();
         mbr.setPomFile( pom );
@@ -288,7 +353,7 @@ public class VersionManipulator
         }
         catch ( final ModelBuildingException e )
         {
-            session.addError( pom, e );
+            session.setError( pom, e );
             result = null;
         }
 
@@ -303,9 +368,7 @@ public class VersionManipulator
             final ModelProblemRenderer renderer = new ModelProblemRenderer( problems, ModelProblem.Severity.ERROR );
             if ( renderer.containsProblemAboveThreshold() )
             {
-                session.addError( pom,
-                                  new VersionManipulationException( "Encountered problems while reading POM:\n\n%s",
-                                                                    renderer ) );
+                session.setError( pom, new VManException( "Encountered problems while reading POM:\n\n%s", renderer ) );
                 return null;
             }
         }

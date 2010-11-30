@@ -15,20 +15,25 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.redhat.rcm.version;
+package com.redhat.rcm.version.mgr;
+
+import com.redhat.rcm.version.util.ActivityLog;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-public class ManipulationSession
+public class VersionManagerSession
 {
 
     private final Map<String, Set<File>> missingVersions = new HashMap<String, Set<File>>();
 
-    private final Map<File, Throwable> errors = new HashMap<File, Throwable>();
+    private final Map<File, Throwable> errors = new LinkedHashMap<File, Throwable>();
+
+    private final Map<File, ActivityLog> logs = new LinkedHashMap<File, ActivityLog>();
 
     private Map<String, String> depMap;
 
@@ -36,13 +41,30 @@ public class ManipulationSession
 
     private final boolean preserveDirs;
 
-    public ManipulationSession( final File backups, final boolean preserveDirs )
+    public VersionManagerSession( final File backups, final boolean preserveDirs )
     {
         this.backups = backups;
         this.preserveDirs = preserveDirs;
     }
 
-    public ManipulationSession addMissingVersion( final File pom, final String key )
+    public Map<File, ActivityLog> getLogs()
+    {
+        return logs;
+    }
+
+    public synchronized ActivityLog getLog( final File pom )
+    {
+        ActivityLog log = logs.get( pom );
+        if ( log == null )
+        {
+            log = new ActivityLog();
+            logs.put( pom, log );
+        }
+
+        return log;
+    }
+
+    public synchronized VersionManagerSession addMissingVersion( final File pom, final String key )
     {
         Set<File> poms = missingVersions.get( key );
         if ( poms == null )
@@ -56,13 +78,13 @@ public class ManipulationSession
         return this;
     }
 
-    public ManipulationSession addError( final File pom, final Throwable error )
+    public VersionManagerSession setError( final File pom, final Throwable error )
     {
         errors.put( pom, error );
         return this;
     }
 
-    public ManipulationSession setDependencyMap( final Map<String, String> depMap )
+    public VersionManagerSession setDependencyMap( final Map<String, String> depMap )
     {
         this.depMap = depMap;
         return this;
@@ -81,6 +103,16 @@ public class ManipulationSession
     public boolean isPreserveDirs()
     {
         return preserveDirs;
+    }
+
+    public Map<String, Set<File>> getMissingVersions()
+    {
+        return missingVersions;
+    }
+
+    public Map<File, Throwable> getErrors()
+    {
+        return errors;
     }
 
 }
