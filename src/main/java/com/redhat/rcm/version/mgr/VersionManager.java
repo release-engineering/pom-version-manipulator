@@ -105,17 +105,18 @@ public class VersionManager
         for ( final String subpath : includedSubpaths )
         {
             final File pom = new File( dir, subpath );
-            modVersions( pom, dir, session );
+            modVersions( pom, dir, session, session.isPreserveDirs() );
         }
     }
 
     public void modifyVersions( final File pom, final File bom, final VersionManagerSession session )
     {
         mapBOMDependencyManagement( bom, session );
-        modVersions( pom, pom.getParentFile(), session );
+        modVersions( pom, pom.getParentFile(), session, true );
     }
 
-    private void modVersions( final File pom, final File basedir, final VersionManagerSession session )
+    private void modVersions( final File pom, final File basedir, final VersionManagerSession session,
+                              final boolean preserveDirs )
     {
         final Map<String, String> depMap = session.getDependencyMap();
         final ModelBuildingResult result = buildModel( pom, session );
@@ -146,9 +147,40 @@ public class VersionManager
         {
             writePom( model, pom, basedir, session );
 
-            if ( !session.isPreserveDirs() )
+            if ( !preserveDirs )
             {
+                String version = model.getVersion();
+                if ( version == null && model.getParent() != null )
+                {
+                    version = model.getParent().getVersion();
+                }
 
+                File dir = pom.getParentFile();
+                if ( dir != null && !dir.getName().equals( version ) )
+                {
+                    try
+                    {
+                        dir = dir.getCanonicalFile();
+                    }
+                    catch ( final IOException e )
+                    {
+                        dir = dir.getAbsoluteFile();
+                    }
+
+                    final File parentDir = dir.getParentFile();
+                    File newDir = null;
+
+                    if ( parentDir != null )
+                    {
+                        newDir = new File( parentDir, version );
+                    }
+                    else
+                    {
+                        newDir = new File( version );
+                    }
+
+                    dir.renameTo( newDir );
+                }
             }
         }
     }
