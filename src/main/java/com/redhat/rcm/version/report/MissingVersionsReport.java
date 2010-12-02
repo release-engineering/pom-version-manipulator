@@ -51,19 +51,24 @@ public class MissingVersionsReport
         {
             writer = new BufferedWriter( new FileWriter( reportFile ) );
 
-            for ( final Map.Entry<String, Set<File>> entry : sessionData.getMissingVersions().entrySet() )
+            final Map<String, Set<File>> missing = sessionData.getMissingVersions();
+            for ( final Map.Entry<String, Set<File>> entry : missing.entrySet() )
             {
                 writer.write( entry.getKey() );
                 writer.newLine();
             }
 
-            writer.newLine();
-            writer.write( "Details:" );
-            writer.write( "--------" );
-            writer.newLine();
-            writer.newLine();
+            if ( !missing.isEmpty() )
+            {
+                writer.newLine();
+                writer.write( "Details:" );
+                writer.newLine();
+                writer.write( "--------" );
+                writer.newLine();
+                writer.newLine();
+            }
 
-            for ( final Map.Entry<String, Set<File>> entry : sessionData.getMissingVersions().entrySet() )
+            for ( final Map.Entry<String, Set<File>> entry : missing.entrySet() )
             {
                 writer.write( entry.getKey() );
                 writer.write( ":" );

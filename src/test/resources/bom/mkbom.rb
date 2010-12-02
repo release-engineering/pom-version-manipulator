@@ -2,6 +2,7 @@
 
 require 'optparse'
 require 'rexml/document'
+require 'pp'
 
 include REXML
 
@@ -12,8 +13,13 @@ class RepoBuilder
       :group_id => 'group',
       :artifact_id => 'bom',
       :version => '1',
+      :name => 'Bill of Materials',
+      :output => 'pom.xml',
+      :qualifier => 'redhat-1',
     }
-
+    
+    @run = true
+    
     ARGV.options do |opts|
       opts.banner =<<-EOB
 
@@ -26,13 +32,15 @@ class RepoBuilder
       opts.on( '-v', '--version=VERSION', 'The version to use for the BOM coordinate'){|ver| @options[:version]=ver}
       opts.on( '-n', '--name=NAME', 'Value of the BOM <name/> element'){|name| @options[:name]=name}
       opts.on( '-o', '--output=FILE', 'POM file to write'){|file| @options[:output]=file}
-      opts.on( '-q', '--version-qualifier=QUALIFIER', "Append to all versions in the dependency list (-q 'build-1' results in '<version>-build-1')"){|qual| @options[:version_qualifier]=qual}
+      opts.on( '-q', '--qualifier=QUALIFIER', "Append to all versions in the dependency list \n\t\t\t\t\t(-q 'build-1' results in '<version>-build-1')"){|qual| @options[:qualifier]=qual}
+      
+      opts.separator "\n"
       
       opts.on_tail( "-h", "--help",
                "Show this message." ) do
         puts opts
         puts ''
-        exit
+        @run = false
       end
       
       begin
@@ -42,14 +50,24 @@ class RepoBuilder
         exit
       end
       
-      if ( @repo_dirs.length < 1 )
+      if ( @run && @repo_dirs.length < 1 )
         puts "You must supply at least one repository directory."
-        exit
+        @run = false
       end
     end
   end #initialize
   
   def build
+    exit 0 unless @run
+    
+    puts ''
+    puts "Using configuration:"
+    pp @options
+    puts ''
+    puts "Processing POMs in directories:"
+    @repo_dirs.each {|dir| puts "- #{dir}"}
+    puts ''
+    
     deps = Array.new
     @repo_dirs.each do |dir|
       Dir.glob( File.join( dir, '**/*.pom' ) ) do |file|
@@ -68,7 +86,7 @@ class RepoBuilder
         v = XPath.first( pom, 'project/parent/version' ) unless v
         
         ver = v.text
-        ver << '-' << @options[:version_qualifier] if @options[:version_qualifier]
+        ver << '-' << @options[:qualifier] if @options[:qualifier]
         
         e = Element.new('dependency')
         e.add_element( 'groupId' ).text=gid
