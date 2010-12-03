@@ -141,7 +141,16 @@ public class VersionManager
         final String[] includedSubpaths = scanner.getIncludedFiles();
         for ( final String subpath : includedSubpaths )
         {
-            final File pom = new File( dir, subpath );
+            File pom = new File( dir, subpath );
+            try
+            {
+                pom = pom.getCanonicalFile();
+            }
+            catch ( final IOException e )
+            {
+                pom = pom.getAbsoluteFile();
+            }
+
             modVersions( pom, dir, session, session.isPreserveDirs() );
         }
 
@@ -150,8 +159,17 @@ public class VersionManager
                         + "\n\n" );
     }
 
-    public void modifyVersions( final File pom, final List<File> boms, final VersionManagerSession session )
+    public void modifyVersions( File pom, final List<File> boms, final VersionManagerSession session )
     {
+        try
+        {
+            pom = pom.getCanonicalFile();
+        }
+        catch ( final IOException e )
+        {
+            pom = pom.getAbsoluteFile();
+        }
+
         mapBOMDependencyManagement( boms, session );
         final File out = modVersions( pom, pom.getParentFile(), session, true );
         if ( out != null )
