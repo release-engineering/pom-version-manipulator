@@ -20,6 +20,7 @@ package com.redhat.rcm.version.mgr;
 
 import static junit.framework.Assert.fail;
 
+import org.apache.log4j.Appender;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
@@ -73,15 +74,37 @@ public class VersionManagerTest
                 appender.setImmediateFlush( true );
                 appender.setThreshold( Level.ALL );
 
-                repo.getRootLogger().addAppender( appender );
+                if ( !hasConsoleAppender( repo.getRootLogger() ) )
+                {
+                    repo.getRootLogger().addAppender( appender );
+                }
 
                 final Enumeration<Logger> loggers = repo.getCurrentLoggers();
                 while ( loggers.hasMoreElements() )
                 {
                     final Logger logger = loggers.nextElement();
-                    logger.addAppender( appender );
+                    if ( !hasConsoleAppender( logger ) )
+                    {
+                        logger.addAppender( appender );
+                    }
                     logger.setLevel( Level.INFO );
                 }
+            }
+
+            private boolean hasConsoleAppender( final Logger logger )
+            {
+                @SuppressWarnings( "unchecked" )
+                final Enumeration<Appender> e = logger.getAllAppenders();
+
+                while ( e.hasMoreElements() )
+                {
+                    if ( e.nextElement() instanceof ConsoleAppender )
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
             }
         };
 
