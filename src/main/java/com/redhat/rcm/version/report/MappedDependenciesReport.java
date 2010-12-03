@@ -29,70 +29,64 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 
-@Component( role = Report.class, hint = MissingVersionsReport.ID )
-public class MissingVersionsReport
+@Component( role = Report.class, hint = MappedDependenciesReport.ID )
+public class MappedDependenciesReport
     implements Report
 {
-    public static final String ID = "missing-versions";
+    public static final String ID = "mapped-dependencies";
 
+    @Override
     public String getId()
     {
         return ID;
     }
 
+    @Override
     public void generate( final File reportsDir, final VersionManagerSession sessionData )
         throws VManException
     {
-        final File reportFile = new File( reportsDir, "missing-versions.log" );
+        final File report = new File( reportsDir, ID + ".txt" );
 
         BufferedWriter writer = null;
         try
         {
-            writer = new BufferedWriter( new FileWriter( reportFile ) );
+            writer = new BufferedWriter( new FileWriter( report ) );
 
-            final Map<String, Set<File>> missing = new TreeMap<String, Set<File>>( sessionData.getMissingVersions() );
-            for ( final Map.Entry<String, Set<File>> entry : missing.entrySet() )
+            final Map<File, Map<String, String>> byBom = sessionData.getMappedDependenciesByBom();
+            for ( final Map.Entry<File, Map<String, String>> bomEntry : byBom.entrySet() )
             {
-                writer.write( entry.getKey() );
-                writer.newLine();
-            }
+                final File bom = bomEntry.getKey();
+                final Map<String, String> deps = new TreeMap<String, String>( bomEntry.getValue() );
 
-            if ( !missing.isEmpty() )
-            {
-                writer.newLine();
-                writer.write( "Details:" );
-                writer.newLine();
-                writer.write( "--------" );
-                writer.newLine();
-                writer.newLine();
-            }
+                writer.write( bom.getPath() );
+                writer.write( " (" + deps.size() + " entries):" );
 
-            for ( final Map.Entry<String, Set<File>> entry : missing.entrySet() )
-            {
-                writer.write( entry.getKey() );
-                writer.write( ":" );
                 writer.newLine();
-                writer.write( "-----------------------------------------------------------" );
+                writer.write( "------------------------------------------------------" );
                 writer.newLine();
                 writer.newLine();
 
-                for ( final File pom : entry.getValue() )
+                for ( final Map.Entry<String, String> depEntry : deps.entrySet() )
                 {
-                    writer.write( "\t- " );
-                    writer.write( pom.getPath() );
+                    final String key = depEntry.getKey();
+                    final String version = depEntry.getValue();
+
+                    writer.write( key );
+                    writer.write( " = " );
+                    writer.write( version );
                     writer.newLine();
                 }
+
+                writer.newLine();
                 writer.newLine();
                 writer.newLine();
             }
-
         }
         catch ( final IOException e )
         {
-            throw new VManException( "Failed to write to: %s. Reason: %s", e, reportFile, e.getMessage() );
+            throw new VManException( "Failed to write to: %s. Reason: %s", e, report, e.getMessage() );
         }
         finally
         {

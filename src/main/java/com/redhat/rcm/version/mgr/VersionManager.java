@@ -20,9 +20,13 @@ package com.redhat.rcm.version.mgr;
 
 import org.apache.log4j.Logger;
 import org.apache.maven.model.Dependency;
+import org.apache.maven.model.InputLocation;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
 import org.apache.maven.model.building.DefaultModelBuildingRequest;
+import org.apache.maven.model.building.ModelProblem.Severity;
+import org.apache.maven.model.building.ModelProblemCollector;
+import org.apache.maven.model.interpolation.ModelInterpolator;
 import org.apache.maven.model.io.ModelReader;
 import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 import org.codehaus.plexus.component.annotations.Component;
@@ -43,6 +47,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -56,19 +61,42 @@ public class VersionManager
     @Requirement
     private ModelReader modelReader;
 
+    @Requirement
+    private ModelInterpolator modelInterpolator;
+
     @Requirement( role = Report.class )
     private Map<String, Report> reports;
 
-    public VersionManager()
-        throws EMBException
+    private static Object lock = new Object();
+
+    private static VersionManager instance;
+
+    private VersionManager()
     {
-        load();
     }
 
-    public VersionManager( final ModelReader modelReader )
+    public static VersionManager getInstance()
+        throws EMBException
     {
-        this.modelReader = modelReader;
+        synchronized ( lock )
+        {
+            if ( instance == null )
+            {
+                instance = new VersionManager();
+                instance.load();
+            }
+        }
+
+        return instance;
     }
+
+    // public VersionManager( final ModelReader modelReader, final ModelInterpolator modelInterpolator,
+    // final Map<String, Report> reports )
+    // {
+    // this.modelReader = modelReader;
+    // this.modelInterpolator = modelInterpolator;
+    // this.reports = reports;
+    // }
 
     public void generateReports( final File reportsDir, final VersionManagerSession sessionData )
     {
@@ -98,7 +126,7 @@ public class VersionManager
         }
     }
 
-    public void modifyVersions( final File dir, final String pomNamePattern, final File bom,
+    public void modifyVersions( final File dir, final String pomNamePattern, final List<File> boms,
                                 final VersionManagerSession session )
     {
         final DirectoryScanner scanner = new DirectoryScanner();
@@ -108,7 +136,7 @@ public class VersionManager
 
         scanner.scan();
 
-        mapBOMDependencyManagement( bom, session );
+        mapBOMDependencyManagement( boms, session );
 
         final String[] includedSubpaths = scanner.getIncludedFiles();
         for ( final String subpath : includedSubpaths )
@@ -117,17 +145,19 @@ public class VersionManager
             modVersions( pom, dir, session, session.isPreserveDirs() );
         }
 
-        LOGGER.info( "Modifying POM versions in directory.\n\n\tDirectory: " + dir + "\n\tBOM: " + bom
-                        + "\n\tPOM Backups: " + session.getBackups() + "\n\n" );
+        LOGGER.info( "Modified POM versions in directory.\n\n\tDirectory: " + dir + "\n\tBOMs:\t"
+                        + StringUtils.join( boms.iterator(), "\n\t\t" ) + "\n\tPOM Backups: " + session.getBackups()
+                        + "\n\n" );
     }
 
-    public void modifyVersions( final File pom, final File bom, final VersionManagerSession session )
+    public void modifyVersions( final File pom, final List<File> boms, final VersionManagerSession session )
     {
-        mapBOMDependencyManagement( bom, session );
+        mapBOMDependencyManagement( boms, session );
         final File out = modVersions( pom, pom.getParentFile(), session, true );
         if ( out != null )
         {
-            LOGGER.info( "Modified POM versions.\n\n\tPOM: " + out + "\n\tBOM: " + bom + "\n\tPOM Backups: "
+            LOGGER.info( "Modified POM versions.\n\n\tPOM: " + out + "\n\tBOMs:\t"
+                            + StringUtils.join( boms.iterator(), "\n\t\t" ) + "\n\tPOM Backups: "
                             + session.getBackups() + "\n\n" );
         }
     }
@@ -374,27 +404,43 @@ public class VersionManager
         return changed;
     }
 
-    private Map<String, String> mapBOMDependencyManagement( final File bom, final VersionManagerSession session )
+    private Map<String, String> mapBOMDependencyManagement( final List<File> boms, final VersionManagerSession session )
     {
-        Map<String, String> depMap = session.getDependencyMap();
-        if ( depMap == null )
+        if ( !session.hasDependencyMap() )
         {
-            final Model model = buildModel( bom, session );
-            depMap = new HashMap<String, String>();
-
-            if ( model.getDependencyManagement() != null && model.getDependencyManagement().getDependencies() != null )
+            for ( final File bom : boms )
             {
-                for ( final Dependency dep : model.getDependencyManagement().getDependencies() )
+                final Model model = buildModel( bom, session );
+                String groupId = model.getGroupId();
+                String version = model.getVersion();
+                final Parent parent = model.getParent();
+                if ( parent != null )
                 {
-                    depMap.put( dep.getGroupId() + ":" + dep.getArtifactId() + ":pom", dep.getVersion() );
-                    depMap.put( dep.getManagementKey(), dep.getVersion() );
+                    if ( groupId == null )
+                    {
+                        groupId = parent.getGroupId();
+                    }
+
+                    if ( version == null )
+                    {
+                        version = parent.getVersion();
+                    }
+                }
+
+                session.startBomMap( bom, groupId + ":" + model.getArtifactId() + ":pom", version );
+
+                if ( model.getDependencyManagement() != null
+                                && model.getDependencyManagement().getDependencies() != null )
+                {
+                    for ( final Dependency dep : model.getDependencyManagement().getDependencies() )
+                    {
+                        session.mapDependency( bom, dep );
+                    }
                 }
             }
-
-            session.setDependencyMap( depMap );
         }
 
-        return depMap;
+        return session.getDependencyMap();
     }
 
     private Model buildModel( final File pom, final VersionManagerSession session )
@@ -404,16 +450,34 @@ public class VersionManager
 
         final Map<String, ?> options = new HashMap<String, Object>();
 
+        final Model model;
         try
         {
-            return modelReader.read( pom, options );
+            model = modelReader.read( pom, options );
         }
         catch ( final IOException e )
         {
             session.setError( pom, e );
+            return null;
         }
 
-        return null;
+        final ModelProblemCollector probCollector = new ModelProblemCollector()
+        {
+            @Override
+            public void add( final Severity severity, final String message, final InputLocation location,
+                             final Exception cause )
+            {
+                session.getLog( pom ).add( "Problem interpolating model: %s\n%s %s @%s [%s:%s]\nReason: %s",
+                                           model.getId(), severity, message, pom,
+                                           ( location == null ? "??" : location.getLineNumber() ),
+                                           ( location == null ? "??" : location.getColumnNumber() ),
+                                           ( cause == null ? "??" : cause.getMessage() ) );
+            }
+        };
+
+        modelInterpolator.interpolateModel( model, pom.getParentFile(), mbr, probCollector );
+
+        return model;
     }
 
     public String getId()

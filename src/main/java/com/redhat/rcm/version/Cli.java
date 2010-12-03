@@ -18,6 +18,8 @@
 
 package com.redhat.rcm.version;
 
+import org.apache.log4j.Logger;
+import org.codehaus.plexus.util.StringUtils;
 import org.commonjava.emb.EMBException;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
@@ -29,14 +31,16 @@ import com.redhat.rcm.version.mgr.VersionManager;
 import com.redhat.rcm.version.mgr.VersionManagerSession;
 
 import java.io.File;
+import java.util.Arrays;
+import java.util.List;
 
 public class Cli
 {
     @Argument( index = 0, metaVar = "target", usage = "POM file (or directory containing POM files) to modify." )
     private File target;
 
-    @Argument( index = 1, metaVar = "BOM", usage = "Bill-of-Materials POM file supplying versions." )
-    private File bom;
+    @Argument( index = 1, metaVar = "BOM", usage = "Bill-of-Materials POM file supplying versions.", multiValued = true )
+    private List<File> boms;
 
     @Option( name = "-p", usage = "POM path pattern (glob)" )
     private String pomPattern = "**/*.pom";
@@ -45,13 +49,17 @@ public class Cli
     private final boolean preserveDirs = false;
 
     @Option( name = "-b", usage = "Backup original files here up before modifying." )
-    private File backups;
+    private final File backups = new File( "vman-backups" );
 
     @Option( name = "-r", usage = "Write reports here." )
     private final File reports = new File( "vman-reports" );
 
     @Option( name = "-h", usage = "Print this message and quit" )
     private boolean help = false;
+
+    private static final Logger LOGGER = Logger.getLogger( Cli.class );
+
+    private static VersionManager vman;
 
     public static void main( final String[] args )
         throws EMBException
@@ -66,7 +74,7 @@ public class Cli
             {
                 printUsage( parser, null );
             }
-            else if ( cli.target == null || cli.bom == null )
+            else if ( cli.target == null || cli.boms == null )
             {
                 printUsage( parser, null );
             }
@@ -81,28 +89,35 @@ public class Cli
         }
     }
 
-    public Cli( final File target, final File bom )
+    public Cli( final File target, final File... boms )
+        throws EMBException
     {
         this.target = target;
-        this.bom = bom;
+        this.boms = Arrays.asList( boms );
     }
 
     public Cli()
+        throws EMBException
     {
     }
 
     public void run()
         throws EMBException
     {
-        final VersionManager vman = new VersionManager();
+        vman = VersionManager.getInstance();
+
+        LOGGER.info( "Modifying POM(s).\n\nTarget:\n\t" + target + "\n\nBOMs:\n\t"
+                        + StringUtils.join( boms.iterator(), "\n\t" ) + "\n\nBackups:\n\t" + backups
+                        + "\n\nReports:\n\t" + reports );
+
         final VersionManagerSession session = new VersionManagerSession( backups, preserveDirs );
         if ( target.isDirectory() )
         {
-            vman.modifyVersions( target, pomPattern, bom, session );
+            vman.modifyVersions( target, pomPattern, boms, session );
         }
         else
         {
-            vman.modifyVersions( bom, bom, session );
+            vman.modifyVersions( target, boms, session );
         }
 
         reports.mkdirs();

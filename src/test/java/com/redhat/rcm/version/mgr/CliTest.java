@@ -35,21 +35,30 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.redhat.rcm.version.Cli;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
-public class VersionManagerTest
+public class CliTest
 {
+
+    public void help()
+        throws EMBException
+    {
+        Cli.main( new String[] { "-h" } );
+    }
 
     @Test
     public void modifyCompleteRepositoryVersions()
-        throws IOException
+        throws IOException, EMBException
     {
         System.out.println( "Complete repository test..." );
 
@@ -65,7 +74,7 @@ public class VersionManagerTest
 
     @Test
     public void modifyPartialRepositoryVersions()
-        throws IOException
+        throws IOException, EMBException
     {
         System.out.println( "Partial repository test..." );
 
@@ -81,7 +90,7 @@ public class VersionManagerTest
 
     @Test
     public void modifyCompleteRepositoryVersions_UsingTwoBoms()
-        throws IOException
+        throws IOException, EMBException
     {
         System.out.println( "Complete repository test..." );
 
@@ -98,7 +107,7 @@ public class VersionManagerTest
 
     @Test
     public void modifyPartialRepositoryVersions_UsingTwoBoms()
-        throws IOException
+        throws IOException, EMBException
     {
         System.out.println( "Partial repository test..." );
 
@@ -115,7 +124,7 @@ public class VersionManagerTest
 
     @Test
     public void modifySinglePom()
-        throws IOException
+        throws IOException, EMBException
     {
         System.out.println( "Single POM test..." );
 
@@ -125,17 +134,16 @@ public class VersionManagerTest
         final File pom = new File( repo, srcPom.getName() );
         FileUtils.copyFile( srcPom, pom );
 
-        final VersionManagerSession session = new VersionManagerSession( backups, false );
+        final String[] args = { "-r", reports.getPath(), "-b", backups.getPath(), pom.getPath(), bom.getPath() };
 
-        vman.modifyVersions( pom, Collections.singletonList( bom ), session );
-        vman.generateReports( reports, session );
+        Cli.main( args );
 
         System.out.println( "\n\n" );
     }
 
     @Test
     public void modifySinglePomUsingInterpolatedBOM()
-        throws IOException
+        throws IOException, EMBException
     {
         System.out.println( "Single POM test (interpolated BOM)..." );
 
@@ -145,15 +153,12 @@ public class VersionManagerTest
         final File pom = new File( repo, srcPom.getName() );
         FileUtils.copyFile( srcPom, pom );
 
-        final VersionManagerSession session = new VersionManagerSession( backups, false );
+        final String[] args = { "-r", reports.getPath(), "-b", backups.getPath(), pom.getPath(), bom.getPath() };
 
-        vman.modifyVersions( pom, Collections.singletonList( bom ), session );
-        vman.generateReports( reports, session );
+        Cli.main( args );
 
         System.out.println( "\n\n" );
     }
-
-    private static VersionManager vman;
 
     private static final Set<File> toDelete = new HashSet<File>();
 
@@ -162,13 +167,6 @@ public class VersionManagerTest
     private File backups;
 
     private File reports;
-
-    @BeforeClass
-    public static void setupVersionManager()
-        throws EMBException
-    {
-        vman = VersionManager.getInstance();
-    }
 
     @BeforeClass
     public static void setupLogging()
@@ -250,14 +248,19 @@ public class VersionManagerTest
         reports = createTempDir( "reports" );
     }
 
-    private VersionManagerSession modifyRepo( final File... boms )
+    private void modifyRepo( final File... boms )
+        throws EMBException
     {
-        final VersionManagerSession session = new VersionManagerSession( backups, false );
+        final String[] baseArgs = { "-r", reports.getPath(), "-b", backups.getPath(), repo.getPath() };
 
-        vman.modifyVersions( repo, "**/*.pom", Arrays.asList( boms ), session );
-        vman.generateReports( reports, session );
+        final List<String> args = new ArrayList<String>( Arrays.asList( baseArgs ) );
 
-        return session;
+        for ( final File bom : boms )
+        {
+            args.add( bom.getPath() );
+        }
+
+        Cli.main( args.toArray( new String[] {} ) );
     }
 
     private File createTempDir( final String basename )

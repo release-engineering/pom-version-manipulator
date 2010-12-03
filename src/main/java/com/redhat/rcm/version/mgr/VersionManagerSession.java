@@ -18,6 +18,8 @@
 
 package com.redhat.rcm.version.mgr;
 
+import org.apache.maven.model.Dependency;
+
 import com.redhat.rcm.version.util.ActivityLog;
 
 import java.io.File;
@@ -36,7 +38,9 @@ public class VersionManagerSession
 
     private final Map<File, ActivityLog> logs = new LinkedHashMap<File, ActivityLog>();
 
-    private Map<String, String> depMap;
+    private final Map<String, String> depMap = new HashMap<String, String>();
+
+    private final Map<File, Map<String, String>> bomDepMap = new HashMap<File, Map<String, String>>();
 
     private final File backups;
 
@@ -85,9 +89,44 @@ public class VersionManagerSession
         return this;
     }
 
-    public VersionManagerSession setDependencyMap( final Map<String, String> depMap )
+    public VersionManagerSession mapDependency( final File srcBom, final Dependency dep )
     {
-        this.depMap = depMap;
+        final String pomKey = dep.getGroupId() + ":" + dep.getArtifactId() + ":pom";
+        final String key = dep.getManagementKey();
+        final String version = dep.getVersion();
+
+        if ( !depMap.containsKey( key ) )
+        {
+            depMap.put( pomKey, version );
+            depMap.put( key, version );
+        }
+
+        Map<String, String> bomMap = bomDepMap.get( srcBom );
+        if ( bomMap == null )
+        {
+            bomMap = new HashMap<String, String>();
+            bomDepMap.put( srcBom, bomMap );
+        }
+
+        bomMap.put( pomKey, version );
+        bomMap.put( key, version );
+
+        return this;
+    }
+
+    public VersionManagerSession startBomMap( final File srcBom, final String bomKey, final String version )
+    {
+        depMap.put( bomKey, version );
+
+        Map<String, String> bomMap = bomDepMap.get( srcBom );
+        if ( bomMap == null )
+        {
+            bomMap = new HashMap<String, String>();
+            bomDepMap.put( srcBom, bomMap );
+        }
+
+        bomMap.put( bomKey, version );
+
         return this;
     }
 
@@ -114,6 +153,16 @@ public class VersionManagerSession
     public Map<File, Throwable> getErrors()
     {
         return errors;
+    }
+
+    public boolean hasDependencyMap()
+    {
+        return !depMap.isEmpty();
+    }
+
+    public Map<File, Map<String, String>> getMappedDependenciesByBom()
+    {
+        return bomDepMap;
     }
 
 }
