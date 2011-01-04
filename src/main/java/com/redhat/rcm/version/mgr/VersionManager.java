@@ -28,7 +28,7 @@ import org.apache.maven.model.building.ModelProblem.Severity;
 import org.apache.maven.model.building.ModelProblemCollector;
 import org.apache.maven.model.interpolation.ModelInterpolator;
 import org.apache.maven.model.io.ModelReader;
-import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
+import org.apache.maven.model.io.jdom.MavenJDOMWriter;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.component.annotations.Requirement;
 import org.codehaus.plexus.util.DirectoryScanner;
@@ -38,6 +38,10 @@ import org.codehaus.plexus.util.StringUtils;
 import org.codehaus.plexus.util.WriterFactory;
 import org.commonjava.emb.EMBException;
 import org.commonjava.emb.app.AbstractEMBApplication;
+import org.jdom.Document;
+import org.jdom.JDOMException;
+import org.jdom.input.SAXBuilder;
+import org.jdom.output.Format;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.report.Report;
@@ -286,9 +290,21 @@ public class VersionManager
         Writer writer = null;
         try
         {
+            final SAXBuilder builder = new SAXBuilder();
+            final Document doc = builder.build( pom );
+
+            String encoding = model.getModelEncoding();
+            if ( encoding == null )
+            {
+                encoding = "UTF-8";
+            }
+
+            final Format format = Format.getPrettyFormat().setEncoding( encoding );
+
             session.getLog( pom ).add( "Writing modified POM: %s", out );
-            writer = WriterFactory.newXmlWriter( out );
-            new MavenXpp3Writer().write( writer, model );
+            writer = WriterFactory.newWriter( out, encoding );
+
+            new MavenJDOMWriter().write( model, doc, writer, format );
 
             if ( !out.equals( pom ) )
             {
@@ -301,6 +317,11 @@ public class VersionManager
             session.setError( pom,
                               new VManException( "Failed to write modified POM to: %s\n\tReason: %s", e, out,
                                                  e.getMessage() ) );
+        }
+        catch ( final JDOMException e )
+        {
+            session.setError( pom, new VManException( "Failed to read original POM for rewrite: %s\n\tReason: %s", e,
+                                                      out, e.getMessage() ) );
         }
         finally
         {

@@ -40,14 +40,29 @@
     	<groupId>args4j</groupId>
     	<artifactId>args4j</artifactId>
     	<version>2.0.12</version>
-    	<type>jar</type>
-    	<scope>compile</scope>
     </dependency>
     <dependency>
     	<groupId>org.commonjava.emb</groupId>
     	<artifactId>emb-app</artifactId>
     	<version>0.4</version>
     </dependency>
+    <dependency>
+    	<groupId>org.apache.maven</groupId>
+    	<artifactId>apache-maven</artifactId>
+    	<version>3.0.1</version>
+    	<type>zip</type>
+    	<classifier>src</classifier>
+    </dependency>
+		<dependency>
+			<groupId>org.jdom</groupId>
+			<artifactId>jdom</artifactId>
+			<version>1.1</version>
+		</dependency>
+    <!-- <dependency>
+      <groupId>jaxen</groupId>
+      <artifactId>jaxen</artifactId>
+      <version>1.1.1</version>
+    </dependency> -->
   </dependencies>
   
   <build>
@@ -86,6 +101,46 @@
             <goals>
               <goal>generate-metadata</goal>
               <goal>generate-test-metadata</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>2.1</version>
+        <executions>
+          <execution>
+            <id>unpack-maven-mdo</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>unpack-dependencies</goal>
+            </goals>
+            <configuration>
+              <includeArtifactIds>apache-maven</includeArtifactIds>
+              <includeGroupIds>org.apache.maven</includeGroupIds>
+              <includeClassifiers>src</includeClassifiers>
+              <includeTypes>zip</includeTypes>
+              <includes>*/maven-model/src/main/mdo/*.mdo</includes>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.modello</groupId>
+        <artifactId>modello-maven-plugin</artifactId>
+        <version>1.4.1</version>
+        <configuration>
+          <version>4.0.0</version>
+          <models>
+            <model>target/dependency/apache-maven-3.0.1/maven-model/src/main/mdo/maven.mdo</model>
+          </models>
+        </configuration>
+        <executions>
+          <execution>
+            <id>standard</id>
+            <phase>process-sources</phase>
+            <goals>
+              <goal>jdom-writer</goal>
             </goals>
           </execution>
         </executions>
