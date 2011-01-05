@@ -42,6 +42,7 @@ import org.jdom.Document;
 import org.jdom.JDOMException;
 import org.jdom.input.SAXBuilder;
 import org.jdom.output.Format;
+import org.jdom.output.Format.TextMode;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.report.Report;
@@ -299,7 +300,7 @@ public class VersionManager
                 encoding = "UTF-8";
             }
 
-            final Format format = Format.getPrettyFormat().setEncoding( encoding );
+            final Format format = Format.getPrettyFormat().setEncoding( encoding ).setTextMode( TextMode.PRESERVE );
 
             session.getLog( pom ).add( "Writing modified POM: %s", out );
             writer = WriterFactory.newWriter( out, encoding );
