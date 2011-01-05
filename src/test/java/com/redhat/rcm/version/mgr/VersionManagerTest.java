@@ -127,8 +127,16 @@ public class VersionManagerTest
 
         final VersionManagerSession session = new VersionManagerSession( backups, false );
 
-        vman.modifyVersions( pom, Collections.singletonList( bom ), session );
+        /* final File out = */vman.modifyVersions( pom, Collections.singletonList( bom ), session );
         vman.generateReports( reports, session );
+
+        // final String source = FileUtils.fileRead( srcPom );
+        //
+        // System.out.println( "Original source POM:\n\n" + source );
+        //
+        // final String result = FileUtils.fileRead( out );
+        //
+        // System.out.println( "Rewritten POM:\n\n" + result );
 
         System.out.println( "\n\n" );
     }

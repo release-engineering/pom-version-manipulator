@@ -52,6 +52,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -131,8 +132,8 @@ public class VersionManager
         }
     }
 
-    public void modifyVersions( final File dir, final String pomNamePattern, final List<File> boms,
-                                final VersionManagerSession session )
+    public Set<File> modifyVersions( final File dir, final String pomNamePattern, final List<File> boms,
+                                     final VersionManagerSession session )
     {
         final DirectoryScanner scanner = new DirectoryScanner();
         scanner.setBasedir( dir );
@@ -142,6 +143,8 @@ public class VersionManager
         scanner.scan();
 
         mapBOMDependencyManagement( boms, session );
+
+        final Set<File> outFiles = new LinkedHashSet<File>();
 
         final String[] includedSubpaths = scanner.getIncludedFiles();
         for ( final String subpath : includedSubpaths )
@@ -156,15 +159,17 @@ public class VersionManager
                 pom = pom.getAbsoluteFile();
             }
 
-            modVersions( pom, dir, session, session.isPreserveDirs() );
+            outFiles.add( modVersions( pom, dir, session, session.isPreserveDirs() ) );
         }
 
         LOGGER.info( "Modified POM versions in directory.\n\n\tDirectory: " + dir + "\n\tBOMs:\t"
                         + StringUtils.join( boms.iterator(), "\n\t\t" ) + "\n\tPOM Backups: " + session.getBackups()
                         + "\n\n" );
+
+        return outFiles;
     }
 
-    public void modifyVersions( File pom, final List<File> boms, final VersionManagerSession session )
+    public File modifyVersions( File pom, final List<File> boms, final VersionManagerSession session )
     {
         try
         {
@@ -183,6 +188,8 @@ public class VersionManager
                             + StringUtils.join( boms.iterator(), "\n\t\t" ) + "\n\tPOM Backups: "
                             + session.getBackups() + "\n\n" );
         }
+
+        return out;
     }
 
     private File modVersions( final File pom, final File basedir, final VersionManagerSession session,
@@ -303,7 +310,7 @@ public class VersionManager
                 encoding = "UTF-8";
             }
 
-            final Format format = Format.getPrettyFormat().setEncoding( encoding ).setTextMode( TextMode.PRESERVE );
+            final Format format = Format.getRawFormat().setEncoding( encoding ).setTextMode( TextMode.PRESERVE );
 
             session.getLog( pom ).add( "Writing modified POM: %s", out );
             writer = WriterFactory.newWriter( out, encoding );
