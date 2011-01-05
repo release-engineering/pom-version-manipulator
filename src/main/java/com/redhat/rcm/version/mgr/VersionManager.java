@@ -292,6 +292,9 @@ public class VersionManager
         try
         {
             final SAXBuilder builder = new SAXBuilder();
+            builder.setIgnoringBoundaryWhitespace( false );
+            builder.setIgnoringElementContentWhitespace( false );
+
             final Document doc = builder.build( pom );
 
             String encoding = model.getModelEncoding();
