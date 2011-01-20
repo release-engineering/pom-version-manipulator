@@ -19,6 +19,7 @@
 package com.redhat.rcm.version.mgr;
 
 import static junit.framework.Assert.fail;
+import static org.junit.Assert.assertTrue;
 
 import org.apache.log4j.Appender;
 import org.apache.log4j.ConsoleAppender;
@@ -59,6 +60,35 @@ public class VersionManagerTest
         FileUtils.copyDirectoryStructure( srcRepo, repo );
 
         modifyRepo( bom );
+
+        System.out.println( "\n\n" );
+    }
+
+    @Test
+    public void modifyRepositoryVersionsWithoutChangingTheRest()
+        throws IOException
+    {
+        System.out.println( "Repository POM non-interference test..." );
+
+        final File srcRepo = getResourceFile( "projects-with-property-refs" );
+        final File bom = getResourceFile( "bom.xml" );
+
+        FileUtils.copyDirectoryStructure( srcRepo, repo );
+
+        final VersionManagerSession session = new VersionManagerSession( backups, false );
+
+        final Set<File> results = vman.modifyVersions( repo, "**/*.pom", Collections.singletonList( bom ), session );
+        for ( final File file : results )
+        {
+            if ( "rwx-parent-0.2.1.pom".equals( file.getName() ) )
+            {
+                final String result = FileUtils.fileRead( file );
+                assertTrue( "Non-dependency POM interpolation preserved in output!",
+                            result.contains( "<finalName>${artifactId}</finalName>" ) );
+
+                break;
+            }
+        }
 
         System.out.println( "\n\n" );
     }

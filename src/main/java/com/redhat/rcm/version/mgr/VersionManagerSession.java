@@ -32,6 +32,8 @@ import java.util.Set;
 public class VersionManagerSession
 {
 
+    public static final File GLOBAL = new File( "/" );
+
     private final Map<String, Set<File>> missingVersions = new HashMap<String, Set<File>>();
 
     private final Map<File, Throwable> errors = new LinkedHashMap<File, Throwable>();
@@ -80,6 +82,12 @@ public class VersionManagerSession
 
         poms.add( pom );
 
+        return this;
+    }
+
+    public VersionManagerSession setGlobalError( final Throwable error )
+    {
+        errors.put( GLOBAL, error );
         return this;
     }
 

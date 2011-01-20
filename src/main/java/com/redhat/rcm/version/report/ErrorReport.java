@@ -55,7 +55,15 @@ public class ErrorReport
 
             for ( final Map.Entry<File, Throwable> entry : sessionData.getErrors().entrySet() )
             {
-                writer.write( entry.getKey().getPath() );
+                if ( entry.getKey().equals( VersionManagerSession.GLOBAL ) )
+                {
+                    writer.write( "GLOBAL" );
+                }
+                else
+                {
+                    writer.write( entry.getKey().getPath() );
+                }
+
                 writer.write( ":" );
                 writer.newLine();
                 writer.write( "-----------------------------------------------------------" );

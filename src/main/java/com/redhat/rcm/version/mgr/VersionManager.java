@@ -20,15 +20,17 @@ package com.redhat.rcm.version.mgr;
 
 import org.apache.log4j.Logger;
 import org.apache.maven.model.Dependency;
-import org.apache.maven.model.InputLocation;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
-import org.apache.maven.model.building.DefaultModelBuildingRequest;
-import org.apache.maven.model.building.ModelProblem.Severity;
-import org.apache.maven.model.building.ModelProblemCollector;
-import org.apache.maven.model.interpolation.ModelInterpolator;
-import org.apache.maven.model.io.ModelReader;
+import org.apache.maven.model.building.ModelBuildingRequest;
+import org.apache.maven.model.building.ModelProblem;
 import org.apache.maven.model.io.jdom.MavenJDOMWriter;
+import org.apache.maven.project.DefaultProjectBuildingRequest;
+import org.apache.maven.project.MavenProject;
+import org.apache.maven.project.ProjectBuilder;
+import org.apache.maven.project.ProjectBuildingException;
+import org.apache.maven.project.ProjectBuildingRequest.RepositoryMerging;
+import org.apache.maven.project.ProjectBuildingResult;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.component.annotations.Requirement;
 import org.codehaus.plexus.util.DirectoryScanner;
@@ -38,6 +40,8 @@ import org.codehaus.plexus.util.StringUtils;
 import org.codehaus.plexus.util.WriterFactory;
 import org.commonjava.emb.EMBException;
 import org.commonjava.emb.app.AbstractEMBApplication;
+import org.commonjava.emb.boot.embed.EMBEmbeddingException;
+import org.commonjava.emb.boot.services.EMBServiceManager;
 import org.jdom.Document;
 import org.jdom.JDOMException;
 import org.jdom.input.SAXBuilder;
@@ -50,7 +54,8 @@ import com.redhat.rcm.version.report.Report;
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -65,10 +70,10 @@ public class VersionManager
     private static final Logger LOGGER = Logger.getLogger( VersionManager.class );
 
     @Requirement
-    private ModelReader modelReader;
+    private ProjectBuilder projectBuilder;
 
     @Requirement
-    private ModelInterpolator modelInterpolator;
+    private EMBServiceManager serviceManager;
 
     @Requirement( role = Report.class )
     private Map<String, Report> reports;
@@ -144,8 +149,7 @@ public class VersionManager
 
         mapBOMDependencyManagement( boms, session );
 
-        final Set<File> outFiles = new LinkedHashSet<File>();
-
+        final List<File> pomFiles = new ArrayList<File>();
         final String[] includedSubpaths = scanner.getIncludedFiles();
         for ( final String subpath : includedSubpaths )
         {
@@ -159,12 +163,17 @@ public class VersionManager
                 pom = pom.getAbsoluteFile();
             }
 
-            outFiles.add( modVersions( pom, dir, session, session.isPreserveDirs() ) );
+            if ( !pomFiles.contains( pom ) )
+            {
+                pomFiles.add( pom );
+            }
         }
 
-        LOGGER.info( "Modified POM versions in directory.\n\n\tDirectory: " + dir + "\n\tBOMs:\t"
-                        + StringUtils.join( boms.iterator(), "\n\t\t" ) + "\n\tPOM Backups: " + session.getBackups()
-                        + "\n\n" );
+        final Set<File> outFiles = modVersions( pomFiles, dir, session, session.isPreserveDirs() );
+
+        LOGGER.info( "Modified " + outFiles.size() + " POM versions in directory.\n\n\tDirectory: " + dir
+                        + "\n\tBOMs:\t" + StringUtils.join( boms.iterator(), "\n\t\t" ) + "\n\tPOM Backups: "
+                        + session.getBackups() + "\n\n" );
 
         return outFiles;
     }
@@ -181,52 +190,138 @@ public class VersionManager
         }
 
         mapBOMDependencyManagement( boms, session );
-        final File out = modVersions( pom, pom.getParentFile(), session, true );
-        if ( out != null )
+        final Set<File> result = modVersions( Collections.singletonList( pom ), pom.getParentFile(), session, true );
+        if ( !result.isEmpty() )
         {
+            final File out = result.iterator().next();
+
             LOGGER.info( "Modified POM versions.\n\n\tPOM: " + out + "\n\tBOMs:\t"
                             + StringUtils.join( boms.iterator(), "\n\t\t" ) + "\n\tPOM Backups: "
                             + session.getBackups() + "\n\n" );
-        }
 
-        return out;
-    }
-
-    private File modVersions( final File pom, final File basedir, final VersionManagerSession session,
-                              final boolean preserveDirs )
-    {
-        final Map<String, String> depMap = session.getDependencyMap();
-        final Model model = buildModel( pom, session );
-
-        boolean changed = modifyCoord( model, depMap, pom, session );
-        if ( model.getDependencies() != null )
-        {
-            for ( final Dependency dep : model.getDependencies() )
-            {
-                changed = modifyDep( dep, depMap, pom, session, false ) || changed;
-            }
-        }
-
-        if ( model.getDependencyManagement() != null && model.getDependencyManagement().getDependencies() != null )
-        {
-            for ( final Dependency dep : model.getDependencyManagement().getDependencies() )
-            {
-                changed = modifyDep( dep, depMap, pom, session, true ) || changed;
-            }
-        }
-
-        if ( changed )
-        {
-            return writePom( model, pom, basedir, session, preserveDirs );
+            return out;
         }
 
         return null;
+    }
+
+    private Set<File> modVersions( final List<File> pomFiles, final File basedir, final VersionManagerSession session,
+                                   final boolean preserveDirs )
+    {
+        final Set<File> result = new LinkedHashSet<File>();
+
+        final DefaultProjectBuildingRequest req = new DefaultProjectBuildingRequest();
+        req.setProcessPlugins( false );
+        req.setRepositoryMerging( RepositoryMerging.POM_DOMINANT );
+        req.setValidationLevel( ModelBuildingRequest.VALIDATION_LEVEL_MAVEN_2_0 );
+
+        try
+        {
+            req.setRepositorySession( serviceManager.createAetherRepositorySystemSession() );
+        }
+        catch ( final EMBEmbeddingException e )
+        {
+            session.setGlobalError( e );
+            return result;
+        }
+
+        List<ProjectBuildingResult> projectResults;
+        try
+        {
+            projectResults = projectBuilder.build( pomFiles, false, req );
+        }
+        catch ( final ProjectBuildingException e )
+        {
+            session.setGlobalError( e );
+            return result;
+        }
+
+        final Map<String, String> depMap = session.getDependencyMap();
+        for ( final ProjectBuildingResult projectResult : projectResults )
+        {
+            final List<ModelProblem> problems = projectResult.getProblems();
+            if ( problems != null && !problems.isEmpty() )
+            {
+                for ( final ModelProblem problem : problems )
+                {
+                    final Exception cause = problem.getException();
+                    session.getLog( projectResult.getPomFile() )
+                           .add( "Problem interpolating model: %s\n%s %s @%s [%s:%s]\nReason: %s",
+                                 problem.getModelId(), problem.getSeverity(), problem.getMessage(),
+                                 problem.getSource(), problem.getLineNumber(), problem.getColumnNumber(),
+                                 ( cause == null ? "??" : cause.getMessage() ) );
+                }
+                continue;
+            }
+
+            final MavenProject project = projectResult.getProject();
+            final Model model = project.getOriginalModel();
+            final File pom = projectResult.getPomFile();
+
+            boolean changed = modifyCoord( model, depMap, pom, session );
+            if ( model.getDependencies() != null )
+            {
+                for ( final Dependency dep : model.getDependencies() )
+                {
+                    final boolean modified = modifyDep( dep, depMap, pom, session, false );
+                    changed = modified || changed;
+                }
+            }
+
+            if ( model.getDependencyManagement() != null && model.getDependencyManagement().getDependencies() != null )
+            {
+                for ( final Dependency dep : model.getDependencyManagement().getDependencies() )
+                {
+                    final boolean modified = modifyDep( dep, depMap, pom, session, true );
+                    changed = modified || changed;
+                }
+            }
+
+            if ( changed )
+            {
+                final File out = writePom( model, pom, basedir, session, preserveDirs );
+                if ( out != null )
+                {
+                    result.add( out );
+                }
+            }
+        }
+
+        return result;
     }
 
     private File writePom( final Model model, final File pom, final File basedir, final VersionManagerSession session,
                            final boolean preserveDirs )
     {
         File backup = pom;
+
+        final File backupDir = session.getBackups();
+        if ( backupDir != null )
+        {
+            String path = pom.getParent();
+            path = path.substring( basedir.getPath().length() );
+
+            final File dir = new File( backupDir, path );
+            if ( !dir.exists() && !dir.mkdirs() )
+            {
+                session.setError( pom, new VManException( "Failed to create backup subdirectory: %s", dir ) );
+                return null;
+            }
+
+            backup = new File( dir, pom.getName() );
+            try
+            {
+                session.getLog( pom ).add( "Writing: %s\nTo backup: %s", pom, backup );
+                FileUtils.copyFile( pom, backup );
+            }
+            catch ( final IOException e )
+            {
+                session.setError( pom,
+                                  new VManException( "Error making backup of POM: %s.\n\tTarget: %s\n\tReason: %s", e,
+                                                     pom, backup, e.getMessage() ) );
+                return null;
+            }
+        }
 
         String version = model.getVersion();
         if ( version == null && model.getParent() != null )
@@ -266,34 +361,7 @@ public class VersionManager
         }
 
         final File out = new File( outDir, model.getArtifactId() + "-" + version + ".pom" );
-
-        final File backupDir = session.getBackups();
-        if ( backupDir != null )
-        {
-            String path = pom.getParent();
-            path = path.substring( basedir.getPath().length() );
-
-            final File dir = new File( backupDir, path );
-            if ( !dir.exists() && !dir.mkdirs() )
-            {
-                session.setError( pom, new VManException( "Failed to create backup subdirectory: %s" ) );
-                return null;
-            }
-
-            backup = new File( dir, pom.getName() );
-            try
-            {
-                session.getLog( pom ).add( "Writing backup: %s", backup );
-                FileUtils.copyFile( pom, backup );
-            }
-            catch ( final IOException e )
-            {
-                session.setError( pom,
-                                  new VManException( "Error making backup of POM: %s.\n\tTarget: %s\n\tReason: %s", e,
-                                                     pom, backup, e.getMessage() ) );
-                return null;
-            }
-        }
+        final File oldPom = new File( outDir, pom.getName() );
 
         Writer writer = null;
         try
@@ -302,7 +370,7 @@ public class VersionManager
             builder.setIgnoringBoundaryWhitespace( false );
             builder.setIgnoringElementContentWhitespace( false );
 
-            final Document doc = builder.build( pom );
+            final Document doc = builder.build( oldPom );
 
             String encoding = model.getModelEncoding();
             if ( encoding == null )
@@ -317,10 +385,10 @@ public class VersionManager
 
             new MavenJDOMWriter().write( model, doc, writer, format );
 
-            if ( !out.equals( pom ) )
+            if ( !out.equals( oldPom ) )
             {
-                session.getLog( pom ).add( "Deleting original POM: %s", pom );
-                pom.delete();
+                session.getLog( pom ).add( "Deleting original POM: %s", oldPom );
+                oldPom.delete();
             }
         }
         catch ( final IOException e )
@@ -398,6 +466,7 @@ public class VersionManager
 
             String version = model.getVersion();
             version = depMap.get( key );
+
             if ( version != null )
             {
                 if ( !version.equals( model.getVersion() ) )
@@ -423,6 +492,7 @@ public class VersionManager
             final String key = parent.getGroupId() + ":" + parent.getArtifactId() + ":pom";
 
             String version = parent.getVersion();
+            version = depMap.get( key );
             if ( version == null )
             {
                 session.setError( pom, new VManException( "INVALID POM: Missing parent version." ) );
@@ -458,76 +528,81 @@ public class VersionManager
     {
         if ( !session.hasDependencyMap() )
         {
-            for ( final File bom : boms )
+            final DefaultProjectBuildingRequest req = new DefaultProjectBuildingRequest();
+            req.setProcessPlugins( false );
+            req.setRepositoryMerging( RepositoryMerging.POM_DOMINANT );
+            req.setValidationLevel( ModelBuildingRequest.VALIDATION_LEVEL_MAVEN_2_0 );
+
+            try
             {
-                final Model model = buildModel( bom, session );
-                String groupId = model.getGroupId();
-                String version = model.getVersion();
-                final Parent parent = model.getParent();
-                if ( parent != null )
+                req.setRepositorySession( serviceManager.createAetherRepositorySystemSession() );
+            }
+            catch ( final EMBEmbeddingException e )
+            {
+                session.setGlobalError( e );
+            }
+
+            List<ProjectBuildingResult> projectResults;
+            try
+            {
+                projectResults = projectBuilder.build( boms, false, req );
+
+                for ( final ProjectBuildingResult projectResult : projectResults )
                 {
-                    if ( groupId == null )
+                    final List<ModelProblem> problems = projectResult.getProblems();
+                    if ( problems != null && !problems.isEmpty() )
                     {
-                        groupId = parent.getGroupId();
+                        for ( final ModelProblem problem : problems )
+                        {
+                            final Exception cause = problem.getException();
+                            session.getLog( projectResult.getPomFile() )
+                                   .add( "Problem interpolating model: %s\n%s %s @%s [%s:%s]\nReason: %s",
+                                         problem.getModelId(), problem.getSeverity(), problem.getMessage(),
+                                         problem.getSource(), problem.getLineNumber(), problem.getColumnNumber(),
+                                         ( cause == null ? "??" : cause.getMessage() ) );
+                        }
+
+                        continue;
                     }
 
-                    if ( version == null )
+                    final File bom = projectResult.getPomFile();
+                    final Model model = projectResult.getProject().getModel();
+
+                    String groupId = model.getGroupId();
+                    String version = model.getVersion();
+                    final Parent parent = model.getParent();
+                    if ( parent != null )
                     {
-                        version = parent.getVersion();
+                        if ( groupId == null )
+                        {
+                            groupId = parent.getGroupId();
+                        }
+
+                        if ( version == null )
+                        {
+                            version = parent.getVersion();
+                        }
+                    }
+
+                    session.startBomMap( bom, groupId + ":" + model.getArtifactId() + ":pom", version );
+
+                    if ( model.getDependencyManagement() != null
+                                    && model.getDependencyManagement().getDependencies() != null )
+                    {
+                        for ( final Dependency dep : model.getDependencyManagement().getDependencies() )
+                        {
+                            session.mapDependency( bom, dep );
+                        }
                     }
                 }
-
-                session.startBomMap( bom, groupId + ":" + model.getArtifactId() + ":pom", version );
-
-                if ( model.getDependencyManagement() != null
-                                && model.getDependencyManagement().getDependencies() != null )
-                {
-                    for ( final Dependency dep : model.getDependencyManagement().getDependencies() )
-                    {
-                        session.mapDependency( bom, dep );
-                    }
-                }
+            }
+            catch ( final ProjectBuildingException e )
+            {
+                session.setGlobalError( e );
             }
         }
 
         return session.getDependencyMap();
-    }
-
-    private Model buildModel( final File pom, final VersionManagerSession session )
-    {
-        final DefaultModelBuildingRequest mbr = new DefaultModelBuildingRequest();
-        mbr.setPomFile( pom );
-
-        final Map<String, ?> options = new HashMap<String, Object>();
-
-        final Model model;
-        try
-        {
-            model = modelReader.read( pom, options );
-        }
-        catch ( final IOException e )
-        {
-            session.setError( pom, e );
-            return null;
-        }
-
-        final ModelProblemCollector probCollector = new ModelProblemCollector()
-        {
-            @Override
-            public void add( final Severity severity, final String message, final InputLocation location,
-                             final Exception cause )
-            {
-                session.getLog( pom ).add( "Problem interpolating model: %s\n%s %s @%s [%s:%s]\nReason: %s",
-                                           model.getId(), severity, message, pom,
-                                           ( location == null ? "??" : location.getLineNumber() ),
-                                           ( location == null ? "??" : location.getColumnNumber() ),
-                                           ( cause == null ? "??" : cause.getMessage() ) );
-            }
-        };
-
-        modelInterpolator.interpolateModel( model, pom.getParentFile(), mbr, probCollector );
-
-        return model;
     }
 
     public String getId()

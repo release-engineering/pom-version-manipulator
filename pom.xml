@@ -27,14 +27,25 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <mavenVersion>3.0.2</mavenVersion>
   </properties>
 
   <dependencies>
-		<dependency>
-			<groupId>org.jdom</groupId>
-			<artifactId>jdom</artifactId>
-			<version>1.1</version>
-		</dependency>
+    <dependency>
+        <groupId>org.apache.maven</groupId>
+        <artifactId>maven-core</artifactId>
+        <version>${mavenVersion}</version>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.maven</groupId>
+        <artifactId>maven-model-builder</artifactId>
+        <version>${mavenVersion}</version>
+    </dependency>
+	<dependency>
+		<groupId>org.jdom</groupId>
+		<artifactId>jdom</artifactId>
+		<version>1.1</version>
+	</dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
@@ -54,7 +65,7 @@
     <dependency>
     	<groupId>org.apache.maven</groupId>
     	<artifactId>apache-maven</artifactId>
-    	<version>3.0.1</version>
+    	<version>${mavenVersion}</version>
     	<type>zip</type>
     	<classifier>src</classifier>
     </dependency>
@@ -127,7 +138,7 @@
         <configuration>
           <version>4.0.0</version>
           <models>
-            <model>target/dependency/apache-maven-3.0.1/maven-model/src/main/mdo/maven.mdo</model>
+            <model>target/dependency/apache-maven-${mavenVersion}/maven-model/src/main/mdo/maven.mdo</model>
           </models>
         </configuration>
         <executions>
