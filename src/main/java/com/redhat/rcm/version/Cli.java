@@ -54,6 +54,9 @@ public class Cli
     @Option( name = "-r", usage = "Write reports here." )
     private final File reports = new File( "vman-reports" );
 
+    @Option( name = "-g", aliases = { "--group-aliases" }, usage = "GroupId aliases file." )
+    private File groupAliases;
+
     @Option( name = "-h", usage = "Print this message and quit" )
     private boolean help = false;
 
@@ -99,6 +102,11 @@ public class Cli
     public Cli()
         throws EMBException
     {
+    }
+
+    protected void setGroupAliases( final File groupAliases )
+    {
+        this.groupAliases = groupAliases;
     }
 
     public void run()
