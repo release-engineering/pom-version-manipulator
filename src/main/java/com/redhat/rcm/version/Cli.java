@@ -45,17 +45,14 @@ public class Cli
     @Option( name = "-p", usage = "POM path pattern (glob)" )
     private String pomPattern = "**/*.pom";
 
-    @Option( name = "-D", usage = "Don't rename directories" )
-    private final boolean preserveDirs = false;
+    @Option( name = "-P", usage = "Write changed POMs back to original input files" )
+    private final boolean preserveFiles = false;
 
     @Option( name = "-b", usage = "Backup original files here up before modifying." )
     private final File backups = new File( "vman-backups" );
 
     @Option( name = "-r", usage = "Write reports here." )
     private final File reports = new File( "vman-reports" );
-
-    @Option( name = "-g", aliases = { "--group-aliases" }, usage = "GroupId aliases file." )
-    private File groupAliases;
 
     @Option( name = "-h", usage = "Print this message and quit" )
     private boolean help = false;
@@ -65,7 +62,7 @@ public class Cli
     private static VersionManager vman;
 
     public static void main( final String[] args )
-        throws EMBException
+        throws Exception
     {
         final Cli cli = new Cli();
         final CmdLineParser parser = new CmdLineParser( cli );
@@ -104,13 +101,8 @@ public class Cli
     {
     }
 
-    protected void setGroupAliases( final File groupAliases )
-    {
-        this.groupAliases = groupAliases;
-    }
-
     public void run()
-        throws EMBException
+        throws EMBException, VManException
     {
         vman = VersionManager.getInstance();
 
@@ -118,7 +110,7 @@ public class Cli
                         + StringUtils.join( boms.iterator(), "\n\t" ) + "\n\nBackups:\n\t" + backups
                         + "\n\nReports:\n\t" + reports );
 
-        final VersionManagerSession session = new VersionManagerSession( backups, preserveDirs );
+        final VersionManagerSession session = new VersionManagerSession( backups, preserveFiles );
         if ( target.isDirectory() )
         {
             vman.modifyVersions( target, pomPattern, boms, session );

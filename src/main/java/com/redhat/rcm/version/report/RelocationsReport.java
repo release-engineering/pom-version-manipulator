@@ -21,23 +21,22 @@ package com.redhat.rcm.version.report;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.util.IOUtil;
 
+import com.redhat.rcm.version.Coord;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.VersionManagerSession;
 
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Map;
-import java.util.Set;
 
-@Component( role = Report.class, hint = ErrorReport.ID )
-public class ErrorReport
+@Component( role = Report.class, hint = RelocationsReport.ID )
+public class RelocationsReport
     implements Report
 {
 
-    public static final String ID = "error-log";
+    public static final String ID = "relocations-log";
 
     public String getId()
     {
@@ -47,46 +46,27 @@ public class ErrorReport
     public void generate( final File reportsDir, final VersionManagerSession sessionData )
         throws VManException
     {
-        final File reportFile = new File( reportsDir, "errors.log" );
+        final File reportFile = new File( reportsDir, "relocations.log" );
 
-        BufferedWriter writer = null;
+        PrintWriter writer = null;
         try
         {
-            writer = new BufferedWriter( new FileWriter( reportFile ) );
+            writer = new PrintWriter( new FileWriter( reportFile ) );
+            final Map<File, Map<Coord, Coord>> byFile = sessionData.getRelocations().getRelocationsByFile();
 
-            for ( final Map.Entry<File, Set<Throwable>> entry : sessionData.getErrors().entrySet() )
+            int fileCounter = 0;
+            for ( final Map.Entry<File, Map<Coord, Coord>> fileEntry : byFile.entrySet() )
             {
-                if ( entry.getKey().equals( VersionManagerSession.GLOBAL ) )
+                writer.printf( "%d: %s\n---------------------------------------------------------\n", fileCounter,
+                               fileEntry.getKey() );
+                for ( final Map.Entry<Coord, Coord> coordEntry : fileEntry.getValue().entrySet() )
                 {
-                    writer.write( "GLOBAL" );
+                    writer.printf( "\n    %s = %s", coordEntry.getKey(), coordEntry.getValue() );
                 }
-                else
-                {
-                    writer.write( entry.getKey().getPath() );
-                }
+                writer.println();
+                writer.println();
 
-                writer.write( ":" );
-                writer.newLine();
-                writer.write( "-----------------------------------------------------------" );
-                writer.newLine();
-                writer.newLine();
-
-                final PrintWriter pWriter = new PrintWriter( writer );
-                if ( entry.getValue() != null )
-                {
-                    int count = 0;
-                    for ( final Throwable error : entry.getValue() )
-                    {
-                        pWriter.printf( "%d:  ", count );
-                        error.printStackTrace( pWriter );
-                        pWriter.println();
-                        pWriter.println();
-                        count++;
-                    }
-                }
-
-                writer.newLine();
-                writer.newLine();
+                fileCounter++;
             }
         }
         catch ( final IOException e )

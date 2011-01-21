@@ -29,7 +29,6 @@ import org.apache.log4j.SimpleLayout;
 import org.apache.log4j.spi.Configurator;
 import org.apache.log4j.spi.LoggerRepository;
 import org.codehaus.plexus.util.FileUtils;
-import org.commonjava.emb.EMBException;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -51,14 +50,14 @@ public class CliTest
 {
 
     public void help()
-        throws EMBException
+        throws Exception
     {
         Cli.main( new String[] { "-h" } );
     }
 
     @Test
     public void modifyCompleteRepositoryVersions()
-        throws IOException, EMBException
+        throws Exception
     {
         System.out.println( "Complete repository test..." );
 
@@ -74,7 +73,7 @@ public class CliTest
 
     @Test
     public void modifyPartialRepositoryVersions()
-        throws IOException, EMBException
+        throws Exception
     {
         System.out.println( "Partial repository test..." );
 
@@ -90,7 +89,7 @@ public class CliTest
 
     @Test
     public void modifyCompleteRepositoryVersions_UsingTwoBoms()
-        throws IOException, EMBException
+        throws Exception
     {
         System.out.println( "Complete repository test..." );
 
@@ -107,7 +106,7 @@ public class CliTest
 
     @Test
     public void modifyPartialRepositoryVersions_UsingTwoBoms()
-        throws IOException, EMBException
+        throws Exception
     {
         System.out.println( "Partial repository test..." );
 
@@ -124,7 +123,7 @@ public class CliTest
 
     @Test
     public void modifySinglePom()
-        throws IOException, EMBException
+        throws Exception
     {
         System.out.println( "Single POM test..." );
 
@@ -143,7 +142,7 @@ public class CliTest
 
     @Test
     public void modifySinglePomUsingInterpolatedBOM()
-        throws IOException, EMBException
+        throws Exception
     {
         System.out.println( "Single POM test (interpolated BOM)..." );
 
@@ -249,7 +248,7 @@ public class CliTest
     }
 
     private void modifyRepo( final File... boms )
-        throws EMBException
+        throws Exception
     {
         final String[] baseArgs = { "-r", reports.getPath(), "-b", backups.getPath(), repo.getPath() };
 

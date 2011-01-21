@@ -21,6 +21,7 @@ package com.redhat.rcm.version.report;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.util.IOUtil;
 
+import com.redhat.rcm.version.Coord;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.VersionManagerSession;
 
@@ -54,11 +55,11 @@ public class MappedDependenciesReport
         {
             writer = new BufferedWriter( new FileWriter( report ) );
 
-            final Map<File, Map<String, String>> byBom = sessionData.getMappedDependenciesByBom();
-            for ( final Map.Entry<File, Map<String, String>> bomEntry : byBom.entrySet() )
+            final Map<File, Map<Coord, String>> byBom = sessionData.getMappedDependenciesByBom();
+            for ( final Map.Entry<File, Map<Coord, String>> bomEntry : byBom.entrySet() )
             {
                 final File bom = bomEntry.getKey();
-                final Map<String, String> deps = new TreeMap<String, String>( bomEntry.getValue() );
+                final Map<Coord, String> deps = new TreeMap<Coord, String>( bomEntry.getValue() );
 
                 writer.write( bom.getPath() );
                 writer.write( " (" + deps.size() + " entries):" );
@@ -68,12 +69,12 @@ public class MappedDependenciesReport
                 writer.newLine();
                 writer.newLine();
 
-                for ( final Map.Entry<String, String> depEntry : deps.entrySet() )
+                for ( final Map.Entry<Coord, String> depEntry : deps.entrySet() )
                 {
-                    final String key = depEntry.getKey();
+                    final Coord key = depEntry.getKey();
                     final String version = depEntry.getValue();
 
-                    writer.write( key );
+                    writer.write( key.toString() );
                     writer.write( " = " );
                     writer.write( version );
                     writer.newLine();

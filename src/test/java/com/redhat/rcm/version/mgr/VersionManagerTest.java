@@ -75,7 +75,7 @@ public class VersionManagerTest
 
         FileUtils.copyDirectoryStructure( srcRepo, repo );
 
-        final VersionManagerSession session = new VersionManagerSession( backups, false );
+        final VersionManagerSession session = newVersionManagerSession();
 
         final Set<File> results = vman.modifyVersions( repo, "**/*.pom", Collections.singletonList( bom ), session );
         for ( final File file : results )
@@ -155,7 +155,7 @@ public class VersionManagerTest
         final File pom = new File( repo, srcPom.getName() );
         FileUtils.copyFile( srcPom, pom );
 
-        final VersionManagerSession session = new VersionManagerSession( backups, false );
+        final VersionManagerSession session = newVersionManagerSession();
 
         /* final File out = */vman.modifyVersions( pom, Collections.singletonList( bom ), session );
         vman.generateReports( reports, session );
@@ -172,6 +172,29 @@ public class VersionManagerTest
     }
 
     @Test
+    public void modifySinglePomWithRelocations()
+        throws IOException
+    {
+        System.out.println( "Single POM test (with relocations)..." );
+
+        final File srcPom = getResourceFile( "rwx-parent-0.2.1.pom" );
+        final File bom = getResourceFile( "bom-relocations.xml" );
+
+        final File pom = new File( repo, srcPom.getName() );
+        FileUtils.copyFile( srcPom, pom );
+
+        final VersionManagerSession session = newVersionManagerSession();
+
+        final File out = vman.modifyVersions( pom, Collections.singletonList( bom ), session );
+        vman.generateReports( reports, session );
+
+        final String result = FileUtils.fileRead( out );
+        assertTrue( "commons-codec not relocated!", result.contains( "<groupId>org.apache.commons.codec</groupId>" ) );
+
+        System.out.println( "\n\n" );
+    }
+
+    @Test
     public void modifySinglePomUsingInterpolatedBOM()
         throws IOException
     {
@@ -183,7 +206,7 @@ public class VersionManagerTest
         final File pom = new File( repo, srcPom.getName() );
         FileUtils.copyFile( srcPom, pom );
 
-        final VersionManagerSession session = new VersionManagerSession( backups, false );
+        final VersionManagerSession session = newVersionManagerSession();
 
         vman.modifyVersions( pom, Collections.singletonList( bom ), session );
         vman.generateReports( reports, session );
@@ -290,12 +313,17 @@ public class VersionManagerTest
 
     private VersionManagerSession modifyRepo( final File... boms )
     {
-        final VersionManagerSession session = new VersionManagerSession( backups, false );
+        final VersionManagerSession session = newVersionManagerSession();
 
         vman.modifyVersions( repo, "**/*.pom", Arrays.asList( boms ), session );
         vman.generateReports( reports, session );
 
         return session;
+    }
+
+    private VersionManagerSession newVersionManagerSession()
+    {
+        return new VersionManagerSession( backups, false );
     }
 
     private File createTempDir( final String basename )

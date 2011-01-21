@@ -21,6 +21,7 @@ package com.redhat.rcm.version.report;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.util.IOUtil;
 
+import com.redhat.rcm.version.Coord;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.VersionManagerSession;
 
@@ -53,10 +54,10 @@ public class MissingVersionsReport
         {
             writer = new BufferedWriter( new FileWriter( reportFile ) );
 
-            final Map<String, Set<File>> missing = new TreeMap<String, Set<File>>( sessionData.getMissingVersions() );
-            for ( final Map.Entry<String, Set<File>> entry : missing.entrySet() )
+            final Map<Coord, Set<File>> missing = new TreeMap<Coord, Set<File>>( sessionData.getMissingVersions() );
+            for ( final Map.Entry<Coord, Set<File>> entry : missing.entrySet() )
             {
-                writer.write( entry.getKey() );
+                writer.write( entry.getKey().toString() );
                 writer.newLine();
             }
 
@@ -70,9 +71,9 @@ public class MissingVersionsReport
                 writer.newLine();
             }
 
-            for ( final Map.Entry<String, Set<File>> entry : missing.entrySet() )
+            for ( final Map.Entry<Coord, Set<File>> entry : missing.entrySet() )
             {
-                writer.write( entry.getKey() );
+                writer.write( entry.getKey().toString() );
                 writer.write( ":" );
                 writer.newLine();
                 writer.write( "-----------------------------------------------------------" );

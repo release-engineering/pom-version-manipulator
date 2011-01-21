@@ -18,6 +18,8 @@
 
 package com.redhat.rcm.version.mgr;
 
+import static java.io.File.separatorChar;
+
 import org.apache.log4j.Logger;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
@@ -48,6 +50,7 @@ import org.jdom.input.SAXBuilder;
 import org.jdom.output.Format;
 import org.jdom.output.Format.TextMode;
 
+import com.redhat.rcm.version.Coord;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.report.Report;
 
@@ -147,7 +150,7 @@ public class VersionManager
 
         scanner.scan();
 
-        mapBOMDependencyManagement( boms, session );
+        loadBOMs( boms, session );
 
         final List<File> pomFiles = new ArrayList<File>();
         final String[] includedSubpaths = scanner.getIncludedFiles();
@@ -169,7 +172,7 @@ public class VersionManager
             }
         }
 
-        final Set<File> outFiles = modVersions( pomFiles, dir, session, session.isPreserveDirs() );
+        final Set<File> outFiles = modVersions( pomFiles, dir, session, session.isPreserveFiles() );
 
         LOGGER.info( "Modified " + outFiles.size() + " POM versions in directory.\n\n\tDirectory: " + dir
                         + "\n\tBOMs:\t" + StringUtils.join( boms.iterator(), "\n\t\t" ) + "\n\tPOM Backups: "
@@ -189,7 +192,7 @@ public class VersionManager
             pom = pom.getAbsoluteFile();
         }
 
-        mapBOMDependencyManagement( boms, session );
+        loadBOMs( boms, session );
         final Set<File> result = modVersions( Collections.singletonList( pom ), pom.getParentFile(), session, true );
         if ( !result.isEmpty() )
         {
@@ -221,7 +224,7 @@ public class VersionManager
         }
         catch ( final EMBEmbeddingException e )
         {
-            session.setGlobalError( e );
+            session.addGlobalError( e );
             return result;
         }
 
@@ -232,11 +235,10 @@ public class VersionManager
         }
         catch ( final ProjectBuildingException e )
         {
-            session.setGlobalError( e );
+            session.addGlobalError( e );
             return result;
         }
 
-        final Map<String, String> depMap = session.getDependencyMap();
         for ( final ProjectBuildingResult projectResult : projectResults )
         {
             final List<ModelProblem> problems = projectResult.getProblems();
@@ -256,14 +258,33 @@ public class VersionManager
 
             final MavenProject project = projectResult.getProject();
             final Model model = project.getOriginalModel();
+
+            final Parent parent = model.getParent();
+
+            String groupId = model.getGroupId();
+            String originalVersion = model.getVersion();
+            if ( parent != null )
+            {
+                if ( groupId == null )
+                {
+                    groupId = parent.getGroupId();
+                }
+
+                if ( originalVersion == null )
+                {
+                    originalVersion = parent.getVersion();
+                }
+            }
+            final Coord originalCoord = new Coord( groupId, model.getArtifactId() );
+
             final File pom = projectResult.getPomFile();
 
-            boolean changed = modifyCoord( model, depMap, pom, session );
+            boolean changed = modifyCoord( model, pom, session );
             if ( model.getDependencies() != null )
             {
                 for ( final Dependency dep : model.getDependencies() )
                 {
-                    final boolean modified = modifyDep( dep, depMap, pom, session, false );
+                    final boolean modified = modifyDep( dep, pom, session, false );
                     changed = modified || changed;
                 }
             }
@@ -272,14 +293,14 @@ public class VersionManager
             {
                 for ( final Dependency dep : model.getDependencyManagement().getDependencies() )
                 {
-                    final boolean modified = modifyDep( dep, depMap, pom, session, true );
+                    final boolean modified = modifyDep( dep, pom, session, true );
                     changed = modified || changed;
                 }
             }
 
             if ( changed )
             {
-                final File out = writePom( model, pom, basedir, session, preserveDirs );
+                final File out = writePom( model, originalCoord, originalVersion, pom, basedir, session, preserveDirs );
                 if ( out != null )
                 {
                     result.add( out );
@@ -290,8 +311,8 @@ public class VersionManager
         return result;
     }
 
-    private File writePom( final Model model, final File pom, final File basedir, final VersionManagerSession session,
-                           final boolean preserveDirs )
+    private File writePom( final Model model, final Coord originalCoord, final String originalVersion, final File pom,
+                           final File basedir, final VersionManagerSession session, final boolean preserveDirs )
     {
         File backup = pom;
 
@@ -304,7 +325,7 @@ public class VersionManager
             final File dir = new File( backupDir, path );
             if ( !dir.exists() && !dir.mkdirs() )
             {
-                session.setError( pom, new VManException( "Failed to create backup subdirectory: %s", dir ) );
+                session.addError( pom, new VManException( "Failed to create backup subdirectory: %s", dir ) );
                 return null;
             }
 
@@ -316,7 +337,7 @@ public class VersionManager
             }
             catch ( final IOException e )
             {
-                session.setError( pom,
+                session.addError( pom,
                                   new VManException( "Error making backup of POM: %s.\n\tTarget: %s\n\tReason: %s", e,
                                                      pom, backup, e.getMessage() ) );
                 return null;
@@ -324,44 +345,48 @@ public class VersionManager
         }
 
         String version = model.getVersion();
-        if ( version == null && model.getParent() != null )
+        String groupId = model.getGroupId();
+        if ( model.getParent() != null )
         {
-            version = model.getParent().getVersion();
-        }
-
-        File outDir = pom.getParentFile();
-        if ( !preserveDirs )
-        {
-            if ( outDir != null && !outDir.getName().equals( version ) )
+            final Parent parent = model.getParent();
+            if ( version == null )
             {
-                try
-                {
-                    outDir = outDir.getCanonicalFile();
-                }
-                catch ( final IOException e )
-                {
-                    outDir = outDir.getAbsoluteFile();
-                }
+                version = parent.getVersion();
+            }
 
-                final File parentDir = outDir.getParentFile();
-                File newDir = null;
-
-                if ( parentDir != null )
-                {
-                    newDir = new File( parentDir, version );
-                }
-                else
-                {
-                    newDir = new File( version );
-                }
-
-                outDir.renameTo( newDir );
-                outDir = newDir;
+            if ( groupId == null )
+            {
+                groupId = parent.getGroupId();
             }
         }
 
-        final File out = new File( outDir, model.getArtifactId() + "-" + version + ".pom" );
-        final File oldPom = new File( outDir, pom.getName() );
+        boolean relocatePom = false;
+
+        final Coord coord = new Coord( groupId, model.getArtifactId() );
+        if ( !preserveDirs && ( !coord.equals( originalCoord ) || !version.equals( originalVersion ) ) )
+        {
+            relocatePom = true;
+        }
+
+        File out = pom;
+        if ( relocatePom )
+        {
+            final StringBuilder pathBuilder = new StringBuilder();
+            pathBuilder.append( coord.getGroupId().replace( '.', separatorChar ) )
+                       .append( separatorChar )
+                       .append( coord.getArtifactId() )
+                       .append( separatorChar )
+                       .append( version )
+                       .append( separatorChar )
+                       .append( coord.getArtifactId() )
+                       .append( '-' )
+                       .append( version )
+                       .append( ".pom" );
+
+            out = new File( basedir, pathBuilder.toString() );
+            final File outDir = out.getParentFile();
+            outDir.mkdirs();
+        }
 
         Writer writer = null;
         try
@@ -370,7 +395,7 @@ public class VersionManager
             builder.setIgnoringBoundaryWhitespace( false );
             builder.setIgnoringElementContentWhitespace( false );
 
-            final Document doc = builder.build( oldPom );
+            final Document doc = builder.build( pom );
 
             String encoding = model.getModelEncoding();
             if ( encoding == null )
@@ -385,21 +410,35 @@ public class VersionManager
 
             new MavenJDOMWriter().write( model, doc, writer, format );
 
-            if ( !out.equals( oldPom ) )
+            if ( relocatePom && !out.equals( pom ) )
             {
-                session.getLog( pom ).add( "Deleting original POM: %s", oldPom );
-                oldPom.delete();
+                session.getLog( pom ).add( "Deleting original POM: %s\nPurging unused directories...", pom );
+                pom.delete();
+                File dir = pom.getParentFile();
+                while ( dir != null && !basedir.equals( dir ) )
+                {
+                    final String[] listing = dir.list();
+                    if ( listing == null || listing.length < 1 )
+                    {
+                        dir.delete();
+                        dir = dir.getParentFile();
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
             }
         }
         catch ( final IOException e )
         {
-            session.setError( pom,
+            session.addError( pom,
                               new VManException( "Failed to write modified POM to: %s\n\tReason: %s", e, out,
                                                  e.getMessage() ) );
         }
         catch ( final JDOMException e )
         {
-            session.setError( pom, new VManException( "Failed to read original POM for rewrite: %s\n\tReason: %s", e,
+            session.addError( pom, new VManException( "Failed to read original POM for rewrite: %s\n\tReason: %s", e,
                                                       out, e.getMessage() ) );
         }
         finally
@@ -410,12 +449,24 @@ public class VersionManager
         return out;
     }
 
-    private boolean modifyDep( final Dependency dep, final Map<String, String> depMap, final File pom,
-                               final VersionManagerSession session, final boolean isManaged )
+    private boolean modifyDep( final Dependency dep, final File pom, final VersionManagerSession session,
+                               final boolean isManaged )
     {
         boolean changed = false;
 
-        final String key = dep.getManagementKey();
+        final Coord key = new Coord( dep.getGroupId(), dep.getArtifactId() );
+        final Coord newKey = session.getRelocation( key );
+        if ( newKey != null && !key.equals( newKey ) )
+        {
+            LOGGER.info( "Relocating dependency: " + key + " to: " + newKey );
+            dep.setGroupId( newKey.getGroupId() );
+            dep.setArtifactId( newKey.getArtifactId() );
+        }
+        else
+        {
+            LOGGER.info( "No relocation available for: " + key );
+        }
+
         String version = dep.getVersion();
 
         if ( version == null )
@@ -425,7 +476,7 @@ public class VersionManager
             return false;
         }
 
-        version = depMap.get( key );
+        version = session.getArtifactVersion( key );
         if ( version != null )
         {
             if ( !version.equals( dep.getVersion() ) )
@@ -448,8 +499,7 @@ public class VersionManager
         return changed;
     }
 
-    private boolean modifyCoord( final Model model, final Map<String, String> depMap, final File pom,
-                                 final VersionManagerSession session )
+    private boolean modifyCoord( final Model model, final File pom, final VersionManagerSession session )
     {
         boolean changed = false;
         final Parent parent = model.getParent();
@@ -462,11 +512,19 @@ public class VersionManager
 
         if ( model.getVersion() != null )
         {
-            final String key = groupId + ":" + model.getArtifactId() + ":pom";
+            final Coord key = new Coord( groupId, model.getArtifactId() );
+            final Coord newKey = session.getRelocation( key );
 
-            String version = model.getVersion();
-            version = depMap.get( key );
+            if ( newKey != null && !key.equals( newKey ) )
+            {
+                if ( groupId == model.getGroupId() )
+                {
+                    model.setGroupId( newKey.getGroupId() );
+                }
+                model.setArtifactId( newKey.getArtifactId() );
+            }
 
+            final String version = session.getArtifactVersion( key );
             if ( version != null )
             {
                 if ( !version.equals( model.getVersion() ) )
@@ -477,7 +535,7 @@ public class VersionManager
                 }
                 else
                 {
-                    session.getLog( pom ).add( "POM version is already in line with BOM: %s", model.getVersion() );
+                    session.getLog( pom ).add( "POM (%s) version is correct: %s", key, model.getVersion() );
                 }
             }
             else
@@ -489,20 +547,24 @@ public class VersionManager
 
         if ( parent != null )
         {
-            final String key = parent.getGroupId() + ":" + parent.getArtifactId() + ":pom";
+            final Coord key = new Coord( parent.getGroupId(), parent.getArtifactId() );
+            final Coord newKey = session.getRelocation( key );
 
-            String version = parent.getVersion();
-            version = depMap.get( key );
-            if ( version == null )
+            if ( newKey != null && !key.equals( newKey ) )
             {
-                session.setError( pom, new VManException( "INVALID POM: Missing parent version." ) );
-                return false;
+                parent.setGroupId( newKey.getGroupId() );
+                parent.setArtifactId( newKey.getArtifactId() );
             }
 
-            version = depMap.get( key );
-            if ( version != null )
+            final String version = session.getArtifactVersion( key );
+            if ( version == null )
             {
-                if ( !version.equals( model.getVersion() ) )
+                session.addMissingVersion( pom, key );
+                session.getLog( pom ).add( "POM parent version is missing in BOM: %s", key );
+            }
+            else
+            {
+                if ( !version.equals( parent.getVersion() ) )
                 {
                     session.getLog( pom ).add( "Changing POM parent (%s) version\n\tFrom: %s\n\tTo: %s", key,
                                                parent.getVersion(), version );
@@ -514,17 +576,12 @@ public class VersionManager
                     session.getLog( pom ).add( "POM parent (%s) version is correct: %s", key, parent.getVersion() );
                 }
             }
-            else
-            {
-                session.addMissingVersion( pom, key );
-                session.getLog( pom ).add( "POM version is missing in BOM: %s", key );
-            }
         }
 
         return changed;
     }
 
-    private Map<String, String> mapBOMDependencyManagement( final List<File> boms, final VersionManagerSession session )
+    private void loadBOMs( final List<File> boms, final VersionManagerSession session )
     {
         if ( !session.hasDependencyMap() )
         {
@@ -539,7 +596,7 @@ public class VersionManager
             }
             catch ( final EMBEmbeddingException e )
             {
-                session.setGlobalError( e );
+                session.addGlobalError( e );
             }
 
             List<ProjectBuildingResult> projectResults;
@@ -566,43 +623,16 @@ public class VersionManager
                     }
 
                     final File bom = projectResult.getPomFile();
-                    final Model model = projectResult.getProject().getModel();
-
-                    String groupId = model.getGroupId();
-                    String version = model.getVersion();
-                    final Parent parent = model.getParent();
-                    if ( parent != null )
-                    {
-                        if ( groupId == null )
-                        {
-                            groupId = parent.getGroupId();
-                        }
-
-                        if ( version == null )
-                        {
-                            version = parent.getVersion();
-                        }
-                    }
-
-                    session.startBomMap( bom, groupId + ":" + model.getArtifactId() + ":pom", version );
-
-                    if ( model.getDependencyManagement() != null
-                                    && model.getDependencyManagement().getDependencies() != null )
-                    {
-                        for ( final Dependency dep : model.getDependencyManagement().getDependencies() )
-                        {
-                            session.mapDependency( bom, dep );
-                        }
-                    }
+                    final MavenProject project = projectResult.getProject();
+                    LOGGER.info( "Adding BOM to session: " + bom + "; " + project );
+                    session.addBOM( bom, project );
                 }
             }
             catch ( final ProjectBuildingException e )
             {
-                session.setGlobalError( e );
+                session.addGlobalError( e );
             }
         }
-
-        return session.getDependencyMap();
     }
 
     public String getId()

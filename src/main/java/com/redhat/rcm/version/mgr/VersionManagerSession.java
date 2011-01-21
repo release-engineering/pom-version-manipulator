@@ -18,40 +18,63 @@
 
 package com.redhat.rcm.version.mgr;
 
+import org.apache.log4j.Logger;
 import org.apache.maven.model.Dependency;
+import org.apache.maven.project.MavenProject;
 
+import com.redhat.rcm.version.Coord;
+import com.redhat.rcm.version.Relocations;
+import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.util.ActivityLog;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 public class VersionManagerSession
 {
 
+    private static final Logger LOGGER = Logger.getLogger( VersionManagerSession.class );
+
     public static final File GLOBAL = new File( "/" );
 
-    private final Map<String, Set<File>> missingVersions = new HashMap<String, Set<File>>();
+    private static final String RELOCATIONS_KEY = "relocations";
 
-    private final Map<File, Throwable> errors = new LinkedHashMap<File, Throwable>();
+    private final Map<Coord, Set<File>> missingVersions = new HashMap<Coord, Set<File>>();
+
+    private final Map<File, Set<Throwable>> errors = new LinkedHashMap<File, Set<Throwable>>();
 
     private final Map<File, ActivityLog> logs = new LinkedHashMap<File, ActivityLog>();
 
-    private final Map<String, String> depMap = new HashMap<String, String>();
+    private final Map<Coord, String> depMap = new HashMap<Coord, String>();
 
-    private final Map<File, Map<String, String>> bomDepMap = new HashMap<File, Map<String, String>>();
+    private final Map<File, Map<Coord, String>> bomDepMap = new HashMap<File, Map<Coord, String>>();
+
+    private final Relocations relocations = new Relocations();
 
     private final File backups;
 
-    private final boolean preserveDirs;
+    private final boolean preserveFiles;
 
-    public VersionManagerSession( final File backups, final boolean preserveDirs )
+    public VersionManagerSession( final File backups, final boolean preserveFiles )
     {
         this.backups = backups;
-        this.preserveDirs = preserveDirs;
+        this.preserveFiles = preserveFiles;
+    }
+
+    public Coord getRelocation( final String groupId, final String artifactId )
+    {
+        return relocations.getRelocation( groupId, artifactId );
+    }
+
+    public Coord getRelocation( final Coord key )
+    {
+        return relocations.getRelocation( key );
     }
 
     public Map<File, ActivityLog> getLogs()
@@ -71,7 +94,7 @@ public class VersionManagerSession
         return log;
     }
 
-    public synchronized VersionManagerSession addMissingVersion( final File pom, final String key )
+    public synchronized VersionManagerSession addMissingVersion( final File pom, final Coord key )
     {
         Set<File> poms = missingVersions.get( key );
         if ( poms == null )
@@ -85,62 +108,28 @@ public class VersionManagerSession
         return this;
     }
 
-    public VersionManagerSession setGlobalError( final Throwable error )
+    public VersionManagerSession addGlobalError( final Throwable error )
     {
-        errors.put( GLOBAL, error );
+        getErrors( GLOBAL, true ).add( error );
         return this;
     }
 
-    public VersionManagerSession setError( final File pom, final Throwable error )
+    public synchronized Set<Throwable> getErrors( final File file, final boolean create )
     {
-        errors.put( pom, error );
-        return this;
-    }
-
-    public VersionManagerSession mapDependency( final File srcBom, final Dependency dep )
-    {
-        final String pomKey = dep.getGroupId() + ":" + dep.getArtifactId() + ":pom";
-        final String key = dep.getManagementKey();
-        final String version = dep.getVersion();
-
-        if ( !depMap.containsKey( key ) )
+        Set<Throwable> errors = this.errors.get( GLOBAL );
+        if ( create && errors == null )
         {
-            depMap.put( pomKey, version );
-            depMap.put( key, version );
+            errors = new LinkedHashSet<Throwable>();
+            this.errors.put( GLOBAL, errors );
         }
 
-        Map<String, String> bomMap = bomDepMap.get( srcBom );
-        if ( bomMap == null )
-        {
-            bomMap = new HashMap<String, String>();
-            bomDepMap.put( srcBom, bomMap );
-        }
-
-        bomMap.put( pomKey, version );
-        bomMap.put( key, version );
-
-        return this;
+        return errors;
     }
 
-    public VersionManagerSession startBomMap( final File srcBom, final String bomKey, final String version )
+    public VersionManagerSession addError( final File pom, final Throwable error )
     {
-        depMap.put( bomKey, version );
-
-        Map<String, String> bomMap = bomDepMap.get( srcBom );
-        if ( bomMap == null )
-        {
-            bomMap = new HashMap<String, String>();
-            bomDepMap.put( srcBom, bomMap );
-        }
-
-        bomMap.put( bomKey, version );
-
+        getErrors( pom, true ).add( error );
         return this;
-    }
-
-    public Map<String, String> getDependencyMap()
-    {
-        return depMap;
     }
 
     public File getBackups()
@@ -148,17 +137,17 @@ public class VersionManagerSession
         return backups;
     }
 
-    public boolean isPreserveDirs()
+    public boolean isPreserveFiles()
     {
-        return preserveDirs;
+        return preserveFiles;
     }
 
-    public Map<String, Set<File>> getMissingVersions()
+    public Map<Coord, Set<File>> getMissingVersions()
     {
         return missingVersions;
     }
 
-    public Map<File, Throwable> getErrors()
+    public Map<File, Set<Throwable>> getErrors()
     {
         return errors;
     }
@@ -168,9 +157,92 @@ public class VersionManagerSession
         return !depMap.isEmpty();
     }
 
-    public Map<File, Map<String, String>> getMappedDependenciesByBom()
+    public String getArtifactVersion( final Coord key )
+    {
+        return depMap.get( key );
+    }
+
+    public Map<File, Map<Coord, String>> getMappedDependenciesByBom()
     {
         return bomDepMap;
+    }
+
+    public VersionManagerSession addBOM( final File bom, final MavenProject project )
+    {
+        startBomMap( bom, project.getGroupId(), project.getArtifactId(), project.getVersion() );
+
+        if ( project.getDependencyManagement() != null && project.getDependencyManagement().getDependencies() != null )
+        {
+            for ( final Dependency dep : project.getDependencyManagement().getDependencies() )
+            {
+                mapDependency( bom, dep );
+            }
+        }
+
+        final Properties properties = project.getProperties();
+        if ( properties != null )
+        {
+            final String relocations = properties.getProperty( RELOCATIONS_KEY );
+            LOGGER.info( "Got relocations:\n\n" + relocations );
+            if ( relocations != null )
+            {
+                addRelocations( bom, relocations );
+            }
+        }
+
+        return this;
+    }
+
+    private void addRelocations( final File bom, final String relocationsStr )
+    {
+        try
+        {
+            relocations.addBomRelocations( bom, relocationsStr );
+        }
+        catch ( final VManException e )
+        {
+            addGlobalError( e );
+        }
+    }
+
+    public void mapDependency( final File srcBom, final Dependency dep )
+    {
+        final Coord key = new Coord( dep.getGroupId(), dep.getArtifactId() );
+        final String version = dep.getVersion();
+
+        if ( !depMap.containsKey( key ) )
+        {
+            depMap.put( key, version );
+        }
+
+        Map<Coord, String> bomMap = bomDepMap.get( srcBom );
+        if ( bomMap == null )
+        {
+            bomMap = new HashMap<Coord, String>();
+            bomDepMap.put( srcBom, bomMap );
+        }
+
+        bomMap.put( key, version );
+    }
+
+    private void startBomMap( final File srcBom, final String groupId, final String artifactId, final String version )
+    {
+        final Coord bomKey = new Coord( groupId, artifactId );
+        depMap.put( bomKey, version );
+
+        Map<Coord, String> bomMap = bomDepMap.get( srcBom );
+        if ( bomMap == null )
+        {
+            bomMap = new HashMap<Coord, String>();
+            bomDepMap.put( srcBom, bomMap );
+        }
+
+        bomMap.put( bomKey, version );
+    }
+
+    public Relocations getRelocations()
+    {
+        return relocations;
     }
 
 }
