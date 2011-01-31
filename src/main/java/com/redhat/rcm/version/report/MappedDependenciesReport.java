@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Red Hat, Inc.
+ * Copyright (c) 2011 Red Hat, Inc.
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -21,9 +21,10 @@ package com.redhat.rcm.version.report;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.util.IOUtil;
 
-import com.redhat.rcm.version.Coord;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.VersionManagerSession;
+import com.redhat.rcm.version.model.ProjectKey;
+import com.redhat.rcm.version.model.VersionlessProjectKey;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -55,11 +56,11 @@ public class MappedDependenciesReport
         {
             writer = new BufferedWriter( new FileWriter( report ) );
 
-            final Map<File, Map<Coord, String>> byBom = sessionData.getMappedDependenciesByBom();
-            for ( final Map.Entry<File, Map<Coord, String>> bomEntry : byBom.entrySet() )
+            final Map<File, Map<VersionlessProjectKey, String>> byBom = sessionData.getMappedDependenciesByBom();
+            for ( final Map.Entry<File, Map<VersionlessProjectKey, String>> bomEntry : byBom.entrySet() )
             {
                 final File bom = bomEntry.getKey();
-                final Map<Coord, String> deps = new TreeMap<Coord, String>( bomEntry.getValue() );
+                final Map<VersionlessProjectKey, String> deps = new TreeMap<VersionlessProjectKey, String>( bomEntry.getValue() );
 
                 writer.write( bom.getPath() );
                 writer.write( " (" + deps.size() + " entries):" );
@@ -69,9 +70,9 @@ public class MappedDependenciesReport
                 writer.newLine();
                 writer.newLine();
 
-                for ( final Map.Entry<Coord, String> depEntry : deps.entrySet() )
+                for ( final Map.Entry<VersionlessProjectKey, String> depEntry : deps.entrySet() )
                 {
-                    final Coord key = depEntry.getKey();
+                    final ProjectKey key = depEntry.getKey();
                     final String version = depEntry.getValue();
 
                     writer.write( key.toString() );

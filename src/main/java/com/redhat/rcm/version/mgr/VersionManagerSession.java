@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Red Hat, Inc.
+ * Copyright (c) 2011 Red Hat, Inc.
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -22,9 +22,11 @@ import org.apache.log4j.Logger;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.project.MavenProject;
 
-import com.redhat.rcm.version.Coord;
-import com.redhat.rcm.version.Relocations;
 import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.model.FullProjectKey;
+import com.redhat.rcm.version.model.ProjectKey;
+import com.redhat.rcm.version.model.Relocations;
+import com.redhat.rcm.version.model.VersionlessProjectKey;
 import com.redhat.rcm.version.util.ActivityLog;
 
 import java.io.File;
@@ -45,15 +47,19 @@ public class VersionManagerSession
 
     private static final String RELOCATIONS_KEY = "relocations";
 
-    private final Map<Coord, Set<File>> missingVersions = new HashMap<Coord, Set<File>>();
+    private final Map<VersionlessProjectKey, Set<File>> missingVersions =
+        new HashMap<VersionlessProjectKey, Set<File>>();
 
     private final Map<File, Set<Throwable>> errors = new LinkedHashMap<File, Set<Throwable>>();
 
     private final Map<File, ActivityLog> logs = new LinkedHashMap<File, ActivityLog>();
 
-    private final Map<Coord, String> depMap = new HashMap<Coord, String>();
+    private final Map<VersionlessProjectKey, String> depMap = new HashMap<VersionlessProjectKey, String>();
 
-    private final Map<File, Map<Coord, String>> bomDepMap = new HashMap<File, Map<Coord, String>>();
+    private final Map<File, Map<VersionlessProjectKey, String>> bomDepMap =
+        new HashMap<File, Map<VersionlessProjectKey, String>>();
+
+    private final Set<FullProjectKey> bomCoords = new LinkedHashSet<FullProjectKey>();
 
     private final Relocations relocations = new Relocations();
 
@@ -61,18 +67,21 @@ public class VersionManagerSession
 
     private final boolean preserveFiles;
 
-    public VersionManagerSession( final File backups, final boolean preserveFiles )
+    private final boolean normalizeBomUsage;
+
+    public VersionManagerSession( final File backups, final boolean preserveFiles, final boolean normalizeBomUsage )
     {
         this.backups = backups;
         this.preserveFiles = preserveFiles;
+        this.normalizeBomUsage = normalizeBomUsage;
     }
 
-    public Coord getRelocation( final String groupId, final String artifactId )
+    public ProjectKey getRelocation( final String groupId, final String artifactId )
     {
         return relocations.getRelocation( groupId, artifactId );
     }
 
-    public Coord getRelocation( final Coord key )
+    public ProjectKey getRelocation( final ProjectKey key )
     {
         return relocations.getRelocation( key );
     }
@@ -94,7 +103,7 @@ public class VersionManagerSession
         return log;
     }
 
-    public synchronized VersionManagerSession addMissingVersion( final File pom, final Coord key )
+    public synchronized VersionManagerSession addMissingVersion( final File pom, final VersionlessProjectKey key )
     {
         Set<File> poms = missingVersions.get( key );
         if ( poms == null )
@@ -142,7 +151,7 @@ public class VersionManagerSession
         return preserveFiles;
     }
 
-    public Map<Coord, Set<File>> getMissingVersions()
+    public Map<VersionlessProjectKey, Set<File>> getMissingVersions()
     {
         return missingVersions;
     }
@@ -157,18 +166,25 @@ public class VersionManagerSession
         return !depMap.isEmpty();
     }
 
-    public String getArtifactVersion( final Coord key )
+    public String getArtifactVersion( final ProjectKey key )
     {
         return depMap.get( key );
     }
 
-    public Map<File, Map<Coord, String>> getMappedDependenciesByBom()
+    public Map<File, Map<VersionlessProjectKey, String>> getMappedDependenciesByBom()
     {
         return bomDepMap;
     }
 
+    public Set<FullProjectKey> getBomCoords()
+    {
+        return bomCoords;
+    }
+
     public VersionManagerSession addBOM( final File bom, final MavenProject project )
     {
+        bomCoords.add( new FullProjectKey( project.getGroupId(), project.getArtifactId(), project.getVersion() ) );
+
         startBomMap( bom, project.getGroupId(), project.getArtifactId(), project.getVersion() );
 
         if ( project.getDependencyManagement() != null && project.getDependencyManagement().getDependencies() != null )
@@ -207,7 +223,7 @@ public class VersionManagerSession
 
     public void mapDependency( final File srcBom, final Dependency dep )
     {
-        final Coord key = new Coord( dep.getGroupId(), dep.getArtifactId() );
+        final VersionlessProjectKey key = new VersionlessProjectKey( dep.getGroupId(), dep.getArtifactId() );
         final String version = dep.getVersion();
 
         if ( !depMap.containsKey( key ) )
@@ -215,10 +231,10 @@ public class VersionManagerSession
             depMap.put( key, version );
         }
 
-        Map<Coord, String> bomMap = bomDepMap.get( srcBom );
+        Map<VersionlessProjectKey, String> bomMap = bomDepMap.get( srcBom );
         if ( bomMap == null )
         {
-            bomMap = new HashMap<Coord, String>();
+            bomMap = new HashMap<VersionlessProjectKey, String>();
             bomDepMap.put( srcBom, bomMap );
         }
 
@@ -227,13 +243,13 @@ public class VersionManagerSession
 
     private void startBomMap( final File srcBom, final String groupId, final String artifactId, final String version )
     {
-        final Coord bomKey = new Coord( groupId, artifactId );
+        final VersionlessProjectKey bomKey = new VersionlessProjectKey( groupId, artifactId );
         depMap.put( bomKey, version );
 
-        Map<Coord, String> bomMap = bomDepMap.get( srcBom );
+        Map<VersionlessProjectKey, String> bomMap = bomDepMap.get( srcBom );
         if ( bomMap == null )
         {
-            bomMap = new HashMap<Coord, String>();
+            bomMap = new HashMap<VersionlessProjectKey, String>();
             bomDepMap.put( srcBom, bomMap );
         }
 
@@ -243,6 +259,11 @@ public class VersionManagerSession
     public Relocations getRelocations()
     {
         return relocations;
+    }
+
+    public boolean isNormalizeBomUsage()
+    {
+        return normalizeBomUsage;
     }
 
 }

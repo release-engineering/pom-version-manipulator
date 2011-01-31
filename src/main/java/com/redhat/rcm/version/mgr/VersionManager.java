@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Red Hat, Inc.
+ * Copyright (c) 2011 Red Hat, Inc.
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -21,7 +21,9 @@ package com.redhat.rcm.version.mgr;
 import static java.io.File.separatorChar;
 
 import org.apache.log4j.Logger;
+import org.apache.maven.artifact.Artifact;
 import org.apache.maven.model.Dependency;
+import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
 import org.apache.maven.model.building.ModelBuildingRequest;
@@ -50,8 +52,10 @@ import org.jdom.input.SAXBuilder;
 import org.jdom.output.Format;
 import org.jdom.output.Format.TextMode;
 
-import com.redhat.rcm.version.Coord;
 import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.model.FullProjectKey;
+import com.redhat.rcm.version.model.ProjectKey;
+import com.redhat.rcm.version.model.VersionlessProjectKey;
 import com.redhat.rcm.version.report.Report;
 
 import java.io.File;
@@ -60,6 +64,7 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -103,14 +108,6 @@ public class VersionManager
 
         return instance;
     }
-
-    // public VersionManager( final ModelReader modelReader, final ModelInterpolator modelInterpolator,
-    // final Map<String, Report> reports )
-    // {
-    // this.modelReader = modelReader;
-    // this.modelInterpolator = modelInterpolator;
-    // this.reports = reports;
-    // }
 
     public void generateReports( final File reportsDir, final VersionManagerSession sessionData )
     {
@@ -181,7 +178,7 @@ public class VersionManager
         return outFiles;
     }
 
-    public File modifyVersions( File pom, final List<File> boms, final VersionManagerSession session )
+    public Set<File> modifyVersions( File pom, final List<File> boms, final VersionManagerSession session )
     {
         try
         {
@@ -198,11 +195,11 @@ public class VersionManager
         {
             final File out = result.iterator().next();
 
-            LOGGER.info( "Modified POM versions.\n\n\tPOM: " + out + "\n\tBOMs:\t"
+            LOGGER.info( "Modified POM versions.\n\n\tTop POM: " + out + "\n\tBOMs:\t"
                             + StringUtils.join( boms.iterator(), "\n\t\t" ) + "\n\tPOM Backups: "
                             + session.getBackups() + "\n\n" );
 
-            return out;
+            return result;
         }
 
         return null;
@@ -239,6 +236,7 @@ public class VersionManager
             return result;
         }
 
+        final Map<FullProjectKey, MavenProject> projects = new LinkedHashMap<FullProjectKey, MavenProject>();
         for ( final ProjectBuildingResult projectResult : projectResults )
         {
             final List<ModelProblem> problems = projectResult.getProblems();
@@ -257,6 +255,11 @@ public class VersionManager
             }
 
             final MavenProject project = projectResult.getProject();
+            projects.put( new FullProjectKey( project ), project );
+        }
+
+        for ( final MavenProject project : projects.values() )
+        {
             final Model model = project.getOriginalModel();
 
             final Parent parent = model.getParent();
@@ -275,11 +278,16 @@ public class VersionManager
                     originalVersion = parent.getVersion();
                 }
             }
-            final Coord originalCoord = new Coord( groupId, model.getArtifactId() );
+            final ProjectKey originalCoord = new VersionlessProjectKey( groupId, model.getArtifactId() );
 
-            final File pom = projectResult.getPomFile();
+            final File pom = project.getFile();
 
             boolean changed = modifyCoord( model, pom, session );
+            if ( session.isNormalizeBomUsage() )
+            {
+                introduceBoms( model, projects, pom, session );
+            }
+
             if ( model.getDependencies() != null )
             {
                 for ( final Dependency dep : model.getDependencies() )
@@ -311,8 +319,54 @@ public class VersionManager
         return result;
     }
 
-    private File writePom( final Model model, final Coord originalCoord, final String originalVersion, final File pom,
-                           final File basedir, final VersionManagerSession session, final boolean preserveDirs )
+    private void introduceBoms( final Model model, final Map<FullProjectKey, MavenProject> projects, final File pom,
+                                final VersionManagerSession session )
+    {
+        // TODO: If the parent exists in the project-set, ignore the current project (modify the parent instead...)
+        final Parent parent = model.getParent();
+        if ( parent != null )
+        {
+            final FullProjectKey key = new FullProjectKey( parent );
+            if ( projects.containsKey( key ) )
+            {
+                return;
+            }
+        }
+
+        // TODO: check for all BOMs in use in this session...where missing, introduce them at the top of the multimodule
+        // hierarchy.
+        final Set<FullProjectKey> boms = new LinkedHashSet<FullProjectKey>( session.getBomCoords() );
+        DependencyManagement dm = model.getDependencyManagement();
+        if ( dm != null )
+        {
+            final List<Dependency> deps = dm.getDependencies();
+            if ( deps != null )
+            {
+                for ( final Dependency dep : deps )
+                {
+                    if ( dep.getVersion() != null && Artifact.SCOPE_IMPORT.equals( dep.getScope() )
+                                    && "pom".equals( dep.getType() ) )
+                    {
+                        final FullProjectKey k = new FullProjectKey( dep );
+                        boms.remove( k );
+                    }
+                }
+            }
+            else
+            {
+                dm = new DependencyManagement();
+            }
+
+            for ( final FullProjectKey bk : boms )
+            {
+                dm.addDependency( bk.getBomDependency() );
+            }
+        }
+    }
+
+    private File writePom( final Model model, final ProjectKey originalCoord, final String originalVersion,
+                           final File pom, final File basedir, final VersionManagerSession session,
+                           final boolean preserveDirs )
     {
         File backup = pom;
 
@@ -362,7 +416,7 @@ public class VersionManager
 
         boolean relocatePom = false;
 
-        final Coord coord = new Coord( groupId, model.getArtifactId() );
+        final ProjectKey coord = new VersionlessProjectKey( groupId, model.getArtifactId() );
         if ( !preserveDirs && ( !coord.equals( originalCoord ) || !version.equals( originalVersion ) ) )
         {
             relocatePom = true;
@@ -454,8 +508,8 @@ public class VersionManager
     {
         boolean changed = false;
 
-        final Coord key = new Coord( dep.getGroupId(), dep.getArtifactId() );
-        final Coord newKey = session.getRelocation( key );
+        final VersionlessProjectKey key = new VersionlessProjectKey( dep.getGroupId(), dep.getArtifactId() );
+        final ProjectKey newKey = session.getRelocation( key );
         if ( newKey != null && !key.equals( newKey ) )
         {
             LOGGER.info( "Relocating dependency: " + key + " to: " + newKey );
@@ -483,7 +537,16 @@ public class VersionManager
             {
                 session.getLog( pom ).add( "Changing version for: %s%s.\n\tFrom: %s\n\tTo: %s.", key,
                                            isManaged ? " [MANAGED]" : "", dep.getVersion(), version );
-                dep.setVersion( version );
+
+                if ( session.isNormalizeBomUsage() )
+                {
+                    // wipe this out, and use the one in the BOM implicitly...DRY-style.
+                    dep.setVersion( null );
+                }
+                else
+                {
+                    dep.setVersion( version );
+                }
                 changed = true;
             }
             else
@@ -512,8 +575,8 @@ public class VersionManager
 
         if ( model.getVersion() != null )
         {
-            final Coord key = new Coord( groupId, model.getArtifactId() );
-            final Coord newKey = session.getRelocation( key );
+            final VersionlessProjectKey key = new VersionlessProjectKey( groupId, model.getArtifactId() );
+            final ProjectKey newKey = session.getRelocation( key );
 
             if ( newKey != null && !key.equals( newKey ) )
             {
@@ -547,8 +610,8 @@ public class VersionManager
 
         if ( parent != null )
         {
-            final Coord key = new Coord( parent.getGroupId(), parent.getArtifactId() );
-            final Coord newKey = session.getRelocation( key );
+            final VersionlessProjectKey key = new VersionlessProjectKey( parent.getGroupId(), parent.getArtifactId() );
+            final ProjectKey newKey = session.getRelocation( key );
 
             if ( newKey != null && !key.equals( newKey ) )
             {

@@ -1,23 +1,26 @@
 /*
- *  Copyright (C) 2011 John Casey.
- *  
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU Affero General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *  
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Affero General Public License for more details.
- *  
- *  You should have received a copy of the GNU Affero General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * Copyright (c) 2011 Red Hat, Inc.
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see 
+ * <http://www.gnu.org/licenses>.
  */
 
-package com.redhat.rcm.version;
+package com.redhat.rcm.version.model;
 
 import org.apache.log4j.Logger;
+
+import com.redhat.rcm.version.VManException;
 
 import java.io.File;
 import java.util.HashMap;
@@ -29,11 +32,11 @@ public class Relocations
 
     private static final Logger LOGGER = Logger.getLogger( Relocations.class );
 
-    private final Map<Coord, Coord> relocations = new HashMap<Coord, Coord>();
+    private final Map<VersionlessProjectKey, VersionlessProjectKey> relocations = new HashMap<VersionlessProjectKey, VersionlessProjectKey>();
 
-    private final Map<File, Map<Coord, Coord>> byFile = new LinkedHashMap<File, Map<Coord, Coord>>();
+    private final Map<File, Map<VersionlessProjectKey, VersionlessProjectKey>> byFile = new LinkedHashMap<File, Map<VersionlessProjectKey, VersionlessProjectKey>>();
 
-    private Coord toCoord( final String src )
+    private VersionlessProjectKey toCoord( final String src )
         throws VManException
     {
         final String[] parts = src.split( ":" );
@@ -49,15 +52,15 @@ public class Relocations
             throw new VManException( "Invalid coordinate: '" + src + "'." );
         }
 
-        return new Coord( parts[0], parts[1] );
+        return new VersionlessProjectKey( parts[0], parts[1] );
     }
 
-    public Coord getRelocation( final String groupId, final String artifactId )
+    public ProjectKey getRelocation( final String groupId, final String artifactId )
     {
-        return getRelocation( new Coord( groupId, artifactId ) );
+        return getRelocation( new VersionlessProjectKey( groupId, artifactId ) );
     }
 
-    public Coord getRelocation( final Coord key )
+    public ProjectKey getRelocation( final ProjectKey key )
     {
         return relocations.get( key );
     }
@@ -69,7 +72,7 @@ public class Relocations
         if ( lines != null && lines.length > 0 )
         {
             LOGGER.info( bom + ": Found " + lines.length + " relocations..." );
-            final Map<Coord, Coord> relocations = new LinkedHashMap<Coord, Coord>();
+            final Map<VersionlessProjectKey, VersionlessProjectKey> relocations = new LinkedHashMap<VersionlessProjectKey, VersionlessProjectKey>();
             for ( String line : lines )
             {
                 LOGGER.info( "processing: '" + line + "'" );
@@ -82,8 +85,8 @@ public class Relocations
                 idx = line.indexOf( '=' );
                 if ( idx > 0 )
                 {
-                    final Coord key = toCoord( line.substring( 0, idx ).trim() );
-                    final Coord val = toCoord( line.substring( idx + 1 ).trim() );
+                    final VersionlessProjectKey key = toCoord( line.substring( 0, idx ).trim() );
+                    final VersionlessProjectKey val = toCoord( line.substring( idx + 1 ).trim() );
 
                     LOGGER.info( "Adding relocation from: " + key + " to: " + val + " in BOM: " + bom );
                     relocations.put( key, val );
@@ -101,7 +104,7 @@ public class Relocations
         return this;
     }
 
-    public Map<File, Map<Coord, Coord>> getRelocationsByFile()
+    public Map<File, Map<VersionlessProjectKey, VersionlessProjectKey>> getRelocationsByFile()
     {
         return byFile;
     }

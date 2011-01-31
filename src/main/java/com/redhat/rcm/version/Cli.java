@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Red Hat, Inc.
+ * Copyright (c) 2011 Red Hat, Inc.
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -45,16 +45,19 @@ public class Cli
     @Option( name = "-p", usage = "POM path pattern (glob)" )
     private String pomPattern = "**/*.pom";
 
-    @Option( name = "-P", usage = "Write changed POMs back to original input files" )
+    @Option( name = "-P", aliases = { "--preserve" }, usage = "Write changed POMs back to original input files" )
     private final boolean preserveFiles = false;
 
-    @Option( name = "-b", usage = "Backup original files here up before modifying." )
+    @Option( name = "-b", aliases = { "--backups" }, usage = "Backup original files here up before modifying." )
     private final File backups = new File( "vman-backups" );
 
-    @Option( name = "-r", usage = "Write reports here." )
+    @Option( name = "-r", aliases = { "--report-dir" }, usage = "Write reports here." )
     private final File reports = new File( "vman-reports" );
 
-    @Option( name = "-h", usage = "Print this message and quit" )
+    @Option( name = "-n", aliases = { "--normalize" }, usage = "Normalize the BOM usage (introduce the BOM if not already there, and defer all dependency versions to that)." )
+    private boolean normalizeBomUsage = false;
+
+    @Option( name = "-h", aliases = { "--help" }, usage = "Print this message and quit" )
     private boolean help = false;
 
     private static final Logger LOGGER = Logger.getLogger( Cli.class );
@@ -110,7 +113,7 @@ public class Cli
                         + StringUtils.join( boms.iterator(), "\n\t" ) + "\n\nBackups:\n\t" + backups
                         + "\n\nReports:\n\t" + reports );
 
-        final VersionManagerSession session = new VersionManagerSession( backups, preserveFiles );
+        final VersionManagerSession session = new VersionManagerSession( backups, preserveFiles, normalizeBomUsage );
         if ( target.isDirectory() )
         {
             vman.modifyVersions( target, pomPattern, boms, session );
@@ -158,6 +161,16 @@ public class Cli
     protected void setHelp( final boolean help )
     {
         this.help = help;
+    }
+
+    protected boolean isNormalizeBomUsage()
+    {
+        return normalizeBomUsage;
+    }
+
+    protected void setNormalizeBomUsage( final boolean normalizeBomUsage )
+    {
+        this.normalizeBomUsage = normalizeBomUsage;
     }
 
 }

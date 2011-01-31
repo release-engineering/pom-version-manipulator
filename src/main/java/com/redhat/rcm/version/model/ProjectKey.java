@@ -16,17 +16,16 @@
  * <http://www.gnu.org/licenses>.
  */
 
-package com.redhat.rcm.version.report;
+package com.redhat.rcm.version.model;
 
-import com.redhat.rcm.version.VManException;
-import com.redhat.rcm.version.mgr.VersionManagerSession;
-
-import java.io.File;
-
-public interface Report
+/**
+ * 
+ */
+public interface ProjectKey
 {
-    String getId();
 
-    void generate( final File reportsDir, final VersionManagerSession sessionData )
-        throws VManException;
+    String getGroupId();
+
+    String getArtifactId();
+
 }

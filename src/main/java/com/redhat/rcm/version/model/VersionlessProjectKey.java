@@ -1,40 +1,53 @@
 /*
- *  Copyright (C) 2011 John Casey.
- *  
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU Affero General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *  
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Affero General Public License for more details.
- *  
- *  You should have received a copy of the GNU Affero General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * Copyright (c) 2011 Red Hat, Inc.
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see 
+ * <http://www.gnu.org/licenses>.
  */
 
-package com.redhat.rcm.version;
+package com.redhat.rcm.version.model;
 
-public final class Coord
-    implements Comparable<Coord>
+public class VersionlessProjectKey
+    implements Comparable<ProjectKey>, ProjectKey
 {
     private final String groupId;
 
     private final String artifactId;
 
-    public Coord( final String groupId, final String artifactId )
+    public VersionlessProjectKey( final String groupId, final String artifactId )
     {
         this.groupId = groupId;
         this.artifactId = artifactId;
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.redhat.rcm.version.model.ProjectKey#getGroupId()
+     */
+    @Override
     public String getGroupId()
     {
         return groupId;
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.redhat.rcm.version.model.ProjectKey#getArtifactId()
+     */
+    @Override
     public String getArtifactId()
     {
         return artifactId;
@@ -65,7 +78,7 @@ public final class Coord
         {
             return false;
         }
-        final Coord other = (Coord) obj;
+        final VersionlessProjectKey other = (VersionlessProjectKey) obj;
         if ( artifactId == null )
         {
             if ( other.artifactId != null )
@@ -98,14 +111,20 @@ public final class Coord
     }
 
     @Override
-    public int compareTo( final Coord other )
+    public int compareTo( final ProjectKey other )
     {
         if ( other == null )
         {
             return -1;
         }
 
-        return toString().compareTo( other.toString() );
+        int comp = getGroupId().compareTo( other.getGroupId() );
+        if ( comp == 0 )
+        {
+            comp = getArtifactId().compareTo( other.getArtifactId() );
+        }
+
+        return comp;
     }
 
 }

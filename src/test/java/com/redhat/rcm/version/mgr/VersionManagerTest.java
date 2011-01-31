@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Red Hat, Inc.
+ * Copyright (c) 2011 Red Hat, Inc.
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -19,6 +19,7 @@
 package com.redhat.rcm.version.mgr;
 
 import static junit.framework.Assert.fail;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import org.apache.log4j.Appender;
@@ -29,7 +30,13 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.SimpleLayout;
 import org.apache.log4j.spi.Configurator;
 import org.apache.log4j.spi.LoggerRepository;
+import org.apache.maven.artifact.Artifact;
+import org.apache.maven.model.Dependency;
+import org.apache.maven.model.DependencyManagement;
+import org.apache.maven.model.Model;
+import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.FileUtils;
+import org.codehaus.plexus.util.ReaderFactory;
 import org.commonjava.emb.EMBException;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -38,6 +45,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Reader;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
@@ -47,6 +55,79 @@ import java.util.Set;
 
 public class VersionManagerTest
 {
+
+    @Test
+    public void modifySinglePom_NormalizeToBOMUsage()
+        throws Exception
+    {
+        System.setProperty( "debug", Boolean.toString( true ) );
+        System.out.println( "Single POM test (normalize to BOM usage)..." );
+
+        final File srcPom = getResourceFile( "rwx-parent-0.2.1.pom" );
+        final File bom = getResourceFile( "bom.xml" );
+
+        final File pom = new File( repo, srcPom.getName() );
+        FileUtils.copyFile( srcPom, pom );
+
+        final VersionManagerSession session = new VersionManagerSession( backups, false, true );
+
+        final Set<File> modified = vman.modifyVersions( pom, Collections.singletonList( bom ), session );
+        assertNormalizedToBOMs( modified );
+
+        System.out.println( "\n\n" );
+    }
+
+    @Test
+    public void modifyCompleteRepository_NormalizeToBOMUsage()
+        throws Exception
+    {
+        System.out.println( "Repository test (normalize to BOM usage)..." );
+
+        final File srcRepo = getResourceFile( "project-dir" );
+        final File bom = getResourceFile( "bom.xml" );
+
+        FileUtils.copyDirectoryStructure( srcRepo, repo );
+
+        final VersionManagerSession session = new VersionManagerSession( backups, false, true );
+
+        final Set<File> modified = vman.modifyVersions( repo, "pom.xml", Collections.singletonList( bom ), session );
+        assertNormalizedToBOMs( modified );
+
+        System.out.println( "\n\n" );
+    }
+
+    private void assertNormalizedToBOMs( final Set<File> modified )
+        throws Exception
+    {
+        for ( final File out : modified )
+        {
+            System.out.println( "Examining: " + out );
+
+            final Reader reader = ReaderFactory.newPlatformReader( out );
+            final Model model = new MavenXpp3Reader().read( reader );
+            final DependencyManagement dm = model.getDependencyManagement();
+            if ( dm != null )
+            {
+                for ( final Dependency dep : dm.getDependencies() )
+                {
+                    if ( !( "pom".equals( dep.getType() ) && Artifact.SCOPE_IMPORT.equals( dep.getScope() ) ) )
+                    {
+                        assertNull( "Managed Dependency version was NOT nullified: " + dep.getManagementKey()
+                                        + "\nPOM: " + out, dep.getVersion() );
+                    }
+                }
+            }
+
+            for ( final Dependency dep : model.getDependencies() )
+            {
+                if ( !( "pom".equals( dep.getType() ) && Artifact.SCOPE_IMPORT.equals( dep.getScope() ) ) )
+                {
+                    assertNull( "Dependency version was NOT nullified: " + dep.getManagementKey() + "\nPOM: " + out,
+                                dep.getVersion() );
+                }
+            }
+        }
+    }
 
     @Test
     public void modifyCompleteRepositoryVersions()
@@ -185,7 +266,7 @@ public class VersionManagerTest
 
         final VersionManagerSession session = newVersionManagerSession();
 
-        final File out = vman.modifyVersions( pom, Collections.singletonList( bom ), session );
+        final File out = vman.modifyVersions( pom, Collections.singletonList( bom ), session ).iterator().next();
         vman.generateReports( reports, session );
 
         final String result = FileUtils.fileRead( out );
@@ -323,7 +404,7 @@ public class VersionManagerTest
 
     private VersionManagerSession newVersionManagerSession()
     {
-        return new VersionManagerSession( backups, false );
+        return new VersionManagerSession( backups, false, false );
     }
 
     private File createTempDir( final String basename )

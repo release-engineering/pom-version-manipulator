@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Red Hat, Inc.
+ * Copyright (c) 2011 Red Hat, Inc.
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -21,9 +21,9 @@ package com.redhat.rcm.version.report;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.util.IOUtil;
 
-import com.redhat.rcm.version.Coord;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.VersionManagerSession;
+import com.redhat.rcm.version.model.VersionlessProjectKey;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -54,8 +54,8 @@ public class MissingVersionsReport
         {
             writer = new BufferedWriter( new FileWriter( reportFile ) );
 
-            final Map<Coord, Set<File>> missing = new TreeMap<Coord, Set<File>>( sessionData.getMissingVersions() );
-            for ( final Map.Entry<Coord, Set<File>> entry : missing.entrySet() )
+            final Map<VersionlessProjectKey, Set<File>> missing = new TreeMap<VersionlessProjectKey, Set<File>>( sessionData.getMissingVersions() );
+            for ( final Map.Entry<VersionlessProjectKey, Set<File>> entry : missing.entrySet() )
             {
                 writer.write( entry.getKey().toString() );
                 writer.newLine();
@@ -71,7 +71,7 @@ public class MissingVersionsReport
                 writer.newLine();
             }
 
-            for ( final Map.Entry<Coord, Set<File>> entry : missing.entrySet() )
+            for ( final Map.Entry<VersionlessProjectKey, Set<File>> entry : missing.entrySet() )
             {
                 writer.write( entry.getKey().toString() );
                 writer.write( ":" );

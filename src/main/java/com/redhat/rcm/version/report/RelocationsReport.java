@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Red Hat, Inc.
+ * Copyright (c) 2011 Red Hat, Inc.
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -21,9 +21,9 @@ package com.redhat.rcm.version.report;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.util.IOUtil;
 
-import com.redhat.rcm.version.Coord;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.VersionManagerSession;
+import com.redhat.rcm.version.model.VersionlessProjectKey;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -52,14 +52,14 @@ public class RelocationsReport
         try
         {
             writer = new PrintWriter( new FileWriter( reportFile ) );
-            final Map<File, Map<Coord, Coord>> byFile = sessionData.getRelocations().getRelocationsByFile();
+            final Map<File, Map<VersionlessProjectKey, VersionlessProjectKey>> byFile = sessionData.getRelocations().getRelocationsByFile();
 
             int fileCounter = 0;
-            for ( final Map.Entry<File, Map<Coord, Coord>> fileEntry : byFile.entrySet() )
+            for ( final Map.Entry<File, Map<VersionlessProjectKey, VersionlessProjectKey>> fileEntry : byFile.entrySet() )
             {
                 writer.printf( "%d: %s\n---------------------------------------------------------\n", fileCounter,
                                fileEntry.getKey() );
-                for ( final Map.Entry<Coord, Coord> coordEntry : fileEntry.getValue().entrySet() )
+                for ( final Map.Entry<VersionlessProjectKey, VersionlessProjectKey> coordEntry : fileEntry.getValue().entrySet() )
                 {
                     writer.printf( "\n    %s = %s", coordEntry.getKey(), coordEntry.getValue() );
                 }

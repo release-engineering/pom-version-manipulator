@@ -120,6 +120,12 @@
         <artifactId>slf4j-parent</artifactId>
         <version>1.5.10-redhat-1</version>
       </dependency>
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>4.8.1-redhat-1</version>
+        <scope>test</scope>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 </project>
