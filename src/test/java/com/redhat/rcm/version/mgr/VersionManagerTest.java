@@ -31,13 +31,13 @@ import org.apache.log4j.SimpleLayout;
 import org.apache.log4j.spi.Configurator;
 import org.apache.log4j.spi.LoggerRepository;
 import org.apache.maven.artifact.Artifact;
+import org.apache.maven.mae.MAEException;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.FileUtils;
 import org.codehaus.plexus.util.ReaderFactory;
-import org.commonjava.emb.EMBException;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -307,7 +307,7 @@ public class VersionManagerTest
 
     @BeforeClass
     public static void setupVersionManager()
-        throws EMBException
+        throws MAEException
     {
         vman = VersionManager.getInstance();
     }

@@ -22,6 +22,9 @@ import static java.io.File.separatorChar;
 
 import org.apache.log4j.Logger;
 import org.apache.maven.artifact.Artifact;
+import org.apache.maven.mae.MAEException;
+import org.apache.maven.mae.boot.embed.MAEEmbeddingException;
+import org.apache.maven.mae.boot.services.MAEServiceManager;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Model;
@@ -42,10 +45,7 @@ import org.codehaus.plexus.util.FileUtils;
 import org.codehaus.plexus.util.IOUtil;
 import org.codehaus.plexus.util.StringUtils;
 import org.codehaus.plexus.util.WriterFactory;
-import org.commonjava.emb.EMBException;
-import org.commonjava.emb.app.AbstractEMBApplication;
-import org.commonjava.emb.boot.embed.EMBEmbeddingException;
-import org.commonjava.emb.boot.services.EMBServiceManager;
+import org.commonjava.emb.app.AbstractMAEApplication;
 import org.jdom.Document;
 import org.jdom.JDOMException;
 import org.jdom.input.SAXBuilder;
@@ -72,7 +72,7 @@ import java.util.Set;
 
 @Component( role = VersionManager.class )
 public class VersionManager
-    extends AbstractEMBApplication
+    extends AbstractMAEApplication
 {
 
     private static final Logger LOGGER = Logger.getLogger( VersionManager.class );
@@ -81,7 +81,7 @@ public class VersionManager
     private ProjectBuilder projectBuilder;
 
     @Requirement
-    private EMBServiceManager serviceManager;
+    private MAEServiceManager serviceManager;
 
     @Requirement( role = Report.class )
     private Map<String, Report> reports;
@@ -95,7 +95,7 @@ public class VersionManager
     }
 
     public static VersionManager getInstance()
-        throws EMBException
+        throws MAEException
     {
         synchronized ( lock )
         {
@@ -219,7 +219,7 @@ public class VersionManager
         {
             req.setRepositorySession( serviceManager.createAetherRepositorySystemSession() );
         }
-        catch ( final EMBEmbeddingException e )
+        catch ( final MAEEmbeddingException e )
         {
             session.addGlobalError( e );
             return result;
@@ -657,7 +657,7 @@ public class VersionManager
             {
                 req.setRepositorySession( serviceManager.createAetherRepositorySystemSession() );
             }
-            catch ( final EMBEmbeddingException e )
+            catch ( final MAEEmbeddingException e )
             {
                 session.addGlobalError( e );
             }

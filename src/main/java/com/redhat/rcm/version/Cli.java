@@ -19,8 +19,8 @@
 package com.redhat.rcm.version;
 
 import org.apache.log4j.Logger;
+import org.apache.maven.mae.MAEException;
 import org.codehaus.plexus.util.StringUtils;
-import org.commonjava.emb.EMBException;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
@@ -93,19 +93,19 @@ public class Cli
     }
 
     public Cli( final File target, final File... boms )
-        throws EMBException
+        throws MAEException
     {
         this.target = target;
         this.boms = Arrays.asList( boms );
     }
 
     public Cli()
-        throws EMBException
+        throws MAEException
     {
     }
 
     public void run()
-        throws EMBException, VManException
+        throws MAEException, VManException
     {
         vman = VersionManager.getInstance();
 

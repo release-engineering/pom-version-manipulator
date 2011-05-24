@@ -27,7 +27,8 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <mavenVersion>3.0.2</mavenVersion>
+    <mavenVersion>3.0.3</mavenVersion>
+    <maeVersion>3.0.3-SNAPSHOT</maeVersion>
   </properties>
 
   <dependencies>
@@ -58,16 +59,14 @@
     	<version>2.0.12</version>
     </dependency>
     <dependency>
-    	<groupId>org.commonjava.emb</groupId>
-    	<artifactId>emb-app</artifactId>
-    	<version>0.5</version>
+    	<groupId>org.apache.maven.mae</groupId>
+    	<artifactId>mae-app</artifactId>
+    	<version>${maeVersion}</version>
     </dependency>
     <dependency>
-    	<groupId>org.apache.maven</groupId>
-    	<artifactId>apache-maven</artifactId>
+    	<groupId>org.commonjava.maven</groupId>
+    	<artifactId>maven-model-jdom-support</artifactId>
     	<version>${mavenVersion}</version>
-    	<type>zip</type>
-    	<classifier>src</classifier>
     </dependency>
     <dependency>
     	<groupId>commons-io</groupId>
@@ -112,46 +111,6 @@
             <goals>
               <goal>generate-metadata</goal>
               <goal>generate-test-metadata</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <version>2.1</version>
-        <executions>
-          <execution>
-            <id>unpack-maven-mdo</id>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>unpack-dependencies</goal>
-            </goals>
-            <configuration>
-              <includeArtifactIds>apache-maven</includeArtifactIds>
-              <includeGroupIds>org.apache.maven</includeGroupIds>
-              <includeClassifiers>src</includeClassifiers>
-              <includeTypes>zip</includeTypes>
-              <includes>*/maven-model/src/main/mdo/*.mdo</includes>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.modello</groupId>
-        <artifactId>modello-maven-plugin</artifactId>
-        <version>1.4.1</version>
-        <configuration>
-          <version>4.0.0</version>
-          <models>
-            <model>target/dependency/apache-maven-${mavenVersion}/maven-model/src/main/mdo/maven.mdo</model>
-          </models>
-        </configuration>
-        <executions>
-          <execution>
-            <id>standard</id>
-            <phase>process-sources</phase>
-            <goals>
-              <goal>jdom-writer</goal>
             </goals>
           </execution>
         </executions>
