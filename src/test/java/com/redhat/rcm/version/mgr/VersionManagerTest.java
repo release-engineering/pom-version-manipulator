@@ -64,12 +64,12 @@ public class VersionManagerTest
         System.out.println( "Single POM test (normalize to BOM usage)..." );
 
         final File srcPom = getResourceFile( "rwx-parent-0.2.1.pom" );
-        final File bom = getResourceFile( "bom.xml" );
+        final String bom = getResourceFile( "bom.xml" ).getAbsolutePath();
 
         final File pom = new File( repo, srcPom.getName() );
         FileUtils.copyFile( srcPom, pom );
 
-        final VersionManagerSession session = new VersionManagerSession( backups, false, true );
+        final VersionManagerSession session = new VersionManagerSession( workspace, false, true );
 
         final Set<File> modified = vman.modifyVersions( pom, Collections.singletonList( bom ), session );
         assertNormalizedToBOMs( modified );
@@ -84,11 +84,11 @@ public class VersionManagerTest
         System.out.println( "Repository test (normalize to BOM usage)..." );
 
         final File srcRepo = getResourceFile( "project-dir" );
-        final File bom = getResourceFile( "bom.xml" );
+        final String bom = getResourceFile( "bom.xml" ).getAbsolutePath();
 
         FileUtils.copyDirectoryStructure( srcRepo, repo );
 
-        final VersionManagerSession session = new VersionManagerSession( backups, false, true );
+        final VersionManagerSession session = new VersionManagerSession( workspace, false, true );
 
         final Set<File> modified = vman.modifyVersions( repo, "pom.xml", Collections.singletonList( bom ), session );
         assertNormalizedToBOMs( modified );
@@ -136,7 +136,7 @@ public class VersionManagerTest
         System.out.println( "Complete repository test..." );
 
         final File srcRepo = getResourceFile( "repository" );
-        final File bom = getResourceFile( "bom.xml" );
+        final String bom = getResourceFile( "bom.xml" ).getAbsolutePath();
 
         FileUtils.copyDirectoryStructure( srcRepo, repo );
 
@@ -152,7 +152,7 @@ public class VersionManagerTest
         System.out.println( "Repository POM non-interference test..." );
 
         final File srcRepo = getResourceFile( "projects-with-property-refs" );
-        final File bom = getResourceFile( "bom.xml" );
+        final String bom = getResourceFile( "bom.xml" ).getAbsolutePath();
 
         FileUtils.copyDirectoryStructure( srcRepo, repo );
 
@@ -181,7 +181,7 @@ public class VersionManagerTest
         System.out.println( "Partial repository test..." );
 
         final File srcRepo = getResourceFile( "repository.partial" );
-        final File bom = getResourceFile( "bom.xml" );
+        final String bom = getResourceFile( "bom.xml" ).getAbsolutePath();
 
         FileUtils.copyDirectoryStructure( srcRepo, repo );
 
@@ -197,8 +197,8 @@ public class VersionManagerTest
         System.out.println( "Complete repository test..." );
 
         final File srcRepo = getResourceFile( "repository" );
-        final File bom1 = getResourceFile( "bom.part1.xml" );
-        final File bom2 = getResourceFile( "bom.part2.xml" );
+        final String bom1 = getResourceFile( "bom.part1.xml" ).getAbsolutePath();
+        final String bom2 = getResourceFile( "bom.part2.xml" ).getAbsolutePath();
 
         FileUtils.copyDirectoryStructure( srcRepo, repo );
 
@@ -214,8 +214,8 @@ public class VersionManagerTest
         System.out.println( "Partial repository test..." );
 
         final File srcRepo = getResourceFile( "repository.partial" );
-        final File bom1 = getResourceFile( "bom.part1.xml" );
-        final File bom2 = getResourceFile( "bom.part2.xml" );
+        final String bom1 = getResourceFile( "bom.part1.xml" ).getAbsolutePath();
+        final String bom2 = getResourceFile( "bom.part2.xml" ).getAbsolutePath();
 
         FileUtils.copyDirectoryStructure( srcRepo, repo );
 
@@ -231,7 +231,7 @@ public class VersionManagerTest
         System.out.println( "Single POM test..." );
 
         final File srcPom = getResourceFile( "rwx-parent-0.2.1.pom" );
-        final File bom = getResourceFile( "bom.xml" );
+        final String bom = getResourceFile( "bom.xml" ).getAbsolutePath();
 
         final File pom = new File( repo, srcPom.getName() );
         FileUtils.copyFile( srcPom, pom );
@@ -259,7 +259,7 @@ public class VersionManagerTest
         System.out.println( "Single POM test (with relocations)..." );
 
         final File srcPom = getResourceFile( "rwx-parent-0.2.1.pom" );
-        final File bom = getResourceFile( "bom-relocations.xml" );
+        final String bom = getResourceFile( "bom-relocations.xml" ).getAbsolutePath();
 
         final File pom = new File( repo, srcPom.getName() );
         FileUtils.copyFile( srcPom, pom );
@@ -282,7 +282,7 @@ public class VersionManagerTest
         System.out.println( "Single POM test (interpolated BOM)..." );
 
         final File srcPom = getResourceFile( "rwx-parent-0.2.1.pom" );
-        final File bom = getResourceFile( "bom.interp.xml" );
+        final String bom = getResourceFile( "bom.interp.xml" ).getAbsolutePath();
 
         final File pom = new File( repo, srcPom.getName() );
         FileUtils.copyFile( srcPom, pom );
@@ -301,7 +301,7 @@ public class VersionManagerTest
 
     private File repo;
 
-    private File backups;
+    private File workspace;
 
     private File reports;
 
@@ -388,11 +388,11 @@ public class VersionManagerTest
         throws IOException
     {
         repo = createTempDir( "repository" );
-        backups = createTempDir( "backup-repo" );
+        workspace = createTempDir( "workspace" );
         reports = createTempDir( "reports" );
     }
 
-    private VersionManagerSession modifyRepo( final File... boms )
+    private VersionManagerSession modifyRepo( final String... boms )
     {
         final VersionManagerSession session = newVersionManagerSession();
 
@@ -404,7 +404,7 @@ public class VersionManagerTest
 
     private VersionManagerSession newVersionManagerSession()
     {
-        return new VersionManagerSession( backups, false, false );
+        return new VersionManagerSession( workspace, false, false );
     }
 
     private File createTempDir( final String basename )

@@ -19,7 +19,14 @@
 package com.redhat.rcm.version.mgr;
 
 import static java.io.File.separatorChar;
+import static org.apache.commons.io.IOUtils.closeQuietly;
+import static org.apache.commons.io.IOUtils.copy;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.log4j.Logger;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.mae.MAEException;
@@ -60,6 +67,8 @@ import com.redhat.rcm.version.report.Report;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -137,7 +146,7 @@ public class VersionManager
         }
     }
 
-    public Set<File> modifyVersions( final File dir, final String pomNamePattern, final List<File> boms,
+    public Set<File> modifyVersions( final File dir, final String pomNamePattern, final List<String> boms,
                                      final VersionManagerSession session )
     {
         final DirectoryScanner scanner = new DirectoryScanner();
@@ -178,7 +187,7 @@ public class VersionManager
         return outFiles;
     }
 
-    public Set<File> modifyVersions( File pom, final List<File> boms, final VersionManagerSession session )
+    public Set<File> modifyVersions( File pom, final List<String> boms, final VersionManagerSession session )
     {
         try
         {
@@ -644,10 +653,12 @@ public class VersionManager
         return changed;
     }
 
-    private void loadBOMs( final List<File> boms, final VersionManagerSession session )
+    private void loadBOMs( final List<String> boms, final VersionManagerSession session )
     {
         if ( !session.hasDependencyMap() )
         {
+            List<File> bomFiles = getBomFiles( boms, session );
+            
             final DefaultProjectBuildingRequest req = new DefaultProjectBuildingRequest();
             req.setProcessPlugins( false );
             req.setRepositoryMerging( RepositoryMerging.POM_DOMINANT );
@@ -665,7 +676,7 @@ public class VersionManager
             List<ProjectBuildingResult> projectResults;
             try
             {
-                projectResults = projectBuilder.build( boms, false, req );
+                projectResults = projectBuilder.build( bomFiles, false, req );
 
                 for ( final ProjectBuildingResult projectResult : projectResults )
                 {
@@ -696,6 +707,55 @@ public class VersionManager
                 session.addGlobalError( e );
             }
         }
+    }
+
+    private List<File> getBomFiles( List<String> boms, VersionManagerSession session )
+    {
+        List<File> result = new ArrayList<File>( boms.size() );
+        
+        DefaultHttpClient client = new DefaultHttpClient();
+        client.setRedirectStrategy( new DefaultRedirectStrategy() );
+        
+        for ( String bom : boms )
+        {
+            if ( bom.startsWith( "http" ) )
+            {
+                File downloaded = new File( session.getDownloads(), new File( bom ).getName() );
+                if ( !downloaded.exists() )
+                {
+                    HttpGet get = new HttpGet( bom );
+                    OutputStream out = null;
+                    try
+                    {
+                        HttpResponse response = client.execute( get );
+                        int code = response.getStatusLine().getStatusCode();
+                        if ( code == 200 )
+                        {
+                            InputStream in = response.getEntity().getContent();
+                            copy( in, out );
+                        }
+                    }
+                    catch ( ClientProtocolException e )
+                    {
+                        session.addGlobalError( e );
+                    }
+                    catch ( IOException e )
+                    {
+                        session.addGlobalError( e );
+                    }
+                    finally
+                    {
+                        closeQuietly( out );
+                    }
+                }
+            }
+            else
+            {
+                result.add( new File( bom ) );
+            }
+        }
+        
+        return result;
     }
 
     public String getId()

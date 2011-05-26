@@ -64,14 +64,21 @@ public class VersionManagerSession
     private final Relocations relocations = new Relocations();
 
     private final File backups;
+    
+    private final File downloads;
 
     private final boolean preserveFiles;
 
     private final boolean normalizeBomUsage;
 
-    public VersionManagerSession( final File backups, final boolean preserveFiles, final boolean normalizeBomUsage )
+    public VersionManagerSession( final File workspace, final boolean preserveFiles, final boolean normalizeBomUsage )
     {
-        this.backups = backups;
+        this.backups = new File( workspace, "backups" );
+        this.backups.mkdirs();
+        
+        this.downloads = new File( workspace, "downloads" );
+        this.downloads.mkdirs();
+        
         this.preserveFiles = preserveFiles;
         this.normalizeBomUsage = normalizeBomUsage;
     }
@@ -144,6 +151,11 @@ public class VersionManagerSession
     public File getBackups()
     {
         return backups;
+    }
+    
+    public File getDownloads()
+    {
+        return downloads;
     }
 
     public boolean isPreserveFiles()

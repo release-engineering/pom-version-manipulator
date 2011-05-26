@@ -68,7 +68,7 @@ public class Relocations
     public Relocations addBomRelocations( final File bom, final String relocationsStr )
         throws VManException
     {
-        final String[] lines = relocationsStr.split( "[\\s,]+" );
+        final String[] lines = relocationsStr.split( "[\\s*,\\s*]+" );
         if ( lines != null && lines.length > 0 )
         {
             LOGGER.info( bom + ": Found " + lines.length + " relocations..." );

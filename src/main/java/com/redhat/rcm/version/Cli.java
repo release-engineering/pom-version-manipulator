@@ -18,6 +18,8 @@
 
 package com.redhat.rcm.version;
 
+import static org.apache.commons.io.IOUtils.closeQuietly;
+
 import org.apache.log4j.Logger;
 import org.apache.maven.mae.MAEException;
 import org.codehaus.plexus.util.StringUtils;
@@ -30,7 +32,11 @@ import org.kohsuke.args4j.Option;
 import com.redhat.rcm.version.mgr.VersionManager;
 import com.redhat.rcm.version.mgr.VersionManagerSession;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -40,7 +46,10 @@ public class Cli
     private File target;
 
     @Argument( index = 1, metaVar = "BOM", usage = "Bill-of-Materials POM file supplying versions.", multiValued = true )
-    private List<File> boms;
+    private List<String> boms;
+
+    @Option( name = "-b", usage = "File containing a list of BOMs to use (instead of listing them on the command line)" )
+    private File bomList;
 
     @Option( name = "-p", usage = "POM path pattern (glob)" )
     private String pomPattern = "**/*.pom";
@@ -48,8 +57,8 @@ public class Cli
     @Option( name = "-P", aliases = { "--preserve" }, usage = "Write changed POMs back to original input files" )
     private final boolean preserveFiles = false;
 
-    @Option( name = "-b", aliases = { "--backups" }, usage = "Backup original files here up before modifying." )
-    private final File backups = new File( "vman-backups" );
+    @Option( name = "-w", aliases = { "--workspace" }, usage = "Backup original files here up before modifying." )
+    private final File workspace = new File( "vman-workspace" );
 
     @Option( name = "-r", aliases = { "--report-dir" }, usage = "Write reports here." )
     private final File reports = new File( "vman-reports" );
@@ -77,7 +86,7 @@ public class Cli
             {
                 printUsage( parser, null );
             }
-            else if ( cli.target == null || cli.boms == null )
+            else if ( cli.target == null || ( cli.boms == null && cli.bomList == null ) )
             {
                 printUsage( parser, null );
             }
@@ -92,11 +101,19 @@ public class Cli
         }
     }
 
-    public Cli( final File target, final File... boms )
+    public Cli( final File target, final String... boms )
         throws MAEException
     {
         this.target = target;
-        this.boms = Arrays.asList( boms );
+        this.boms = new ArrayList<String>( Arrays.asList( boms ) );
+    }
+
+    public Cli( final File target, final File bomList )
+        throws MAEException
+    {
+        this.target = target;
+        this.bomList = bomList;
+        this.boms = new ArrayList<String>();
     }
 
     public Cli()
@@ -108,12 +125,17 @@ public class Cli
         throws MAEException, VManException
     {
         vman = VersionManager.getInstance();
+        
+        final VersionManagerSession session = new VersionManagerSession( workspace, preserveFiles, normalizeBomUsage );
+        if ( bomList != null )
+        {
+            loadBomList( session );
+        }
 
         LOGGER.info( "Modifying POM(s).\n\nTarget:\n\t" + target + "\n\nBOMs:\n\t"
-                        + StringUtils.join( boms.iterator(), "\n\t" ) + "\n\nBackups:\n\t" + backups
-                        + "\n\nReports:\n\t" + reports );
+            + StringUtils.join( boms.iterator(), "\n\t" ) + "\n\nWorkspace:\n\t" + workspace + "\n\nReports:\n\t"
+            + reports );
 
-        final VersionManagerSession session = new VersionManagerSession( backups, preserveFiles, normalizeBomUsage );
         if ( target.isDirectory() )
         {
             vman.modifyVersions( target, pomPattern, boms, session );
@@ -125,6 +147,39 @@ public class Cli
 
         reports.mkdirs();
         vman.generateReports( reports, session );
+    }
+
+    private boolean loadBomList( VersionManagerSession session )
+    {
+        boolean success = true;
+        if ( bomList != null && bomList.canRead() )
+        {
+            BufferedReader reader = null;
+            try
+            {
+                reader = new BufferedReader( new FileReader( bomList ) );
+                String line = null;
+                while( ( line = reader.readLine() ) != null )
+                {
+                    boms.add( line.trim() );
+                }
+            }
+            catch ( IOException e )
+            {
+                session.addGlobalError( e );
+                success = false;
+            }
+            finally
+            {
+                closeQuietly( reader );
+            }
+        }
+        else
+        {
+            LOGGER.error( "No such BOM list file: '" + bomList + "'." );
+        }
+        
+        return success;
     }
 
     private static void printUsage( final CmdLineParser parser, final CmdLineException error )
