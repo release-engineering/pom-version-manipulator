@@ -71,8 +71,18 @@ public class VersionManagerSession
 
     private final boolean normalizeBomUsage;
 
-    public VersionManagerSession( final File workspace, final boolean preserveFiles, final boolean normalizeBomUsage )
+    private final File workspace;
+
+    private final File reports;
+
+    private final boolean projectBuildRecursive;
+
+    public VersionManagerSession( final File workspace, final File reports, final boolean preserveFiles, final boolean normalizeBomUsage, final boolean projectBuildRecursive )
     {
+        this.workspace = workspace;
+        this.reports = reports;
+        this.projectBuildRecursive = projectBuildRecursive;
+        
         this.backups = new File( workspace, "backups" );
         this.backups.mkdirs();
         
@@ -146,6 +156,16 @@ public class VersionManagerSession
     {
         getErrors( pom, true ).add( error );
         return this;
+    }
+    
+    public File getWorkspace()
+    {
+        return workspace;
+    }
+    
+    public File getReports()
+    {
+        return reports;
     }
 
     public File getBackups()
@@ -276,6 +296,11 @@ public class VersionManagerSession
     public boolean isNormalizeBomUsage()
     {
         return normalizeBomUsage;
+    }
+    
+    public boolean isProjectBuildRecursive()
+    {
+        return projectBuildRecursive;
     }
 
 }

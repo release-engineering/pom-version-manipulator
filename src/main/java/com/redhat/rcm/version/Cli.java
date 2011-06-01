@@ -52,16 +52,19 @@ public class Cli
     private File bomList;
 
     @Option( name = "-p", usage = "POM path pattern (glob)" )
-    private String pomPattern = "**/*.pom";
+    private String pomPattern = "**/*.pom,**/pom.xml";
+    
+    @Option( name = "-R", usage = "Don't process POM modules (use non-recursive project build)" )
+    private boolean nonRecursive = false;
 
     @Option( name = "-P", aliases = { "--preserve" }, usage = "Write changed POMs back to original input files" )
-    private final boolean preserveFiles = false;
+    private boolean preserveFiles = false;
 
     @Option( name = "-w", aliases = { "--workspace" }, usage = "Backup original files here up before modifying." )
-    private final File workspace = new File( "vman-workspace" );
+    private File workspace = new File( "vman-workspace" );
 
     @Option( name = "-r", aliases = { "--report-dir" }, usage = "Write reports here." )
-    private final File reports = new File( "vman-reports" );
+    private File reports = new File( "vman-reports" );
 
     @Option( name = "-n", aliases = { "--normalize" }, usage = "Normalize the BOM usage (introduce the BOM if not already there, and defer all dependency versions to that)." )
     private boolean normalizeBomUsage = false;
@@ -126,7 +129,9 @@ public class Cli
     {
         vman = VersionManager.getInstance();
         
-        final VersionManagerSession session = new VersionManagerSession( workspace, preserveFiles, normalizeBomUsage );
+        final VersionManagerSession session =
+            new VersionManagerSession( workspace, reports, preserveFiles, normalizeBomUsage, !nonRecursive );
+        
         if ( bomList != null )
         {
             loadBomList( session );
@@ -154,6 +159,11 @@ public class Cli
         boolean success = true;
         if ( bomList != null && bomList.canRead() )
         {
+            if ( boms == null )
+            {
+                boms = new ArrayList<String>();
+            }
+            
             BufferedReader reader = null;
             try
             {
@@ -226,6 +236,76 @@ public class Cli
     protected void setNormalizeBomUsage( final boolean normalizeBomUsage )
     {
         this.normalizeBomUsage = normalizeBomUsage;
+    }
+
+    public File getTarget()
+    {
+        return target;
+    }
+
+    public void setTarget( File target )
+    {
+        this.target = target;
+    }
+
+    public List<String> getBoms()
+    {
+        return boms;
+    }
+
+    public void setBoms( List<String> boms )
+    {
+        this.boms = boms;
+    }
+
+    public File getBomList()
+    {
+        return bomList;
+    }
+
+    public void setBomList( File bomList )
+    {
+        this.bomList = bomList;
+    }
+
+    public boolean isNonRecursive()
+    {
+        return nonRecursive;
+    }
+
+    public void setNonRecursive( boolean nonRecursive )
+    {
+        this.nonRecursive = nonRecursive;
+    }
+
+    public boolean isPreserveFiles()
+    {
+        return preserveFiles;
+    }
+
+    public void setPreserveFiles( boolean preserveFiles )
+    {
+        this.preserveFiles = preserveFiles;
+    }
+
+    public File getWorkspace()
+    {
+        return workspace;
+    }
+
+    public void setWorkspace( File workspace )
+    {
+        this.workspace = workspace;
+    }
+
+    public File getReports()
+    {
+        return reports;
+    }
+
+    public void setReports( File reports )
+    {
+        this.reports = reports;
     }
 
 }

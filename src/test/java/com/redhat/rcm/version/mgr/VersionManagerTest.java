@@ -18,6 +18,8 @@
 
 package com.redhat.rcm.version.mgr;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.fail;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -69,7 +71,7 @@ public class VersionManagerTest
         final File pom = new File( repo, srcPom.getName() );
         FileUtils.copyFile( srcPom, pom );
 
-        final VersionManagerSession session = new VersionManagerSession( workspace, false, true );
+        final VersionManagerSession session = new VersionManagerSession( workspace, reports, false, true, false );
 
         final Set<File> modified = vman.modifyVersions( pom, Collections.singletonList( bom ), session );
         assertNormalizedToBOMs( modified );
@@ -88,7 +90,7 @@ public class VersionManagerTest
 
         FileUtils.copyDirectoryStructure( srcRepo, repo );
 
-        final VersionManagerSession session = new VersionManagerSession( workspace, false, true );
+        final VersionManagerSession session = new VersionManagerSession( workspace, reports, false, true, false );
 
         final Set<File> modified = vman.modifyVersions( repo, "pom.xml", Collections.singletonList( bom ), session );
         assertNormalizedToBOMs( modified );
@@ -99,6 +101,8 @@ public class VersionManagerTest
     private void assertNormalizedToBOMs( final Set<File> modified )
         throws Exception
     {
+        assertNotNull( modified );
+        
         for ( final File out : modified )
         {
             System.out.println( "Examining: " + out );
@@ -266,7 +270,11 @@ public class VersionManagerTest
 
         final VersionManagerSession session = newVersionManagerSession();
 
-        final File out = vman.modifyVersions( pom, Collections.singletonList( bom ), session ).iterator().next();
+        Set<File> modified = vman.modifyVersions( pom, Collections.singletonList( bom ), session );
+        assertNotNull( modified );
+        assertEquals( 1, modified.size() );
+        
+        final File out = modified.iterator().next();
         vman.generateReports( reports, session );
 
         final String result = FileUtils.fileRead( out );
@@ -404,7 +412,7 @@ public class VersionManagerTest
 
     private VersionManagerSession newVersionManagerSession()
     {
-        return new VersionManagerSession( workspace, false, false );
+        return new VersionManagerSession( workspace, reports, false, false, false );
     }
 
     private File createTempDir( final String basename )

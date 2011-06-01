@@ -18,6 +18,8 @@
 
 package com.redhat.rcm.version.model;
 
+import org.apache.maven.model.Dependency;
+
 public class VersionlessProjectKey
     implements Comparable<ProjectKey>, ProjectKey
 {
@@ -29,6 +31,12 @@ public class VersionlessProjectKey
     {
         this.groupId = groupId;
         this.artifactId = artifactId;
+    }
+
+    public VersionlessProjectKey( Dependency dep )
+    {
+        this.groupId = dep.getGroupId();
+        this.artifactId = dep.getArtifactId();
     }
 
     /**
