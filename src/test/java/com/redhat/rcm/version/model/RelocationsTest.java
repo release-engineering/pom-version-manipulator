@@ -29,47 +29,51 @@ import java.util.Map;
 
 public class RelocationsTest
 {
-    
+
     @Test
     public void checkAddRelocations_HandlingOfSpaceNewlineComma()
         throws VManException
     {
-        File f = new File( "." );
-        Relocations relocations = new Relocations();
-        
-        String inGA1 = "org.foo:foo";
-        String outGA1 = "org.bar:foo";
-        
-        String inGA2 = "my.proj:core";
-        String outGA2 = "org.proj:core";
-        
+        final File f = new File( "." );
+        final Relocations relocations = new Relocations();
+
+        final String inGA1 = "org.foo:foo";
+        final String outGA1 = "org.bar:foo";
+
+        final String inGA2 = "my.proj:core";
+        final String outGA2 = "org.proj:core";
+
         relocations.addBomRelocations( f, inGA1 + "=" + outGA1 + " \n," + inGA2 + "=" + outGA2 );
-        
-        Map<VersionlessProjectKey, VersionlessProjectKey> r = relocations.getRelocationsByFile().get( f );
-        
-        assertThat( r.get( new VersionlessProjectKey( "org.foo", "foo" ) ), equalTo( new VersionlessProjectKey( "org.bar", "foo" ) ) );
-        assertThat( r.get( new VersionlessProjectKey( "my.proj", "core" ) ), equalTo( new VersionlessProjectKey( "org.proj", "core" ) ) );
+
+        final Map<VersionlessProjectKey, VersionlessProjectKey> r = relocations.getRelocationsByFile().get( f );
+
+        assertThat( r.get( new VersionlessProjectKey( "org.foo", "foo" ) ),
+                    equalTo( new VersionlessProjectKey( "org.bar", "foo" ) ) );
+        assertThat( r.get( new VersionlessProjectKey( "my.proj", "core" ) ),
+                    equalTo( new VersionlessProjectKey( "org.proj", "core" ) ) );
     }
 
     @Test
     public void checkAddRelocations_HandlingOfSpaceCommaNewlineTab()
         throws VManException
     {
-        File f = new File( "." );
-        Relocations relocations = new Relocations();
-        
-        String inGA1 = "org.foo:foo";
-        String outGA1 = "org.bar:foo";
-        
-        String inGA2 = "my.proj:core";
-        String outGA2 = "org.proj:core";
-        
+        final File f = new File( "." );
+        final Relocations relocations = new Relocations();
+
+        final String inGA1 = "org.foo:foo";
+        final String outGA1 = "org.bar:foo";
+
+        final String inGA2 = "my.proj:core";
+        final String outGA2 = "org.proj:core";
+
         relocations.addBomRelocations( f, inGA1 + "=" + outGA1 + " ,\n\t" + inGA2 + "=" + outGA2 );
-        
-        Map<VersionlessProjectKey, VersionlessProjectKey> r = relocations.getRelocationsByFile().get( f );
-        
-        assertThat( r.get( new VersionlessProjectKey( "org.foo", "foo" ) ), equalTo( new VersionlessProjectKey( "org.bar", "foo" ) ) );
-        assertThat( r.get( new VersionlessProjectKey( "my.proj", "core" ) ), equalTo( new VersionlessProjectKey( "org.proj", "core" ) ) );
+
+        final Map<VersionlessProjectKey, VersionlessProjectKey> r = relocations.getRelocationsByFile().get( f );
+
+        assertThat( r.get( new VersionlessProjectKey( "org.foo", "foo" ) ),
+                    equalTo( new VersionlessProjectKey( "org.bar", "foo" ) ) );
+        assertThat( r.get( new VersionlessProjectKey( "my.proj", "core" ) ),
+                    equalTo( new VersionlessProjectKey( "org.proj", "core" ) ) );
     }
 
 }

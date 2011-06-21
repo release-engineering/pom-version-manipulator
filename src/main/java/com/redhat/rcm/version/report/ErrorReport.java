@@ -39,11 +39,13 @@ public class ErrorReport
 
     public static final String ID = "error-log";
 
+    @Override
     public String getId()
     {
         return ID;
     }
 
+    @Override
     public void generate( final File reportsDir, final VersionManagerSession sessionData )
         throws VManException
     {

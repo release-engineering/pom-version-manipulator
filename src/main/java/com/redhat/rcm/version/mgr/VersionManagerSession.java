@@ -19,7 +19,11 @@
 package com.redhat.rcm.version.mgr;
 
 import org.apache.log4j.Logger;
+import org.apache.maven.model.Build;
 import org.apache.maven.model.Dependency;
+import org.apache.maven.model.Model;
+import org.apache.maven.model.Plugin;
+import org.apache.maven.model.PluginManagement;
 import org.apache.maven.project.MavenProject;
 
 import com.redhat.rcm.version.VManException;
@@ -34,6 +38,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -58,13 +63,19 @@ public class VersionManagerSession
 
     private final Map<File, Map<VersionlessProjectKey, String>> bomDepMap =
         new HashMap<File, Map<VersionlessProjectKey, String>>();
+    
+    private final Map<VersionlessProjectKey, Plugin> managedPlugins =
+        new LinkedHashMap<VersionlessProjectKey, Plugin>();
+
+    private final Map<VersionlessProjectKey, Plugin> injectedPlugins =
+        new LinkedHashMap<VersionlessProjectKey, Plugin>();
 
     private final Set<FullProjectKey> bomCoords = new LinkedHashSet<FullProjectKey>();
 
     private final Relocations relocations = new Relocations();
 
     private final File backups;
-    
+
     private final File downloads;
 
     private final boolean preserveFiles;
@@ -77,18 +88,19 @@ public class VersionManagerSession
 
     private final boolean projectBuildRecursive;
 
-    public VersionManagerSession( final File workspace, final File reports, final boolean preserveFiles, final boolean normalizeBomUsage, final boolean projectBuildRecursive )
+    public VersionManagerSession( final File workspace, final File reports, final boolean preserveFiles,
+                                  final boolean normalizeBomUsage, final boolean projectBuildRecursive )
     {
         this.workspace = workspace;
         this.reports = reports;
         this.projectBuildRecursive = projectBuildRecursive;
-        
-        this.backups = new File( workspace, "backups" );
-        this.backups.mkdirs();
-        
-        this.downloads = new File( workspace, "downloads" );
-        this.downloads.mkdirs();
-        
+
+        backups = new File( workspace, "backups" );
+        backups.mkdirs();
+
+        downloads = new File( workspace, "downloads" );
+        downloads.mkdirs();
+
         this.preserveFiles = preserveFiles;
         this.normalizeBomUsage = normalizeBomUsage;
     }
@@ -157,12 +169,12 @@ public class VersionManagerSession
         getErrors( pom, true ).add( error );
         return this;
     }
-    
+
     public File getWorkspace()
     {
         return workspace;
     }
-    
+
     public File getReports()
     {
         return reports;
@@ -172,7 +184,7 @@ public class VersionManagerSession
     {
         return backups;
     }
-    
+
     public File getDownloads()
     {
         return downloads;
@@ -297,10 +309,52 @@ public class VersionManagerSession
     {
         return normalizeBomUsage;
     }
-    
+
     public boolean isProjectBuildRecursive()
     {
         return projectBuildRecursive;
+    }
+
+    public void setToolchain( File toolchainFile, MavenProject project )
+    {
+        PluginManagement pm = project.getPluginManagement();
+        if ( pm != null )
+        {
+            for ( Plugin plugin : pm.getPlugins() )
+            {
+                managedPlugins.put( new VersionlessProjectKey( plugin ), plugin );
+            }
+        }
+        
+        Model model = project.getOriginalModel();
+        Build build = model.getBuild();
+        if ( build != null )
+        {
+            List<Plugin> plugins = build.getPlugins();
+            if ( plugins != null )
+            {
+                for ( Plugin plugin : plugins )
+                {
+                    VersionlessProjectKey key = new VersionlessProjectKey( plugin );
+                    injectedPlugins.put( key, plugin );
+                    
+                    if ( !managedPlugins.containsKey( key ) && plugin.getVersion() != null )
+                    {
+                        injectedPlugins.put( key, plugin );
+                    }
+                }
+            }
+        }
+    }
+    
+    public Plugin getManagedPlugin( VersionlessProjectKey key )
+    {
+        return managedPlugins.get( key );
+    }
+    
+    public Iterable<Plugin> injectedPlugins()
+    {
+        return injectedPlugins.values();
     }
 
 }

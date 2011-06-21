@@ -34,6 +34,7 @@ public class ActivityLog
         items.add( new LogItem( format, params ) );
     }
 
+    @Override
     public Iterator<String> iterator()
     {
         return new ItemIterator( items );
@@ -117,16 +118,19 @@ public class ActivityLog
             this.items = new ArrayList<LogItem>( items ).iterator();
         }
 
+        @Override
         public boolean hasNext()
         {
             return items.hasNext();
         }
 
+        @Override
         public String next()
         {
             return items.next().toString();
         }
 
+        @Override
         public void remove()
         {
         }

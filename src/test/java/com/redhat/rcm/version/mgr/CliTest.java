@@ -172,6 +172,7 @@ public class CliTest
     {
         final Configurator log4jConfigurator = new Configurator()
         {
+            @Override
             @SuppressWarnings( "unchecked" )
             public void doConfigure( final URL notUsed, final LoggerRepository repo )
             {

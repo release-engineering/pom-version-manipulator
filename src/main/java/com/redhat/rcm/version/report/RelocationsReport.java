@@ -38,11 +38,13 @@ public class RelocationsReport
 
     public static final String ID = "relocations-log";
 
+    @Override
     public String getId()
     {
         return ID;
     }
 
+    @Override
     public void generate( final File reportsDir, final VersionManagerSession sessionData )
         throws VManException
     {
@@ -52,14 +54,17 @@ public class RelocationsReport
         try
         {
             writer = new PrintWriter( new FileWriter( reportFile ) );
-            final Map<File, Map<VersionlessProjectKey, VersionlessProjectKey>> byFile = sessionData.getRelocations().getRelocationsByFile();
+            final Map<File, Map<VersionlessProjectKey, VersionlessProjectKey>> byFile =
+                sessionData.getRelocations().getRelocationsByFile();
 
             int fileCounter = 0;
             for ( final Map.Entry<File, Map<VersionlessProjectKey, VersionlessProjectKey>> fileEntry : byFile.entrySet() )
             {
-                writer.printf( "%d: %s\n---------------------------------------------------------\n", fileCounter,
+                writer.printf( "%d: %s\n---------------------------------------------------------\n",
+                               fileCounter,
                                fileEntry.getKey() );
-                for ( final Map.Entry<VersionlessProjectKey, VersionlessProjectKey> coordEntry : fileEntry.getValue().entrySet() )
+                for ( final Map.Entry<VersionlessProjectKey, VersionlessProjectKey> coordEntry : fileEntry.getValue()
+                                                                                                          .entrySet() )
                 {
                     writer.printf( "\n    %s = %s", coordEntry.getKey(), coordEntry.getValue() );
                 }

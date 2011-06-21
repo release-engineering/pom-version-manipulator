@@ -60,7 +60,8 @@ public class MappedDependenciesReport
             for ( final Map.Entry<File, Map<VersionlessProjectKey, String>> bomEntry : byBom.entrySet() )
             {
                 final File bom = bomEntry.getKey();
-                final Map<VersionlessProjectKey, String> deps = new TreeMap<VersionlessProjectKey, String>( bomEntry.getValue() );
+                final Map<VersionlessProjectKey, String> deps =
+                    new TreeMap<VersionlessProjectKey, String>( bomEntry.getValue() );
 
                 writer.write( bom.getPath() );
                 writer.write( " (" + deps.size() + " entries):" );

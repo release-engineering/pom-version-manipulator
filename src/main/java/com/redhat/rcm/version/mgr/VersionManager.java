@@ -19,18 +19,7 @@
 package com.redhat.rcm.version.mgr;
 
 import static java.io.File.separatorChar;
-import static org.apache.commons.io.IOUtils.closeQuietly;
-import static org.apache.commons.io.IOUtils.copy;
-import static org.apache.commons.lang.StringUtils.isEmpty;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.Credentials;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.log4j.Logger;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.mae.MAEException;
@@ -65,19 +54,15 @@ import org.jdom.output.Format;
 import org.jdom.output.Format.TextMode;
 
 import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.config.SessionConfigurator;
 import com.redhat.rcm.version.model.FullProjectKey;
 import com.redhat.rcm.version.model.ProjectKey;
 import com.redhat.rcm.version.model.VersionlessProjectKey;
 import com.redhat.rcm.version.report.Report;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.Writer;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -103,15 +88,14 @@ public class VersionManager
 
     @Requirement( role = Report.class )
     private Map<String, Report> reports;
+    
+    @Requirement
+    private SessionConfigurator sessionConfigurator;
 
     private static Object lock = new Object();
 
     private static VersionManager instance;
-
-    private VersionManager()
-    {
-    }
-
+    
     public static VersionManager getInstance()
         throws MAEException
     {
@@ -156,24 +140,22 @@ public class VersionManager
     }
 
     public Set<File> modifyVersions( final File dir, final String pomNamePattern, final List<String> boms,
-                                     final VersionManagerSession session )
+                                     final String toolchain, final VersionManagerSession session )
     {
         final DirectoryScanner scanner = new DirectoryScanner();
         scanner.setBasedir( dir );
-        
-        scanner.setExcludes( new String[]{
-           session.getWorkspace().getName() + "/**",
-           session.getReports().getName() + "/**",
-        });
-        
+
+        scanner.setExcludes( new String[] { session.getWorkspace().getName() + "/**",
+            session.getReports().getName() + "/**", } );
+
         scanner.addDefaultExcludes();
-        
-        String[] includes = pomNamePattern.split( "\\s*,\\s*" );
+
+        final String[] includes = pomNamePattern.split( "\\s*,\\s*" );
         scanner.setIncludes( includes );
 
         scanner.scan();
 
-        loadBOMs( boms, session );
+        sessionConfigurator.configureSession( boms, toolchain, session );
 
         final List<File> pomFiles = new ArrayList<File>();
         final String[] includedSubpaths = scanner.getIncludedFiles();
@@ -199,13 +181,14 @@ public class VersionManager
         final Set<File> outFiles = modVersions( pomFiles, dir, session, session.isPreserveFiles() );
 
         LOGGER.info( "Modified " + outFiles.size() + " POM versions in directory.\n\n\tDirectory: " + dir
-                        + "\n\tBOMs:\t" + StringUtils.join( boms.iterator(), "\n\t\t" ) + "\n\tPOM Backups: "
-                        + session.getBackups() + "\n\n" );
+            + "\n\tBOMs:\t" + StringUtils.join( boms.iterator(), "\n\t\t" ) + "\n\tPOM Backups: "
+            + session.getBackups() + "\n\n" );
 
         return outFiles;
     }
 
-    public Set<File> modifyVersions( File pom, final List<String> boms, final VersionManagerSession session )
+    public Set<File> modifyVersions( File pom, final List<String> boms, final String toolchain,
+                                     final VersionManagerSession session )
     {
         try
         {
@@ -216,15 +199,15 @@ public class VersionManager
             pom = pom.getAbsoluteFile();
         }
 
-        loadBOMs( boms, session );
+        sessionConfigurator.configureSession( boms, toolchain, session );
+        
         final Set<File> result = modVersions( Collections.singletonList( pom ), pom.getParentFile(), session, true );
         if ( !result.isEmpty() )
         {
             final File out = result.iterator().next();
 
             LOGGER.info( "Modified POM versions.\n\n\tTop POM: " + out + "\n\tBOMs:\t"
-                            + StringUtils.join( boms.iterator(), "\n\t\t" ) + "\n\tPOM Backups: "
-                            + session.getBackups() + "\n\n" );
+                + StringUtils.join( boms.iterator(), "\n\t\t" ) + "\n\tPOM Backups: " + session.getBackups() + "\n\n" );
         }
 
         return result;
@@ -270,13 +253,17 @@ public class VersionManager
                         {
                             final Exception cause = problem.getException();
                             LOGGER.error( "Error interpolating model: " + problem, cause );
-                            
+
                             session.getLog( projectResult.getPomFile() )
                                    .add( "Problem interpolating model: %s\n%s %s @%s [%s:%s]\nReason: %s",
-                                         problem.getModelId(), problem.getSeverity(), problem.getMessage(),
-                                         problem.getSource(), problem.getLineNumber(), problem.getColumnNumber(),
+                                         problem.getModelId(),
+                                         problem.getSeverity(),
+                                         problem.getMessage(),
+                                         problem.getSource(),
+                                         problem.getLineNumber(),
+                                         problem.getColumnNumber(),
                                          ( cause == null ? "??" : cause.getMessage() ) );
-                            
+
                             if ( cause != null )
                             {
                                 session.addGlobalError( cause );
@@ -291,7 +278,7 @@ public class VersionManager
                 session.addGlobalError( e );
             }
         }
-        
+
         if ( projectResults == null || projectResults.isEmpty() )
         {
             return result;
@@ -310,17 +297,21 @@ public class VersionManager
                     {
                         skip = true;
                     }
-                    
+
                     final Exception cause = problem.getException();
                     LOGGER.error( "Error interpolating model: " + problem, cause );
-                    
+
                     session.getLog( projectResult.getPomFile() )
                            .add( "Problem interpolating model: %s\n%s %s @%s [%s:%s]\nReason: %s",
-                                 problem.getModelId(), problem.getSeverity(), problem.getMessage(),
-                                 problem.getSource(), problem.getLineNumber(), problem.getColumnNumber(),
+                                 problem.getModelId(),
+                                 problem.getSeverity(),
+                                 problem.getMessage(),
+                                 problem.getSource(),
+                                 problem.getLineNumber(),
+                                 problem.getColumnNumber(),
                                  ( cause == null ? "??" : cause.getMessage() ) );
                 }
-                
+
                 if ( skip )
                 {
                     continue;
@@ -335,7 +326,7 @@ public class VersionManager
         for ( final MavenProject project : projects.values() )
         {
             LOGGER.info( "Modifying '" + project.getId() + "'..." );
-            
+
             final Model model = project.getOriginalModel();
 
             final Parent parent = model.getParent();
@@ -368,9 +359,9 @@ public class VersionManager
             if ( model.getDependencies() != null )
             {
                 LOGGER.info( "Processing dependencies for '" + project.getId() + "'..." );
-                for ( Iterator<Dependency> it = model.getDependencies().iterator(); it.hasNext(); )
+                for ( final Iterator<Dependency> it = model.getDependencies().iterator(); it.hasNext(); )
                 {
-                    Dependency dep = it.next();
+                    final Dependency dep = it.next();
                     final DepModResult depResult = modifyDep( dep, pom, session, false );
                     if ( depResult == DepModResult.DELETED )
                     {
@@ -387,9 +378,9 @@ public class VersionManager
             if ( model.getDependencyManagement() != null && model.getDependencyManagement().getDependencies() != null )
             {
                 LOGGER.info( "Processing dependencyManagement for '" + project.getId() + "'..." );
-                for ( Iterator<Dependency> it = model.getDependencyManagement().getDependencies().iterator(); it.hasNext(); )
+                for ( final Iterator<Dependency> it = model.getDependencyManagement().getDependencies().iterator(); it.hasNext(); )
                 {
-                    Dependency dep = it.next();
+                    final Dependency dep = it.next();
                     final DepModResult depResult = modifyDep( dep, pom, session, true );
                     if ( depResult == DepModResult.DELETED )
                     {
@@ -406,7 +397,7 @@ public class VersionManager
             if ( changed )
             {
                 LOGGER.info( "Writing modified '" + project.getId() + "'..." );
-                
+
                 final File out = writePom( model, originalCoord, originalVersion, pom, basedir, session, preserveDirs );
                 if ( out != null )
                 {
@@ -423,17 +414,18 @@ public class VersionManager
     }
 
     private boolean introduceBoms( final Model model, final Map<FullProjectKey, MavenProject> projects, final File pom,
-                                final VersionManagerSession session )
+                                   final VersionManagerSession session )
     {
         boolean changed = false;
-        
+
         final Parent parent = model.getParent();
         if ( parent != null )
         {
             final FullProjectKey key = new FullProjectKey( parent );
             if ( projects.containsKey( key ) )
             {
-                LOGGER.info( "Skipping BOM introduction for: '" + model.getId() + "'. Will modify parent POM (" + key + ") instead..." );
+                LOGGER.info( "Skipping BOM introduction for: '" + model.getId() + "'. Will modify parent POM (" + key
+                    + ") instead..." );
                 return changed;
             }
         }
@@ -448,19 +440,19 @@ public class VersionManager
                 for ( final Dependency dep : deps )
                 {
                     LOGGER.info( "Checking managed dependency: " + dep );
-                    
+
                     if ( dep.getVersion() != null && Artifact.SCOPE_IMPORT.equals( dep.getScope() )
-                                    && "pom".equals( dep.getType() ) )
+                        && "pom".equals( dep.getType() ) )
                     {
                         LOGGER.info( "Removing: " + dep + " from: " + pom );
                         final FullProjectKey k = new FullProjectKey( dep );
                         boms.remove( k );
                         changed = true;
                     }
-//                    else if ( session.getArtifactVersion( new VersionlessProjectKey( dep ) ) == null )
-//                    {
-//                        LOGGER.warn( "NOT removing dependency: " + dep + "; no alternatives exist in BOMs." );
-//                    }
+                    // else if ( session.getArtifactVersion( new VersionlessProjectKey( dep ) ) == null )
+                    // {
+                    // LOGGER.warn( "NOT removing dependency: " + dep + "; no alternatives exist in BOMs." );
+                    // }
                 }
             }
         }
@@ -478,7 +470,7 @@ public class VersionManager
             dm.addDependency( bk.getBomDependency() );
             changed = true;
         }
-        
+
         return changed;
     }
 
@@ -510,8 +502,11 @@ public class VersionManager
             catch ( final IOException e )
             {
                 session.addError( pom,
-                                  new VManException( "Error making backup of POM: %s.\n\tTarget: %s\n\tReason: %s", e,
-                                                     pom, backup, e.getMessage() ) );
+                                  new VManException( "Error making backup of POM: %s.\n\tTarget: %s\n\tReason: %s",
+                                                     e,
+                                                     pom,
+                                                     backup,
+                                                     e.getMessage() ) );
                 return null;
             }
         }
@@ -605,13 +600,17 @@ public class VersionManager
         catch ( final IOException e )
         {
             session.addError( pom,
-                              new VManException( "Failed to write modified POM to: %s\n\tReason: %s", e, out,
+                              new VManException( "Failed to write modified POM to: %s\n\tReason: %s",
+                                                 e,
+                                                 out,
                                                  e.getMessage() ) );
         }
         catch ( final JDOMException e )
         {
-            session.addError( pom, new VManException( "Failed to read original POM for rewrite: %s\n\tReason: %s", e,
-                                                      out, e.getMessage() ) );
+            session.addError( pom, new VManException( "Failed to read original POM for rewrite: %s\n\tReason: %s",
+                                                      e,
+                                                      out,
+                                                      e.getMessage() ) );
         }
         finally
         {
@@ -622,7 +621,7 @@ public class VersionManager
     }
 
     private DepModResult modifyDep( final Dependency dep, final File pom, final VersionManagerSession session,
-                               final boolean isManaged )
+                                    final boolean isManaged )
     {
         DepModResult result = DepModResult.UNCHANGED;
 
@@ -643,7 +642,8 @@ public class VersionManager
 
         if ( version == null )
         {
-            session.getLog( pom ).add( "NOT changing version for: %s%s. Version is inherited.", key,
+            session.getLog( pom ).add( "NOT changing version for: %s%s. Version is inherited.",
+                                       key,
                                        isManaged ? " [MANAGED]" : "" );
             return result;
         }
@@ -653,14 +653,18 @@ public class VersionManager
         {
             if ( !version.equals( dep.getVersion() ) )
             {
-                session.getLog( pom ).add( "Changing version for: %s%s.\n\tFrom: %s\n\tTo: %s.", key,
-                                           isManaged ? " [MANAGED]" : "", dep.getVersion(), version );
+                session.getLog( pom ).add( "Changing version for: %s%s.\n\tFrom: %s\n\tTo: %s.",
+                                           key,
+                                           isManaged ? " [MANAGED]" : "",
+                                           dep.getVersion(),
+                                           version );
 
                 if ( session.isNormalizeBomUsage() )
                 {
                     // wipe this out, and use the one in the BOM implicitly...DRY-style.
                     dep.setVersion( null );
-                    if ( isManaged && ( dep.getScope() == null || dep.getExclusions() == null || dep.getExclusions().isEmpty() ) )
+                    if ( isManaged
+                        && ( dep.getScope() == null || dep.getExclusions() == null || dep.getExclusions().isEmpty() ) )
                     {
                         result = DepModResult.DELETED;
                     }
@@ -679,7 +683,8 @@ public class VersionManager
             {
                 // wipe this out, and use the one in the BOM implicitly...DRY-style.
                 dep.setVersion( null );
-                if ( isManaged && ( dep.getScope() == null || dep.getExclusions() == null || dep.getExclusions().isEmpty() ) )
+                if ( isManaged
+                    && ( dep.getScope() == null || dep.getExclusions() == null || dep.getExclusions().isEmpty() ) )
                 {
                     result = DepModResult.DELETED;
                 }
@@ -768,8 +773,10 @@ public class VersionManager
             {
                 if ( !version.equals( parent.getVersion() ) )
                 {
-                    session.getLog( pom ).add( "Changing POM parent (%s) version\n\tFrom: %s\n\tTo: %s", key,
-                                               parent.getVersion(), version );
+                    session.getLog( pom ).add( "Changing POM parent (%s) version\n\tFrom: %s\n\tTo: %s",
+                                               key,
+                                               parent.getVersion(),
+                                               version );
                     parent.setVersion( version );
                     changed = true;
                 }
@@ -783,184 +790,8 @@ public class VersionManager
         return changed;
     }
 
-    private void loadBOMs( final List<String> boms, final VersionManagerSession session )
-    {
-        if ( !session.hasDependencyMap() )
-        {
-            List<File> bomFiles = getBomFiles( boms, session );
-            
-            final DefaultProjectBuildingRequest req = new DefaultProjectBuildingRequest();
-            req.setProcessPlugins( false );
-            req.setRepositoryMerging( RepositoryMerging.POM_DOMINANT );
-            req.setValidationLevel( ModelBuildingRequest.VALIDATION_LEVEL_MAVEN_2_0 );
 
-            try
-            {
-                req.setRepositorySession( serviceManager.createAetherRepositorySystemSession() );
-            }
-            catch ( final MAEEmbeddingException e )
-            {
-                session.addGlobalError( e );
-            }
-
-            List<ProjectBuildingResult> projectResults;
-            try
-            {
-                projectResults = projectBuilder.build( bomFiles, false, req );
-
-                if ( projectResults != null && !projectResults.isEmpty() )
-                {
-                    LOGGER.info( "Processing " + projectResults.size() + " BOM project-building results..." );
-                    
-                    for ( final ProjectBuildingResult projectResult : projectResults )
-                    {
-                        final List<ModelProblem> problems = projectResult.getProblems();
-                        if ( problems != null && !problems.isEmpty() )
-                        {
-                            boolean skip = false;
-                            for ( final ModelProblem problem : problems )
-                            {
-                                if ( problem.getSeverity() != Severity.WARNING )
-                                {
-                                    skip = true;
-                                }
-                                
-                                final Exception cause = problem.getException();
-                                session.getLog( projectResult.getPomFile() )
-                                       .add( "Problem interpolating model: %s\n%s %s @%s [%s:%s]\nReason: %s",
-                                             problem.getModelId(), problem.getSeverity(), problem.getMessage(),
-                                             problem.getSource(), problem.getLineNumber(), problem.getColumnNumber(),
-                                             ( cause == null ? "??" : cause.getMessage() ) );
-                            }
-
-                            if ( skip )
-                            {
-                                continue;
-                            }
-                        }
-
-                        final File bom = projectResult.getPomFile();
-                        final MavenProject project = projectResult.getProject();
-                        LOGGER.info( "Adding BOM to session: " + bom + "; " + project );
-                        session.addBOM( bom, project );
-                    }
-                }
-            }
-            catch ( final ProjectBuildingException e )
-            {
-                if ( e.getResults() != null )
-                {
-                    for ( final ProjectBuildingResult projectResult : e.getResults() )
-                    {
-                        final List<ModelProblem> problems = projectResult.getProblems();
-                        if ( problems != null && !problems.isEmpty() )
-                        {
-                            for ( final ModelProblem problem : problems )
-                            {
-                                final Exception cause = problem.getException();
-                                LOGGER.error( "Error interpolating model: " + problem, cause );
-                                
-                                session.getLog( projectResult.getPomFile() )
-                                       .add( "Problem interpolating model: %s\n%s %s @%s [%s:%s]\nReason: %s",
-                                             problem.getModelId(), problem.getSeverity(), problem.getMessage(),
-                                             problem.getSource(), problem.getLineNumber(), problem.getColumnNumber(),
-                                             ( cause == null ? "??" : cause.getMessage() ) );
-                                
-                                if ( cause != null )
-                                {
-                                    session.addGlobalError( cause );
-                                }
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    LOGGER.error( e.getPomFile() + ": " + e.getMessage(), e );
-                    session.addGlobalError( e );
-                }
-            }
-        }
-    }
-
-    private List<File> getBomFiles( List<String> boms, VersionManagerSession session )
-    {
-        List<File> result = new ArrayList<File>( boms.size() );
-        
-        DefaultHttpClient client = new DefaultHttpClient();
-        client.setRedirectStrategy( new DefaultRedirectStrategy() );
-        
-        for ( String bom : boms )
-        {
-            if ( bom.startsWith( "http" ) )
-            {
-                LOGGER.info( "Downloading BOM: '" + bom + "'..." );
-                
-                try
-                {
-                    URL url = new URL( bom );
-                    String userpass = url.getUserInfo();
-                    if ( !isEmpty( userpass ) )
-                    {
-                        AuthScope scope = new AuthScope( url.getHost(), url.getPort() );
-                        Credentials creds = new UsernamePasswordCredentials( userpass );
-                        
-                        client.getCredentialsProvider().setCredentials( scope, creds );
-                    }
-                }
-                catch ( MalformedURLException e )
-                {
-                    LOGGER.error( "Malformed URL: '" + bom + "'", e );
-                }
-                
-                File downloaded = new File( session.getDownloads(), new File( bom ).getName() );
-                if ( !downloaded.exists() )
-                {
-                    HttpGet get = new HttpGet( bom );
-                    OutputStream out = null;
-                    try
-                    {
-                        HttpResponse response = client.execute( get );
-                        int code = response.getStatusLine().getStatusCode();
-                        if ( code == 200 )
-                        {
-                            InputStream in = response.getEntity().getContent();
-                            out = new FileOutputStream( downloaded );
-                            
-                            copy( in, out );
-                        }
-                        else
-                        {
-                            LOGGER.info( String.format( "Received status: '%s' while downloading: %s", response.getStatusLine(), bom ) );
-                            session.addGlobalError( new VManException( "Received status: '%s' while downloading: %s", response.getStatusLine(), bom ) );
-                        }
-                        
-                        result.add( downloaded );
-                    }
-                    catch ( ClientProtocolException e )
-                    {
-                        session.addGlobalError( e );
-                    }
-                    catch ( IOException e )
-                    {
-                        session.addGlobalError( e );
-                    }
-                    finally
-                    {
-                        closeQuietly( out );
-                        get.abort();
-                    }
-                }
-            }
-            else
-            {
-                result.add( new File( bom ) );
-            }
-        }
-        
-        return result;
-    }
-
+    @Override
     public String getId()
     {
         return "rh.vmod";
@@ -970,12 +801,10 @@ public class VersionManager
     {
         return "RedHat POM Version Modifier";
     }
-    
+
     private static enum DepModResult
     {
-        UNCHANGED,
-        MODIFIED,
-        DELETED;
+        UNCHANGED, MODIFIED, DELETED;
     }
 
 }

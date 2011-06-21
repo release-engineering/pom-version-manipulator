@@ -51,9 +51,13 @@ public class Cli
     @Option( name = "-b", usage = "File containing a list of BOMs to use (instead of listing them on the command line)" )
     private File bomList;
 
+    @Option( name = "-t", usage = "Toolchain POM, containing standard plugin versions in the build/pluginManagement section, "
+        + "and plugin injections in the regular build/plugins section." )
+    private String toolchain;
+
     @Option( name = "-p", usage = "POM path pattern (glob)" )
     private String pomPattern = "**/*.pom,**/pom.xml";
-    
+
     @Option( name = "-R", usage = "Don't process POM modules (use non-recursive project build)" )
     private boolean nonRecursive = false;
 
@@ -116,7 +120,7 @@ public class Cli
     {
         this.target = target;
         this.bomList = bomList;
-        this.boms = new ArrayList<String>();
+        boms = new ArrayList<String>();
     }
 
     public Cli()
@@ -128,10 +132,10 @@ public class Cli
         throws MAEException, VManException
     {
         vman = VersionManager.getInstance();
-        
+
         final VersionManagerSession session =
             new VersionManagerSession( workspace, reports, preserveFiles, normalizeBomUsage, !nonRecursive );
-        
+
         if ( bomList != null )
         {
             loadBomList( session );
@@ -143,18 +147,18 @@ public class Cli
 
         if ( target.isDirectory() )
         {
-            vman.modifyVersions( target, pomPattern, boms, session );
+            vman.modifyVersions( target, pomPattern, boms, toolchain, session );
         }
         else
         {
-            vman.modifyVersions( target, boms, session );
+            vman.modifyVersions( target, boms, toolchain, session );
         }
 
         reports.mkdirs();
         vman.generateReports( reports, session );
     }
 
-    private boolean loadBomList( VersionManagerSession session )
+    private boolean loadBomList( final VersionManagerSession session )
     {
         boolean success = true;
         if ( bomList != null && bomList.canRead() )
@@ -163,18 +167,18 @@ public class Cli
             {
                 boms = new ArrayList<String>();
             }
-            
+
             BufferedReader reader = null;
             try
             {
                 reader = new BufferedReader( new FileReader( bomList ) );
                 String line = null;
-                while( ( line = reader.readLine() ) != null )
+                while ( ( line = reader.readLine() ) != null )
                 {
                     boms.add( line.trim() );
                 }
             }
-            catch ( IOException e )
+            catch ( final IOException e )
             {
                 session.addGlobalError( e );
                 success = false;
@@ -188,7 +192,7 @@ public class Cli
         {
             LOGGER.error( "No such BOM list file: '" + bomList + "'." );
         }
-        
+
         return success;
     }
 
@@ -243,7 +247,7 @@ public class Cli
         return target;
     }
 
-    public void setTarget( File target )
+    public void setTarget( final File target )
     {
         this.target = target;
     }
@@ -253,7 +257,7 @@ public class Cli
         return boms;
     }
 
-    public void setBoms( List<String> boms )
+    public void setBoms( final List<String> boms )
     {
         this.boms = boms;
     }
@@ -263,7 +267,7 @@ public class Cli
         return bomList;
     }
 
-    public void setBomList( File bomList )
+    public void setBomList( final File bomList )
     {
         this.bomList = bomList;
     }
@@ -273,7 +277,7 @@ public class Cli
         return nonRecursive;
     }
 
-    public void setNonRecursive( boolean nonRecursive )
+    public void setNonRecursive( final boolean nonRecursive )
     {
         this.nonRecursive = nonRecursive;
     }
@@ -283,7 +287,7 @@ public class Cli
         return preserveFiles;
     }
 
-    public void setPreserveFiles( boolean preserveFiles )
+    public void setPreserveFiles( final boolean preserveFiles )
     {
         this.preserveFiles = preserveFiles;
     }
@@ -293,7 +297,7 @@ public class Cli
         return workspace;
     }
 
-    public void setWorkspace( File workspace )
+    public void setWorkspace( final File workspace )
     {
         this.workspace = workspace;
     }
@@ -303,7 +307,7 @@ public class Cli
         return reports;
     }
 
-    public void setReports( File reports )
+    public void setReports( final File reports )
     {
         this.reports = reports;
     }

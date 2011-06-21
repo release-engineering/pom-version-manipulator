@@ -73,7 +73,7 @@ public class VersionManagerTest
 
         final VersionManagerSession session = new VersionManagerSession( workspace, reports, false, true, false );
 
-        final Set<File> modified = vman.modifyVersions( pom, Collections.singletonList( bom ), session );
+        final Set<File> modified = vman.modifyVersions( pom, Collections.singletonList( bom ), null, session );
         assertNormalizedToBOMs( modified );
 
         System.out.println( "\n\n" );
@@ -92,7 +92,7 @@ public class VersionManagerTest
 
         final VersionManagerSession session = new VersionManagerSession( workspace, reports, false, true, false );
 
-        final Set<File> modified = vman.modifyVersions( repo, "pom.xml", Collections.singletonList( bom ), session );
+        final Set<File> modified = vman.modifyVersions( repo, "pom.xml", Collections.singletonList( bom ), null, session );
         assertNormalizedToBOMs( modified );
 
         System.out.println( "\n\n" );
@@ -102,7 +102,7 @@ public class VersionManagerTest
         throws Exception
     {
         assertNotNull( modified );
-        
+
         for ( final File out : modified )
         {
             System.out.println( "Examining: " + out );
@@ -117,7 +117,7 @@ public class VersionManagerTest
                     if ( !( "pom".equals( dep.getType() ) && Artifact.SCOPE_IMPORT.equals( dep.getScope() ) ) )
                     {
                         assertNull( "Managed Dependency version was NOT nullified: " + dep.getManagementKey()
-                                        + "\nPOM: " + out, dep.getVersion() );
+                            + "\nPOM: " + out, dep.getVersion() );
                     }
                 }
             }
@@ -162,7 +162,7 @@ public class VersionManagerTest
 
         final VersionManagerSession session = newVersionManagerSession();
 
-        final Set<File> results = vman.modifyVersions( repo, "**/*.pom", Collections.singletonList( bom ), session );
+        final Set<File> results = vman.modifyVersions( repo, "**/*.pom", Collections.singletonList( bom ), null, session );
         for ( final File file : results )
         {
             if ( "rwx-parent-0.2.1.pom".equals( file.getName() ) )
@@ -242,7 +242,7 @@ public class VersionManagerTest
 
         final VersionManagerSession session = newVersionManagerSession();
 
-        /* final File out = */vman.modifyVersions( pom, Collections.singletonList( bom ), session );
+        /* final File out = */vman.modifyVersions( pom, Collections.singletonList( bom ), null, session );
         vman.generateReports( reports, session );
 
         // final String source = FileUtils.fileRead( srcPom );
@@ -270,10 +270,10 @@ public class VersionManagerTest
 
         final VersionManagerSession session = newVersionManagerSession();
 
-        Set<File> modified = vman.modifyVersions( pom, Collections.singletonList( bom ), session );
+        final Set<File> modified = vman.modifyVersions( pom, Collections.singletonList( bom ), null, session );
         assertNotNull( modified );
         assertEquals( 1, modified.size() );
-        
+
         final File out = modified.iterator().next();
         vman.generateReports( reports, session );
 
@@ -297,7 +297,7 @@ public class VersionManagerTest
 
         final VersionManagerSession session = newVersionManagerSession();
 
-        vman.modifyVersions( pom, Collections.singletonList( bom ), session );
+        vman.modifyVersions( pom, Collections.singletonList( bom ), null, session );
         vman.generateReports( reports, session );
 
         System.out.println( "\n\n" );
@@ -325,6 +325,7 @@ public class VersionManagerTest
     {
         final Configurator log4jConfigurator = new Configurator()
         {
+            @Override
             @SuppressWarnings( "unchecked" )
             public void doConfigure( final URL notUsed, final LoggerRepository repo )
             {
@@ -404,7 +405,7 @@ public class VersionManagerTest
     {
         final VersionManagerSession session = newVersionManagerSession();
 
-        vman.modifyVersions( repo, "**/*.pom", Arrays.asList( boms ), session );
+        vman.modifyVersions( repo, "**/*.pom", Arrays.asList( boms ), null, session );
         vman.generateReports( reports, session );
 
         return session;

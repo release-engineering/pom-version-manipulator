@@ -39,11 +39,13 @@ public class MissingVersionsReport
 {
     public static final String ID = "missing-versions";
 
+    @Override
     public String getId()
     {
         return ID;
     }
 
+    @Override
     public void generate( final File reportsDir, final VersionManagerSession sessionData )
         throws VManException
     {
@@ -54,7 +56,8 @@ public class MissingVersionsReport
         {
             writer = new BufferedWriter( new FileWriter( reportFile ) );
 
-            final Map<VersionlessProjectKey, Set<File>> missing = new TreeMap<VersionlessProjectKey, Set<File>>( sessionData.getMissingVersions() );
+            final Map<VersionlessProjectKey, Set<File>> missing =
+                new TreeMap<VersionlessProjectKey, Set<File>>( sessionData.getMissingVersions() );
             for ( final Map.Entry<VersionlessProjectKey, Set<File>> entry : missing.entrySet() )
             {
                 writer.write( entry.getKey().toString() );

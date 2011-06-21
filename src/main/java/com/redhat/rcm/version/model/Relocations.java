@@ -32,9 +32,11 @@ public class Relocations
 
     private static final Logger LOGGER = Logger.getLogger( Relocations.class );
 
-    private final Map<VersionlessProjectKey, VersionlessProjectKey> relocations = new HashMap<VersionlessProjectKey, VersionlessProjectKey>();
+    private final Map<VersionlessProjectKey, VersionlessProjectKey> relocations =
+        new HashMap<VersionlessProjectKey, VersionlessProjectKey>();
 
-    private final Map<File, Map<VersionlessProjectKey, VersionlessProjectKey>> byFile = new LinkedHashMap<File, Map<VersionlessProjectKey, VersionlessProjectKey>>();
+    private final Map<File, Map<VersionlessProjectKey, VersionlessProjectKey>> byFile =
+        new LinkedHashMap<File, Map<VersionlessProjectKey, VersionlessProjectKey>>();
 
     private VersionlessProjectKey toCoord( final String src )
         throws VManException
@@ -72,7 +74,8 @@ public class Relocations
         if ( lines != null && lines.length > 0 )
         {
             LOGGER.info( bom + ": Found " + lines.length + " relocations..." );
-            final Map<VersionlessProjectKey, VersionlessProjectKey> relocations = new LinkedHashMap<VersionlessProjectKey, VersionlessProjectKey>();
+            final Map<VersionlessProjectKey, VersionlessProjectKey> relocations =
+                new LinkedHashMap<VersionlessProjectKey, VersionlessProjectKey>();
             for ( String line : lines )
             {
                 LOGGER.info( "processing: '" + line + "'" );
