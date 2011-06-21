@@ -30,18 +30,9 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.log4j.Logger;
-import org.apache.maven.mae.boot.embed.MAEEmbeddingException;
-import org.apache.maven.mae.boot.services.MAEServiceManager;
-import org.apache.maven.model.building.ModelBuildingRequest;
-import org.apache.maven.model.building.ModelProblem;
-import org.apache.maven.model.building.ModelProblem.Severity;
-import org.apache.maven.project.DefaultProjectBuildingRequest;
+import org.apache.maven.mae.project.ProjectLoader;
+import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.project.MavenProject;
-import org.apache.maven.project.ProjectBuilder;
-import org.apache.maven.project.ProjectBuildingException;
-import org.apache.maven.project.ProjectBuildingRequest;
-import org.apache.maven.project.ProjectBuildingResult;
-import org.apache.maven.project.ProjectBuildingRequest.RepositoryMerging;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.component.annotations.Requirement;
 
@@ -56,7 +47,6 @@ import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 @Component( role = SessionConfigurator.class )
@@ -67,24 +57,14 @@ public class DefaultSessionConfigurator
     private static final Logger LOGGER = Logger.getLogger( DefaultSessionConfigurator.class );
 
     @Requirement
-    private ProjectBuilder projectBuilder;
-
-    @Requirement
-    private MAEServiceManager serviceManager;
+    private ProjectLoader projectLoader;
 
     private final DefaultHttpClient client;
-
-    private final ProjectBuildingRequest projectBuildingRequest;
     
     DefaultSessionConfigurator()
     {
         client = new DefaultHttpClient();
         client.setRedirectStrategy( new DefaultRedirectStrategy() );
-        
-        projectBuildingRequest = new DefaultProjectBuildingRequest();
-        projectBuildingRequest.setProcessPlugins( false );
-        projectBuildingRequest.setRepositoryMerging( RepositoryMerging.POM_DOMINANT );
-        projectBuildingRequest.setValidationLevel( ModelBuildingRequest.VALIDATION_LEVEL_MAVEN_2_0 );
     }
     
     @Override
@@ -103,35 +83,15 @@ public class DefaultSessionConfigurator
         File toolchainFile = getFile( toolchain, session );
         if ( toolchainFile != null )
         {
-            if ( !initRepositorySession( session ) )
+            MavenProject project;
+            try
             {
-                return;
+                project = projectLoader.buildProjectInstance( toolchainFile, session );
             }
-
-            List<ProjectBuildingResult> projectResults =
-                buildProjects( Collections.singletonList( toolchainFile ), session );
-
-            MavenProject project = null;
-            if ( projectResults != null && !projectResults.isEmpty() )
+            catch ( ProjectToolsException e )
             {
-                ProjectBuildingResult result = projectResults.get( 0 );
-                List<ModelProblem> problems = result.getProblems();
-                boolean viable = true;
-                if ( problems != null && !problems.isEmpty() )
-                {
-                    for ( final ModelProblem problem : problems )
-                    {
-                        if ( problem.getSeverity() != Severity.WARNING )
-                        {
-                            viable = false;
-                        }
-                    }
-                }
-
-                if ( viable )
-                {
-                    project = result.getProject();
-                }
+                session.addGlobalError( e );
+                return;
             }
 
             session.setToolchain( toolchainFile, project );
@@ -142,40 +102,25 @@ public class DefaultSessionConfigurator
     {
         if ( !session.hasDependencyMap() )
         {
-            final List<File> bomFiles = getBomFiles( boms, session );
+            final File[] bomFiles = getBomFiles( boms, session );
 
-            if ( !initRepositorySession( session ) )
+            List<MavenProject> projects;
+            try
             {
+                projects = projectLoader.buildReactorProjectInstances( session, bomFiles );
+            }
+            catch ( ProjectToolsException e )
+            {
+                session.addGlobalError( e );
                 return;
             }
-
-            List<ProjectBuildingResult> projectResults = buildProjects( bomFiles, session );
-            if ( projectResults != null && !projectResults.isEmpty() )
+            
+            if ( projects != null )
             {
-                LOGGER.info( "Processing " + projectResults.size() + " BOM project-building results..." );
-
-                for ( final ProjectBuildingResult projectResult : projectResults )
+                for ( MavenProject project : projects )
                 {
-                    final List<ModelProblem> problems = projectResult.getProblems();
-                    if ( problems != null && !problems.isEmpty() )
-                    {
-                        boolean skip = false;
-                        for ( final ModelProblem problem : problems )
-                        {
-                            if ( problem.getSeverity() != Severity.WARNING )
-                            {
-                                skip = true;
-                            }
-                        }
-
-                        if ( skip )
-                        {
-                            continue;
-                        }
-                    }
-
-                    final File bom = projectResult.getPomFile();
-                    final MavenProject project = projectResult.getProject();
+                    File bom = project.getFile();
+                    
                     LOGGER.info( "Adding BOM to session: " + bom + "; " + project );
                     session.addBOM( bom, project );
                 }
@@ -183,76 +128,7 @@ public class DefaultSessionConfigurator
         }
     }
 
-    private List<ProjectBuildingResult> buildProjects( List<File> bomFiles, VersionManagerSession session )
-    {
-        List<ProjectBuildingResult> projectResults = null;
-        try
-        {
-            projectResults = projectBuilder.build( bomFiles, false, projectBuildingRequest );
-        }
-        catch ( final ProjectBuildingException e )
-        {
-            if ( e.getResults() != null )
-            {
-                projectResults = e.getResults();
-                for ( final ProjectBuildingResult projectResult : projectResults )
-                {
-                    final List<ModelProblem> problems = projectResult.getProblems();
-                    if ( problems != null && !problems.isEmpty() )
-                    {
-                        for ( final ModelProblem problem : problems )
-                        {
-                            final Exception cause = problem.getException();
-                            LOGGER.error( "Error interpolating model: " + problem, cause );
-
-                            session.getLog( projectResult.getPomFile() )
-                                   .add( "Problem interpolating model: %s\n%s %s @%s [%s:%s]\nReason: %s",
-                                         problem.getModelId(),
-                                         problem.getSeverity(),
-                                         problem.getMessage(),
-                                         problem.getSource(),
-                                         problem.getLineNumber(),
-                                         problem.getColumnNumber(),
-                                         ( cause == null ? "??" : cause.getMessage() ) );
-
-                            if ( cause != null )
-                            {
-                                session.addGlobalError( cause );
-                            }
-                        }
-                    }
-                }
-            }
-            else
-            {
-                LOGGER.error( e.getPomFile() + ": " + e.getMessage(), e );
-                session.addGlobalError( e );
-            }
-        }
-
-        return projectResults;
-    }
-
-    private boolean initRepositorySession( VersionManagerSession session )
-    {
-        boolean success = true;
-        if ( projectBuildingRequest.getRepositorySession() == null )
-        {
-            try
-            {
-                projectBuildingRequest.setRepositorySession( serviceManager.createAetherRepositorySystemSession() );
-            }
-            catch ( final MAEEmbeddingException e )
-            {
-                session.addGlobalError( e );
-                success = false;
-            }
-        }
-
-        return success;
-    }
-
-    private List<File> getBomFiles( final List<String> boms, final VersionManagerSession session )
+    private File[] getBomFiles( final List<String> boms, final VersionManagerSession session )
     {
         final List<File> result = new ArrayList<File>( boms.size() );
 
@@ -265,7 +141,7 @@ public class DefaultSessionConfigurator
             }
         }
 
-        return result;
+        return result.toArray( new File[]{} );
     }
 
     private File getFile( String location, VersionManagerSession session )

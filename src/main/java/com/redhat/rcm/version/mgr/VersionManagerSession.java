@@ -19,6 +19,7 @@
 package com.redhat.rcm.version.mgr;
 
 import org.apache.log4j.Logger;
+import org.apache.maven.mae.project.session.SimpleProjectToolsSession;
 import org.apache.maven.model.Build;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
@@ -44,6 +45,7 @@ import java.util.Properties;
 import java.util.Set;
 
 public class VersionManagerSession
+    extends SimpleProjectToolsSession
 {
 
     private static final Logger LOGGER = Logger.getLogger( VersionManagerSession.class );

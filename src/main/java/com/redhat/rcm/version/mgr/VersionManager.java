@@ -24,22 +24,14 @@ import org.apache.log4j.Logger;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.mae.MAEException;
 import org.apache.maven.mae.app.AbstractMAEApplication;
-import org.apache.maven.mae.boot.embed.MAEEmbeddingException;
-import org.apache.maven.mae.boot.services.MAEServiceManager;
+import org.apache.maven.mae.project.ProjectLoader;
+import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
-import org.apache.maven.model.building.ModelBuildingRequest;
-import org.apache.maven.model.building.ModelProblem;
-import org.apache.maven.model.building.ModelProblem.Severity;
 import org.apache.maven.model.io.jdom.MavenJDOMWriter;
-import org.apache.maven.project.DefaultProjectBuildingRequest;
 import org.apache.maven.project.MavenProject;
-import org.apache.maven.project.ProjectBuilder;
-import org.apache.maven.project.ProjectBuildingException;
-import org.apache.maven.project.ProjectBuildingRequest.RepositoryMerging;
-import org.apache.maven.project.ProjectBuildingResult;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.component.annotations.Requirement;
 import org.codehaus.plexus.util.DirectoryScanner;
@@ -64,10 +56,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -79,12 +70,9 @@ public class VersionManager
 {
 
     private static final Logger LOGGER = Logger.getLogger( VersionManager.class );
-
+    
     @Requirement
-    private ProjectBuilder projectBuilder;
-
-    @Requirement
-    private MAEServiceManager serviceManager;
+    private ProjectLoader projectLoader;
 
     @Requirement( role = Report.class )
     private Map<String, Report> reports;
@@ -178,7 +166,7 @@ public class VersionManager
             }
         }
 
-        final Set<File> outFiles = modVersions( pomFiles, dir, session, session.isPreserveFiles() );
+        final Set<File> outFiles = modVersions( dir, session, session.isPreserveFiles(), pomFiles.toArray( new File[]{} ) );
 
         LOGGER.info( "Modified " + outFiles.size() + " POM versions in directory.\n\n\tDirectory: " + dir
             + "\n\tBOMs:\t" + StringUtils.join( boms.iterator(), "\n\t\t" ) + "\n\tPOM Backups: "
@@ -201,7 +189,7 @@ public class VersionManager
 
         sessionConfigurator.configureSession( boms, toolchain, session );
         
-        final Set<File> result = modVersions( Collections.singletonList( pom ), pom.getParentFile(), session, true );
+        final Set<File> result = modVersions( pom.getParentFile(), session, true, pom );
         if ( !result.isEmpty() )
         {
             final File out = result.iterator().next();
@@ -213,117 +201,33 @@ public class VersionManager
         return result;
     }
 
-    private Set<File> modVersions( final List<File> pomFiles, final File basedir, final VersionManagerSession session,
-                                   final boolean preserveDirs )
+    private Set<File> modVersions( final File basedir, final VersionManagerSession session,
+                                   final boolean preserveDirs, final File...pomFiles )
     {
         final Set<File> result = new LinkedHashSet<File>();
-
-        final DefaultProjectBuildingRequest req = new DefaultProjectBuildingRequest();
-        req.setProcessPlugins( false );
-        req.setRepositoryMerging( RepositoryMerging.POM_DOMINANT );
-        req.setValidationLevel( ModelBuildingRequest.VALIDATION_LEVEL_MINIMAL );
-
+        
+        List<MavenProject> projects;
         try
         {
-            LOGGER.info( "creating repository system session" );
-            req.setRepositorySession( serviceManager.createAetherRepositorySystemSession() );
+            projects = projectLoader.buildReactorProjectInstances( session, pomFiles );
         }
-        catch ( final MAEEmbeddingException e )
+        catch ( ProjectToolsException e )
         {
             session.addGlobalError( e );
             return result;
         }
-
-        List<ProjectBuildingResult> projectResults = null;
-        try
+        
+        Map<FullProjectKey, MavenProject> projectMap = new HashMap<FullProjectKey, MavenProject>();
+        if ( projects != null )
         {
-            LOGGER.info( "building project instances" );
-            projectResults = projectBuilder.build( pomFiles, session.isProjectBuildRecursive(), req );
-        }
-        catch ( final ProjectBuildingException e )
-        {
-            if ( e.getResults() != null )
+            for ( MavenProject project : projects )
             {
-                for ( final ProjectBuildingResult projectResult : e.getResults() )
-                {
-                    final List<ModelProblem> problems = projectResult.getProblems();
-                    if ( problems != null && !problems.isEmpty() )
-                    {
-                        for ( final ModelProblem problem : problems )
-                        {
-                            final Exception cause = problem.getException();
-                            LOGGER.error( "Error interpolating model: " + problem, cause );
-
-                            session.getLog( projectResult.getPomFile() )
-                                   .add( "Problem interpolating model: %s\n%s %s @%s [%s:%s]\nReason: %s",
-                                         problem.getModelId(),
-                                         problem.getSeverity(),
-                                         problem.getMessage(),
-                                         problem.getSource(),
-                                         problem.getLineNumber(),
-                                         problem.getColumnNumber(),
-                                         ( cause == null ? "??" : cause.getMessage() ) );
-
-                            if ( cause != null )
-                            {
-                                session.addGlobalError( cause );
-                            }
-                        }
-                    }
-                }
+                projectMap.put( new FullProjectKey( project ), project );
             }
-            else
-            {
-                LOGGER.error( e.getPomFile() + ": " + e.getMessage(), e );
-                session.addGlobalError( e );
-            }
-        }
-
-        if ( projectResults == null || projectResults.isEmpty() )
-        {
-            return result;
-        }
-
-        final Map<FullProjectKey, MavenProject> projects = new LinkedHashMap<FullProjectKey, MavenProject>();
-        for ( final ProjectBuildingResult projectResult : projectResults )
-        {
-            final List<ModelProblem> problems = projectResult.getProblems();
-            if ( problems != null && !problems.isEmpty() )
-            {
-                boolean skip = false;
-                for ( final ModelProblem problem : problems )
-                {
-                    if ( problem.getSeverity() != Severity.WARNING )
-                    {
-                        skip = true;
-                    }
-
-                    final Exception cause = problem.getException();
-                    LOGGER.error( "Error interpolating model: " + problem, cause );
-
-                    session.getLog( projectResult.getPomFile() )
-                           .add( "Problem interpolating model: %s\n%s %s @%s [%s:%s]\nReason: %s",
-                                 problem.getModelId(),
-                                 problem.getSeverity(),
-                                 problem.getMessage(),
-                                 problem.getSource(),
-                                 problem.getLineNumber(),
-                                 problem.getColumnNumber(),
-                                 ( cause == null ? "??" : cause.getMessage() ) );
-                }
-
-                if ( skip )
-                {
-                    continue;
-                }
-            }
-
-            final MavenProject project = projectResult.getProject();
-            projects.put( new FullProjectKey( project ), project );
         }
 
         LOGGER.info( "Modifying " + projects.size() + "..." );
-        for ( final MavenProject project : projects.values() )
+        for ( final MavenProject project : projectMap.values() )
         {
             LOGGER.info( "Modifying '" + project.getId() + "'..." );
 
@@ -353,7 +257,7 @@ public class VersionManager
             if ( session.isNormalizeBomUsage() )
             {
                 LOGGER.info( "Introducing BOMs to '" + project.getId() + "'..." );
-                changed = changed || introduceBoms( model, projects, pom, session );
+                changed = changed || introduceBoms( model, projectMap, pom, session );
             }
 
             if ( model.getDependencies() != null )
