@@ -107,7 +107,7 @@ public class DefaultSessionConfigurator
             List<MavenProject> projects;
             try
             {
-                projects = projectLoader.buildReactorProjectInstances( session, bomFiles );
+                projects = projectLoader.buildReactorProjectInstances( session, false, bomFiles );
             }
             catch ( ProjectToolsException e )
             {

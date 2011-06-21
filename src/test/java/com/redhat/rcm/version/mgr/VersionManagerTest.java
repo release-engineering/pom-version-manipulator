@@ -53,6 +53,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class VersionManagerTest
@@ -74,6 +75,7 @@ public class VersionManagerTest
         final VersionManagerSession session = new VersionManagerSession( workspace, reports, false, true, false );
 
         final Set<File> modified = vman.modifyVersions( pom, Collections.singletonList( bom ), null, session );
+        assertNoErrors( session );
         assertNormalizedToBOMs( modified );
 
         System.out.println( "\n\n" );
@@ -93,6 +95,7 @@ public class VersionManagerTest
         final VersionManagerSession session = new VersionManagerSession( workspace, reports, false, true, false );
 
         final Set<File> modified = vman.modifyVersions( repo, "pom.xml", Collections.singletonList( bom ), null, session );
+        assertNoErrors( session );
         assertNormalizedToBOMs( modified );
 
         System.out.println( "\n\n" );
@@ -163,6 +166,7 @@ public class VersionManagerTest
         final VersionManagerSession session = newVersionManagerSession();
 
         final Set<File> results = vman.modifyVersions( repo, "**/*.pom", Collections.singletonList( bom ), null, session );
+        assertNoErrors( session );
         for ( final File file : results )
         {
             if ( "rwx-parent-0.2.1.pom".equals( file.getName() ) )
@@ -271,6 +275,8 @@ public class VersionManagerTest
         final VersionManagerSession session = newVersionManagerSession();
 
         final Set<File> modified = vman.modifyVersions( pom, Collections.singletonList( bom ), null, session );
+        assertNoErrors( session );
+        
         assertNotNull( modified );
         assertEquals( 1, modified.size() );
 
@@ -281,6 +287,24 @@ public class VersionManagerTest
         assertTrue( "commons-codec not relocated!", result.contains( "<groupId>org.apache.commons.codec</groupId>" ) );
 
         System.out.println( "\n\n" );
+    }
+
+    private void assertNoErrors( VersionManagerSession session )
+    {
+        Map<File, Set<Throwable>> errors = session.getErrors();
+        if ( errors != null && !errors.isEmpty() )
+        {
+            for ( Map.Entry<File, Set<Throwable>> entry: errors.entrySet() )
+            {
+                System.out.printf( "%d errors encountered while processing file: %s\n\n", entry.getValue().size(), entry.getKey() );
+                for ( Throwable error : entry.getValue() )
+                {
+                    error.printStackTrace();
+                }
+            }
+            
+            fail( "See above errors." );
+        }
     }
 
     @Test
@@ -298,6 +322,7 @@ public class VersionManagerTest
         final VersionManagerSession session = newVersionManagerSession();
 
         vman.modifyVersions( pom, Collections.singletonList( bom ), null, session );
+        assertNoErrors( session );
         vman.generateReports( reports, session );
 
         System.out.println( "\n\n" );
@@ -406,6 +431,7 @@ public class VersionManagerTest
         final VersionManagerSession session = newVersionManagerSession();
 
         vman.modifyVersions( repo, "**/*.pom", Arrays.asList( boms ), null, session );
+        assertNoErrors( session );
         vman.generateReports( reports, session );
 
         return session;

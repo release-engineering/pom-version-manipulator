@@ -209,7 +209,7 @@ public class VersionManager
         List<MavenProject> projects;
         try
         {
-            projects = projectLoader.buildReactorProjectInstances( session, pomFiles );
+            projects = projectLoader.buildReactorProjectInstances( session, false, pomFiles );
         }
         catch ( ProjectToolsException e )
         {
