@@ -23,6 +23,7 @@ import org.codehaus.plexus.util.IOUtil;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.VersionManagerSession;
+import com.redhat.rcm.version.model.FullProjectKey;
 import com.redhat.rcm.version.model.VersionlessProjectKey;
 
 import java.io.File;
@@ -54,16 +55,16 @@ public class RelocationsReport
         try
         {
             writer = new PrintWriter( new FileWriter( reportFile ) );
-            final Map<File, Map<VersionlessProjectKey, VersionlessProjectKey>> byFile =
+            final Map<File, Map<VersionlessProjectKey, FullProjectKey>> byFile =
                 sessionData.getRelocations().getRelocationsByFile();
 
             int fileCounter = 0;
-            for ( final Map.Entry<File, Map<VersionlessProjectKey, VersionlessProjectKey>> fileEntry : byFile.entrySet() )
+            for ( final Map.Entry<File, Map<VersionlessProjectKey, FullProjectKey>> fileEntry : byFile.entrySet() )
             {
                 writer.printf( "%d: %s\n---------------------------------------------------------\n",
                                fileCounter,
                                fileEntry.getKey() );
-                for ( final Map.Entry<VersionlessProjectKey, VersionlessProjectKey> coordEntry : fileEntry.getValue()
+                for ( final Map.Entry<VersionlessProjectKey, FullProjectKey> coordEntry : fileEntry.getValue()
                                                                                                           .entrySet() )
                 {
                     writer.printf( "\n    %s = %s", coordEntry.getKey(), coordEntry.getValue() );

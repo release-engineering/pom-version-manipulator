@@ -39,19 +39,20 @@ public class RelocationsTest
         final Relocations relocations = new Relocations();
 
         final String inGA1 = "org.foo:foo";
-        final String outGA1 = "org.bar:foo";
+        final String outGA1 = "org.bar:foo:1.0";
 
         final String inGA2 = "my.proj:core";
-        final String outGA2 = "org.proj:core";
+        final String outGA2 = "org.proj:core:1.0";
 
         relocations.addBomRelocations( f, inGA1 + "=" + outGA1 + " \n," + inGA2 + "=" + outGA2 );
 
-        final Map<VersionlessProjectKey, VersionlessProjectKey> r = relocations.getRelocationsByFile().get( f );
+        final Map<VersionlessProjectKey, FullProjectKey> r = relocations.getRelocationsByFile().get( f );
 
         assertThat( r.get( new VersionlessProjectKey( "org.foo", "foo" ) ),
-                    equalTo( new VersionlessProjectKey( "org.bar", "foo" ) ) );
+                    equalTo( new FullProjectKey( "org.bar", "foo", "1.0" ) ) );
+        
         assertThat( r.get( new VersionlessProjectKey( "my.proj", "core" ) ),
-                    equalTo( new VersionlessProjectKey( "org.proj", "core" ) ) );
+                    equalTo( new FullProjectKey( "org.proj", "core", "1.0" ) ) );
     }
 
     @Test
@@ -62,19 +63,20 @@ public class RelocationsTest
         final Relocations relocations = new Relocations();
 
         final String inGA1 = "org.foo:foo";
-        final String outGA1 = "org.bar:foo";
+        final String outGA1 = "org.bar:foo:1.0";
 
         final String inGA2 = "my.proj:core";
-        final String outGA2 = "org.proj:core";
+        final String outGA2 = "org.proj:core:1.0";
 
         relocations.addBomRelocations( f, inGA1 + "=" + outGA1 + " ,\n\t" + inGA2 + "=" + outGA2 );
 
-        final Map<VersionlessProjectKey, VersionlessProjectKey> r = relocations.getRelocationsByFile().get( f );
+        final Map<VersionlessProjectKey, FullProjectKey> r = relocations.getRelocationsByFile().get( f );
 
         assertThat( r.get( new VersionlessProjectKey( "org.foo", "foo" ) ),
-                    equalTo( new VersionlessProjectKey( "org.bar", "foo" ) ) );
+                    equalTo( new FullProjectKey( "org.bar", "foo", "1.0" ) ) );
+        
         assertThat( r.get( new VersionlessProjectKey( "my.proj", "core" ) ),
-                    equalTo( new VersionlessProjectKey( "org.proj", "core" ) ) );
+                    equalTo( new FullProjectKey( "org.proj", "core", "1.0" ) ) );
     }
 
 }

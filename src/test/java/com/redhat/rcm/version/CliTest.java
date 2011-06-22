@@ -16,7 +16,7 @@
  * <http://www.gnu.org/licenses>.
  */
 
-package com.redhat.rcm.version.mgr;
+package com.redhat.rcm.version;
 
 import static junit.framework.Assert.fail;
 

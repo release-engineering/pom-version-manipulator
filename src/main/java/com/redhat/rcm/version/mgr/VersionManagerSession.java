@@ -35,6 +35,7 @@ import com.redhat.rcm.version.model.VersionlessProjectKey;
 import com.redhat.rcm.version.util.ActivityLog;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -110,12 +111,7 @@ public class VersionManagerSession
         this.normalizeBomUsage = normalizeBomUsage;
     }
 
-    public ProjectKey getRelocation( final String groupId, final String artifactId )
-    {
-        return relocations.getRelocation( groupId, artifactId );
-    }
-
-    public ProjectKey getRelocation( final ProjectKey key )
+    public FullProjectKey getRelocation( final ProjectKey key )
     {
         return relocations.getRelocation( key );
     }
@@ -368,7 +364,13 @@ public class VersionManagerSession
     
     public Set<VersionlessProjectKey> getPluginReferences( VersionlessProjectKey owner )
     {
-        return accumulatedPluginRefs.get( owner );
+        Set<VersionlessProjectKey> refs = accumulatedPluginRefs.get( owner );
+        if ( refs == null )
+        {
+            refs = Collections.emptySet();
+        }
+        
+        return refs;
     }
     
     public VersionManagerSession addPluginReference( VersionlessProjectKey owner, VersionlessProjectKey plugin )

@@ -214,7 +214,7 @@ public class VersionManager
         session.setProcessPomPlugins( true );
         try
         {
-            projects = projectLoader.buildReactorProjectInstances( session, false, pomFiles );
+            projects = projectLoader.buildReactorProjectInstances( session, session.isProjectBuildRecursive(), pomFiles );
         }
         catch ( ProjectToolsException e )
         {

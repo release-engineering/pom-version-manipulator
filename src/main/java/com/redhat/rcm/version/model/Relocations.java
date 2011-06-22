@@ -32,13 +32,13 @@ public class Relocations
 
     private static final Logger LOGGER = Logger.getLogger( Relocations.class );
 
-    private final Map<VersionlessProjectKey, VersionlessProjectKey> relocations =
-        new HashMap<VersionlessProjectKey, VersionlessProjectKey>();
+    private final Map<VersionlessProjectKey, FullProjectKey> relocations =
+        new HashMap<VersionlessProjectKey, FullProjectKey>();
 
-    private final Map<File, Map<VersionlessProjectKey, VersionlessProjectKey>> byFile =
-        new LinkedHashMap<File, Map<VersionlessProjectKey, VersionlessProjectKey>>();
+    private final Map<File, Map<VersionlessProjectKey, FullProjectKey>> byFile =
+        new LinkedHashMap<File, Map<VersionlessProjectKey, FullProjectKey>>();
 
-    private VersionlessProjectKey toCoord( final String src )
+    private VersionlessProjectKey toVersionlessCoord( final String src )
         throws VManException
     {
         final String[] parts = src.split( ":" );
@@ -57,12 +57,27 @@ public class Relocations
         return new VersionlessProjectKey( parts[0], parts[1] );
     }
 
-    public ProjectKey getRelocation( final String groupId, final String artifactId )
+    private FullProjectKey toFullCoord( final String src )
+        throws VManException
     {
-        return getRelocation( new VersionlessProjectKey( groupId, artifactId ) );
+        final String[] parts = src.split( ":" );
+        if ( parts.length != 3 )
+        {
+            throw new VManException( "Invalid coordinate: '" + src + "'." );
+        }
+
+        parts[0] = parts[0].trim();
+        parts[1] = parts[1].trim();
+        parts[2] = parts[2].trim();
+        if ( parts[0].length() < 1 || parts[1].length() < 1 || parts[2].length() < 1 )
+        {
+            throw new VManException( "Invalid coordinate: '" + src + "'." );
+        }
+
+        return new FullProjectKey( parts[0], parts[1], parts[2] );
     }
 
-    public ProjectKey getRelocation( final ProjectKey key )
+    public FullProjectKey getRelocation( final ProjectKey key )
     {
         return relocations.get( key );
     }
@@ -74,8 +89,8 @@ public class Relocations
         if ( lines != null && lines.length > 0 )
         {
             LOGGER.info( bom + ": Found " + lines.length + " relocations..." );
-            final Map<VersionlessProjectKey, VersionlessProjectKey> relocations =
-                new LinkedHashMap<VersionlessProjectKey, VersionlessProjectKey>();
+            final Map<VersionlessProjectKey, FullProjectKey> relocations = new LinkedHashMap<VersionlessProjectKey, FullProjectKey>();
+
             for ( String line : lines )
             {
                 LOGGER.info( "processing: '" + line + "'" );
@@ -88,8 +103,8 @@ public class Relocations
                 idx = line.indexOf( '=' );
                 if ( idx > 0 )
                 {
-                    final VersionlessProjectKey key = toCoord( line.substring( 0, idx ).trim() );
-                    final VersionlessProjectKey val = toCoord( line.substring( idx + 1 ).trim() );
+                    final VersionlessProjectKey key = toVersionlessCoord( line.substring( 0, idx ).trim() );
+                    final FullProjectKey val = toFullCoord( line.substring( idx + 1 ).trim() );
 
                     LOGGER.info( "Adding relocation from: " + key + " to: " + val + " in BOM: " + bom );
                     relocations.put( key, val );
@@ -107,7 +122,7 @@ public class Relocations
         return this;
     }
 
-    public Map<File, Map<VersionlessProjectKey, VersionlessProjectKey>> getRelocationsByFile()
+    public Map<File, Map<VersionlessProjectKey, FullProjectKey>> getRelocationsByFile()
     {
         return byFile;
     }

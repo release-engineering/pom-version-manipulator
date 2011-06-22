@@ -113,16 +113,16 @@ public class BomInjector
         if ( model.getVersion() != null )
         {
             final VersionlessProjectKey key = new VersionlessProjectKey( groupId, model.getArtifactId() );
-            final ProjectKey newKey = session.getRelocation( key );
-
-            if ( newKey != null && !key.equals( newKey ) )
-            {
-                if ( groupId == model.getGroupId() )
-                {
-                    model.setGroupId( newKey.getGroupId() );
-                }
-                model.setArtifactId( newKey.getArtifactId() );
-            }
+//            final FullProjectKey newKey = session.getRelocation( key );
+//
+//            if ( newKey != null && !key.equals( newKey ) )
+//            {
+//                if ( groupId == model.getGroupId() )
+//                {
+//                    model.setGroupId( newKey.getGroupId() );
+//                }
+//                model.setArtifactId( newKey.getArtifactId() );
+//            }
 
             final String version = session.getArtifactVersion( key );
             if ( version != null )
@@ -246,12 +246,13 @@ public class BomInjector
         DepModResult result = DepModResult.UNCHANGED;
 
         final VersionlessProjectKey key = new VersionlessProjectKey( dep.getGroupId(), dep.getArtifactId() );
-        final ProjectKey newKey = session.getRelocation( key );
+        final FullProjectKey newKey = session.getRelocation( key );
         if ( newKey != null && !key.equals( newKey ) )
         {
             LOGGER.info( "Relocating dependency: " + key + " to: " + newKey );
             dep.setGroupId( newKey.getGroupId() );
             dep.setArtifactId( newKey.getArtifactId() );
+            dep.setVersion( newKey.getVersion() );
         }
         else
         {
