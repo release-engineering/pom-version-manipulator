@@ -42,7 +42,7 @@ public class Relocations
         throws VManException
     {
         final String[] parts = src.split( ":" );
-        if ( parts.length != 2 )
+        if ( parts.length < 2 )
         {
             throw new VManException( "Invalid coordinate: '" + src + "'." );
         }
@@ -54,14 +54,22 @@ public class Relocations
             throw new VManException( "Invalid coordinate: '" + src + "'." );
         }
 
-        return new VersionlessProjectKey( parts[0], parts[1] );
+        VersionlessProjectKey key = new VersionlessProjectKey( parts[0], parts[1] );
+
+        if ( parts.length > 2 )
+        {
+            LOGGER.warn( "Ignoring relocation key parts: '" + src.substring( key.getId().length() ) + "' for: '"
+                + key + "'." );
+        }
+
+        return key;
     }
 
     private FullProjectKey toFullCoord( final String src )
         throws VManException
     {
         final String[] parts = src.split( ":" );
-        if ( parts.length != 3 )
+        if ( parts.length < 3 )
         {
             throw new VManException( "Invalid coordinate: '" + src + "'." );
         }
@@ -74,7 +82,15 @@ public class Relocations
             throw new VManException( "Invalid coordinate: '" + src + "'." );
         }
 
-        return new FullProjectKey( parts[0], parts[1], parts[2] );
+        FullProjectKey key = new FullProjectKey( parts[0], parts[1], parts[2] );
+
+        if ( parts.length > 3 )
+        {
+            LOGGER.warn( "Ignoring relocation value parts: '" + src.substring( key.getId().length() ) + "' for: '"
+                + key + "'." );
+        }
+
+        return key;
     }
 
     public FullProjectKey getRelocation( final ProjectKey key )
@@ -89,7 +105,8 @@ public class Relocations
         if ( lines != null && lines.length > 0 )
         {
             LOGGER.info( bom + ": Found " + lines.length + " relocations..." );
-            final Map<VersionlessProjectKey, FullProjectKey> relocations = new LinkedHashMap<VersionlessProjectKey, FullProjectKey>();
+            final Map<VersionlessProjectKey, FullProjectKey> relocations =
+                new LinkedHashMap<VersionlessProjectKey, FullProjectKey>();
 
             for ( String line : lines )
             {
