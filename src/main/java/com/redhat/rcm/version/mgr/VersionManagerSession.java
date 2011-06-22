@@ -71,6 +71,9 @@ public class VersionManagerSession
 
     private final Map<VersionlessProjectKey, Plugin> injectedPlugins =
         new LinkedHashMap<VersionlessProjectKey, Plugin>();
+    
+    private final Map<VersionlessProjectKey, Set<VersionlessProjectKey>> accumulatedPluginRefs =
+        new HashMap<VersionlessProjectKey, Set<VersionlessProjectKey>>();
 
     private final Set<FullProjectKey> bomCoords = new LinkedHashSet<FullProjectKey>();
 
@@ -267,7 +270,7 @@ public class VersionManagerSession
         }
     }
 
-    public void mapDependency( final File srcBom, final Dependency dep )
+    public VersionManagerSession mapDependency( final File srcBom, final Dependency dep )
     {
         final VersionlessProjectKey key = new VersionlessProjectKey( dep.getGroupId(), dep.getArtifactId() );
         final String version = dep.getVersion();
@@ -285,6 +288,8 @@ public class VersionManagerSession
         }
 
         bomMap.put( key, version );
+        
+        return this;
     }
 
     private void startBomMap( final File srcBom, final String groupId, final String artifactId, final String version )
@@ -317,7 +322,7 @@ public class VersionManagerSession
         return projectBuildRecursive;
     }
 
-    public void setToolchain( File toolchainFile, MavenProject project )
+    public VersionManagerSession setToolchain( File toolchainFile, MavenProject project )
     {
         PluginManagement pm = project.getPluginManagement();
         if ( pm != null )
@@ -347,6 +352,8 @@ public class VersionManagerSession
                 }
             }
         }
+        
+        return this;
     }
     
     public Plugin getManagedPlugin( VersionlessProjectKey key )
@@ -354,9 +361,28 @@ public class VersionManagerSession
         return managedPlugins.get( key );
     }
     
-    public Iterable<Plugin> injectedPlugins()
+    public Map<VersionlessProjectKey, Plugin> getInjectedPlugins()
     {
-        return injectedPlugins.values();
+        return injectedPlugins;
+    }
+    
+    public Set<VersionlessProjectKey> getPluginReferences( VersionlessProjectKey owner )
+    {
+        return accumulatedPluginRefs.get( owner );
+    }
+    
+    public VersionManagerSession addPluginReference( VersionlessProjectKey owner, VersionlessProjectKey plugin )
+    {
+        Set<VersionlessProjectKey> plugins = accumulatedPluginRefs.get( owner );
+        if ( plugins == null )
+        {
+            plugins = new HashSet<VersionlessProjectKey>();
+            accumulatedPluginRefs.put( owner, plugins );
+        }
+        
+        plugins.add( plugin );
+        
+        return this;
     }
 
 }

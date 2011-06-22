@@ -18,14 +18,13 @@
 
 package com.redhat.rcm.version.model;
 
-/**
- * 
- */
 public interface ProjectKey
 {
 
     String getGroupId();
 
     String getArtifactId();
+    
+    String getId();
 
 }

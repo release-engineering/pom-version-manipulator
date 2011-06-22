@@ -16,15 +16,19 @@
  * <http://www.gnu.org/licenses>.
  */
 
-package com.redhat.rcm.version.config;
+package com.redhat.rcm.version.mgr.inject;
+
+import org.apache.maven.project.MavenProject;
 
 import com.redhat.rcm.version.mgr.VersionManagerSession;
+import com.redhat.rcm.version.model.FullProjectKey;
 
-import java.util.List;
+import java.util.Map;
 
-public interface SessionConfigurator
+public interface PomInjector
 {
-    
-    void configureSession( List<String> boms, String toolchain, VersionManagerSession session );
+
+    boolean injectChanges( final MavenProject project, final Map<FullProjectKey, MavenProject> projectMap,
+                           final VersionManagerSession session );
 
 }

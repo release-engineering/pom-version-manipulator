@@ -19,7 +19,9 @@
 package com.redhat.rcm.version.model;
 
 import org.apache.maven.model.Dependency;
+import org.apache.maven.model.Parent;
 import org.apache.maven.model.Plugin;
+import org.apache.maven.project.MavenProject;
 
 public class VersionlessProjectKey
     implements Comparable<ProjectKey>, ProjectKey
@@ -44,6 +46,18 @@ public class VersionlessProjectKey
     {
         groupId = plugin.getGroupId();
         artifactId = plugin.getArtifactId();
+    }
+
+    public VersionlessProjectKey( MavenProject project )
+    {
+        groupId = project.getGroupId();
+        artifactId = project.getArtifactId();
+    }
+
+    public VersionlessProjectKey( Parent parent )
+    {
+        groupId = parent.getGroupId();
+        artifactId = parent.getArtifactId();
     }
 
     /**
@@ -122,7 +136,7 @@ public class VersionlessProjectKey
     @Override
     public String toString()
     {
-        return groupId + ":" + artifactId;
+        return getId();
     }
 
     @Override
@@ -140,6 +154,11 @@ public class VersionlessProjectKey
         }
 
         return comp;
+    }
+
+    public String getId()
+    {
+        return groupId + ":" + artifactId;
     }
 
 }

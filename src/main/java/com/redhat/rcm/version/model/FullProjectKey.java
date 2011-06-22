@@ -99,9 +99,9 @@ public class FullProjectKey
     @Override
     public String toString()
     {
-        return super.toString() + ":" + version;
+        return super.getId() + ":" + version;
     }
-
+    
     public synchronized Dependency getBomDependency()
     {
         if ( bomDep == null )
