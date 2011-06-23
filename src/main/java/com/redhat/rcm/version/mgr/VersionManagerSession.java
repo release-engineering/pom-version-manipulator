@@ -387,4 +387,9 @@ public class VersionManagerSession
         return this;
     }
 
+    public boolean isBom( FullProjectKey key )
+    {
+        return bomCoords.contains( key );
+    }
+
 }

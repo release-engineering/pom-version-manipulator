@@ -64,7 +64,7 @@ public class BomInjector
             for ( final Iterator<Dependency> it = model.getDependencies().iterator(); it.hasNext(); )
             {
                 final Dependency dep = it.next();
-                final DepModResult depResult = modifyDep( dep, pom, session, false );
+                final DepModResult depResult = modifyDep( dep, model, projectMap, pom, session, false );
                 if ( depResult == DepModResult.DELETED )
                 {
                     it.remove();
@@ -83,7 +83,7 @@ public class BomInjector
             for ( final Iterator<Dependency> it = model.getDependencyManagement().getDependencies().iterator(); it.hasNext(); )
             {
                 final Dependency dep = it.next();
-                final DepModResult depResult = modifyDep( dep, pom, session, true );
+                final DepModResult depResult = modifyDep( dep, model, projectMap, pom, session, true );
                 if ( depResult == DepModResult.DELETED )
                 {
                     it.remove();
@@ -188,16 +188,12 @@ public class BomInjector
     {
         boolean changed = false;
 
-        final Parent parent = model.getParent();
-        if ( parent != null )
+        FullProjectKey key = getParentInProcess( model, projects );
+        if ( key != null )
         {
-            final FullProjectKey key = new FullProjectKey( parent );
-            if ( projects.containsKey( key ) )
-            {
-                LOGGER.info( "Skipping BOM introduction for: '" + model.getId() + "'. Will modify parent POM (" + key
-                    + ") instead..." );
-                return changed;
-            }
+            LOGGER.info( "Skipping BOM introduction for: '" + model.getId() + "'. Will modify parent POM (" + key
+                         + ") instead..." );
+                     return changed;
         }
 
         final Set<FullProjectKey> boms = new LinkedHashSet<FullProjectKey>( session.getBomCoords() );
@@ -240,10 +236,31 @@ public class BomInjector
         return changed;
     }
 
-    private DepModResult modifyDep( final Dependency dep, final File pom, final VersionManagerSession session,
-                                    final boolean isManaged )
+    private FullProjectKey getParentInProcess( Model model, Map<FullProjectKey, MavenProject> projects )
+    {
+        final Parent parent = model.getParent();
+        if ( parent != null )
+        {
+            final FullProjectKey key = new FullProjectKey( parent );
+            if ( projects.containsKey( key ) )
+            {
+                return key;
+            }
+        }
+        
+        return null;
+    }
+
+    private DepModResult modifyDep( final Dependency dep, Model model, Map<FullProjectKey, MavenProject> projectMap,
+                                    final File pom, final VersionManagerSession session, final boolean isManaged )
     {
         DepModResult result = DepModResult.UNCHANGED;
+        
+        FullProjectKey parentKey = getParentInProcess( model, projectMap );
+        if ( parentKey == null && session.isBom( new FullProjectKey( dep ) ) )
+        {
+            return result;
+        }
 
         final VersionlessProjectKey key = new VersionlessProjectKey( dep.getGroupId(), dep.getArtifactId() );
         final FullProjectKey newKey = session.getRelocation( key );
