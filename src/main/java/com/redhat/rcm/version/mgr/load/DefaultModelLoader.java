@@ -18,11 +18,8 @@
 package com.redhat.rcm.version.mgr.load;
 
 import org.apache.maven.model.Model;
-import org.apache.maven.model.building.DefaultModelBuildingRequest;
-import org.apache.maven.model.building.ModelBuilder;
-import org.apache.maven.model.building.ModelBuildingException;
-import org.apache.maven.model.building.ModelBuildingRequest;
-import org.apache.maven.model.building.ModelBuildingResult;
+import org.apache.maven.model.io.ModelParseException;
+import org.apache.maven.model.io.ModelReader;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.component.annotations.Requirement;
 
@@ -31,10 +28,13 @@ import com.redhat.rcm.version.mgr.VersionManagerSession;
 import com.redhat.rcm.version.mgr.model.Project;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 @Component( role=ModelLoader.class )
 public class DefaultModelLoader
@@ -42,16 +42,16 @@ public class DefaultModelLoader
 {
     
     @Requirement
-    private ModelBuilder modelBuilder;
-
+    private ModelReader modelReader;
+    
     @Override
     public List<Project> buildModels( VersionManagerSession session, File... poms )
         throws VManException
     {
         List<Project> projects = new ArrayList<Project>();
         
-        DefaultModelBuildingRequest template =
-            new DefaultModelBuildingRequest().setValidationLevel( ModelBuildingRequest.VALIDATION_LEVEL_MINIMAL );
+        Map<String, Object> options = new HashMap<String, Object>();
+        options.put( ModelReader.IS_STRICT, Boolean.FALSE.toString() );
         
         LinkedList<File> allPoms = new LinkedList<File>( Arrays.asList( poms ) );
         while( !allPoms.isEmpty() )
@@ -60,13 +60,15 @@ public class DefaultModelLoader
             
             Model model;
             
-            DefaultModelBuildingRequest request = new DefaultModelBuildingRequest( template );
             try
             {
-                ModelBuildingResult result = modelBuilder.build( request );
-                model = result.getRawModel();
+                model = modelReader.read( pom, options );
             }
-            catch ( ModelBuildingException e )
+            catch ( ModelParseException e )
+            {
+                throw new VManException( "Cannot build model from POM: %s. Reason: %s", e, pom, e.getMessage() );
+            }
+            catch ( IOException e )
             {
                 throw new VManException( "Cannot build model from POM: %s. Reason: %s", e, pom, e.getMessage() );
             }
