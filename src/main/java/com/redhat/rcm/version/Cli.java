@@ -69,9 +69,9 @@ public class Cli
 
     @Option( name = "-r", aliases = { "--report-dir" }, usage = "Write reports here." )
     private File reports = new File( "vman-reports" );
-
-    @Option( name = "-n", aliases = { "--normalize" }, usage = "Normalize the BOM usage (introduce the BOM if not already there, and defer all dependency versions to that)." )
-    private boolean normalizeBomUsage = false;
+    
+    @Option( name = "-n", aliases = { "--normalize-boms" }, usage = "Normalize the BOM usage (introduce the BOM and remove dependency versions)." )
+    private boolean normalizeBOMUsage = false;
 
     @Option( name = "-h", aliases = { "--help" }, usage = "Print this message and quit" )
     private boolean help = false;
@@ -134,7 +134,7 @@ public class Cli
         vman = VersionManager.getInstance();
 
         final VersionManagerSession session =
-            new VersionManagerSession( workspace, reports, preserveFiles, normalizeBomUsage, !nonRecursive );
+            new VersionManagerSession( workspace, reports, preserveFiles, normalizeBOMUsage, !nonRecursive );
 
         if ( bomList != null )
         {
@@ -234,12 +234,12 @@ public class Cli
 
     protected boolean isNormalizeBomUsage()
     {
-        return normalizeBomUsage;
+        return normalizeBOMUsage;
     }
 
     protected void setNormalizeBomUsage( final boolean normalizeBomUsage )
     {
-        this.normalizeBomUsage = normalizeBomUsage;
+        this.normalizeBOMUsage = normalizeBomUsage;
     }
 
     public File getTarget()

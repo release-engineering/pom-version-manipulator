@@ -36,26 +36,25 @@ import java.io.File;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
-@Component( role = PomInjector.class, hint="BOM-realignment" )
+@Component( role = PomInjector.class, hint = "BOM-realignment" )
 public class BomInjector
     implements PomInjector
 {
-    
+
     private static final Logger LOGGER = Logger.getLogger( BomInjector.class );
 
-    public boolean injectChanges( final MavenProject project, Map<FullProjectKey, MavenProject> projectMap, final VersionManagerSession session )
+    public boolean injectChanges( final MavenProject project, final VersionManagerSession session )
     {
         Model model = project.getOriginalModel();
         File pom = project.getFile();
-        
+
         boolean changed = modifyCoord( model, pom, session );
         if ( session.isNormalizeBomUsage() )
         {
             LOGGER.info( "Introducing BOMs to '" + project.getId() + "'..." );
-            changed = changed || introduceBoms( model, projectMap, pom, session );
+            changed = changed || introduceBoms( model, project, pom, session );
         }
 
         if ( model.getDependencies() != null )
@@ -64,7 +63,7 @@ public class BomInjector
             for ( final Iterator<Dependency> it = model.getDependencies().iterator(); it.hasNext(); )
             {
                 final Dependency dep = it.next();
-                final DepModResult depResult = modifyDep( dep, model, projectMap, pom, session, false );
+                final DepModResult depResult = modifyDep( dep, model, project, pom, session, false );
                 if ( depResult == DepModResult.DELETED )
                 {
                     it.remove();
@@ -83,7 +82,7 @@ public class BomInjector
             for ( final Iterator<Dependency> it = model.getDependencyManagement().getDependencies().iterator(); it.hasNext(); )
             {
                 final Dependency dep = it.next();
-                final DepModResult depResult = modifyDep( dep, model, projectMap, pom, session, true );
+                final DepModResult depResult = modifyDep( dep, model, project, pom, session, true );
                 if ( depResult == DepModResult.DELETED )
                 {
                     it.remove();
@@ -95,10 +94,10 @@ public class BomInjector
                 }
             }
         }
-        
+
         return changed;
     }
-    
+
     private boolean modifyCoord( final Model model, final File pom, final VersionManagerSession session )
     {
         boolean changed = false;
@@ -113,16 +112,16 @@ public class BomInjector
         if ( model.getVersion() != null )
         {
             final VersionlessProjectKey key = new VersionlessProjectKey( groupId, model.getArtifactId() );
-//            final FullProjectKey newKey = session.getRelocation( key );
-//
-//            if ( newKey != null && !key.equals( newKey ) )
-//            {
-//                if ( groupId == model.getGroupId() )
-//                {
-//                    model.setGroupId( newKey.getGroupId() );
-//                }
-//                model.setArtifactId( newKey.getArtifactId() );
-//            }
+            // final FullProjectKey newKey = session.getRelocation( key );
+            //
+            // if ( newKey != null && !key.equals( newKey ) )
+            // {
+            // if ( groupId == model.getGroupId() )
+            // {
+            // model.setGroupId( newKey.getGroupId() );
+            // }
+            // model.setArtifactId( newKey.getArtifactId() );
+            // }
 
             final String version = session.getArtifactVersion( key );
             if ( version != null )
@@ -183,17 +182,15 @@ public class BomInjector
         return changed;
     }
 
-    private boolean introduceBoms( final Model model, final Map<FullProjectKey, MavenProject> projects, final File pom,
+    private boolean introduceBoms( final Model model, MavenProject project, final File pom,
                                    final VersionManagerSession session )
     {
         boolean changed = false;
 
-        FullProjectKey key = getParentInProcess( model, projects );
-        if ( key != null )
+        if ( session.hasParentInGraph( project ) )
         {
-            LOGGER.info( "Skipping BOM introduction for: '" + model.getId() + "'. Will modify parent POM (" + key
-                         + ") instead..." );
-                     return changed;
+            LOGGER.info( "Skipping BOM introduction for: '" + model.getId() + "'. Will modify parent POM instead..." );
+            return changed;
         }
 
         final Set<FullProjectKey> boms = new LinkedHashSet<FullProjectKey>( session.getBomCoords() );
@@ -236,28 +233,12 @@ public class BomInjector
         return changed;
     }
 
-    private FullProjectKey getParentInProcess( Model model, Map<FullProjectKey, MavenProject> projects )
-    {
-        final Parent parent = model.getParent();
-        if ( parent != null )
-        {
-            final FullProjectKey key = new FullProjectKey( parent );
-            if ( projects.containsKey( key ) )
-            {
-                return key;
-            }
-        }
-        
-        return null;
-    }
-
-    private DepModResult modifyDep( final Dependency dep, Model model, Map<FullProjectKey, MavenProject> projectMap,
+    private DepModResult modifyDep( final Dependency dep, final Model model, final MavenProject project,
                                     final File pom, final VersionManagerSession session, final boolean isManaged )
     {
         DepModResult result = DepModResult.UNCHANGED;
-        
-        FullProjectKey parentKey = getParentInProcess( model, projectMap );
-        if ( parentKey == null && session.isBom( new FullProjectKey( dep ) ) )
+
+        if ( session.hasParentInGraph( project ) && session.isBom( new FullProjectKey( dep ) ) )
         {
             return result;
         }

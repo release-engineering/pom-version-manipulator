@@ -29,6 +29,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <mavenVersion>3.0.3</mavenVersion>
     <maeVersion>1.0-alpha-1-SNAPSHOT</maeVersion>
+    <embVersion>0.6-SNAPSHOT</embVersion>
   </properties>
 
   <dependencies>
@@ -60,7 +61,7 @@
     </dependency>
     <dependency>
     	<groupId>org.apache.maven.mae</groupId>
-    	<artifactId>mae-app</artifactId>
+    	<artifactId>mae-booter</artifactId>
     	<version>${maeVersion}</version>
     </dependency>
     <dependency>
@@ -87,6 +88,11 @@
     	<groupId>org.apache.maven.mae.components</groupId>
     	<artifactId>mae-project-tools</artifactId>
     	<version>${maeVersion}</version>
+    </dependency>
+    <dependency>
+    	<groupId>org.commonjava.emb.components</groupId>
+    	<artifactId>emb-graph-support</artifactId>
+    	<version>${embVersion}</version>
     </dependency>
   </dependencies>
   

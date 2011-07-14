@@ -21,14 +21,10 @@ package com.redhat.rcm.version.mgr.inject;
 import org.apache.maven.project.MavenProject;
 
 import com.redhat.rcm.version.mgr.VersionManagerSession;
-import com.redhat.rcm.version.model.FullProjectKey;
-
-import java.util.Map;
 
 public interface PomInjector
 {
 
-    boolean injectChanges( final MavenProject project, final Map<FullProjectKey, MavenProject> projectMap,
-                           final VersionManagerSession session );
+    boolean injectChanges( final MavenProject project, final VersionManagerSession session );
 
 }

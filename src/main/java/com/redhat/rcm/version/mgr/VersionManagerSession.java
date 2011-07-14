@@ -29,6 +29,7 @@ import org.apache.maven.project.MavenProject;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.model.FullProjectKey;
+import com.redhat.rcm.version.model.ProjectAncestryGraph;
 import com.redhat.rcm.version.model.ProjectKey;
 import com.redhat.rcm.version.model.Relocations;
 import com.redhat.rcm.version.model.VersionlessProjectKey;
@@ -57,6 +58,8 @@ public class VersionManagerSession
 
     private final Map<VersionlessProjectKey, Set<File>> missingVersions =
         new HashMap<VersionlessProjectKey, Set<File>>();
+    
+    private final Map<File, Set<VersionlessProjectKey>> unmanagedPlugins = new HashMap<File, Set<VersionlessProjectKey>>();
 
     private final Map<File, Set<Throwable>> errors = new LinkedHashMap<File, Set<Throwable>>();
 
@@ -93,6 +96,10 @@ public class VersionManagerSession
     private final File reports;
 
     private final boolean projectBuildRecursive;
+    
+    private ProjectAncestryGraph ancestryGraph;
+
+    private FullProjectKey toolchainKey;
 
     public VersionManagerSession( final File workspace, final File reports, final boolean preserveFiles,
                                   final boolean normalizeBomUsage, final boolean projectBuildRecursive )
@@ -131,6 +138,20 @@ public class VersionManagerSession
         }
 
         return log;
+    }
+    
+    public synchronized VersionManagerSession addUnmanagedPlugin( File pom, VersionlessProjectKey pluginKey )
+    {
+        Set<VersionlessProjectKey> pluginKeys = unmanagedPlugins.get( pom );
+        if ( pluginKeys == null )
+        {
+            pluginKeys = new HashSet<VersionlessProjectKey>();
+            unmanagedPlugins.put( pom, pluginKeys );
+        }
+        
+        pluginKeys.add( pluginKey );
+        
+        return this;
     }
 
     public synchronized VersionManagerSession addMissingVersion( final File pom, final VersionlessProjectKey key )
@@ -194,6 +215,11 @@ public class VersionManagerSession
     public boolean isPreserveFiles()
     {
         return preserveFiles;
+    }
+    
+    public Map<File, Set<VersionlessProjectKey>> getUnmanagedPlugins()
+    {
+        return unmanagedPlugins;
     }
 
     public Map<VersionlessProjectKey, Set<File>> getMissingVersions()
@@ -320,6 +346,8 @@ public class VersionManagerSession
 
     public VersionManagerSession setToolchain( File toolchainFile, MavenProject project )
     {
+        this.toolchainKey = new FullProjectKey( project );
+        
         PluginManagement pm = project.getPluginManagement();
         if ( pm != null )
         {
@@ -390,6 +418,27 @@ public class VersionManagerSession
     public boolean isBom( FullProjectKey key )
     {
         return bomCoords.contains( key );
+    }
+
+    public boolean hasParentInGraph( MavenProject project )
+    {
+        return ancestryGraph.hasParentInGraph( project );
+    }
+    
+//    public boolean hasToolchainAncestor( MavenProject project )
+//    {
+//        return ancestryGraph.hasToolchainAncestor( project );
+//    }
+//    
+//    public boolean hasAncestor( FullProjectKey ancestorKey, MavenProject project )
+//    {
+//        return ancestryGraph.hasAncestor( ancestorKey, project );
+//    }
+
+    public VersionManagerSession setProjects( List<MavenProject> projects )
+    {
+        ancestryGraph = new ProjectAncestryGraph( toolchainKey, projects );
+        return this;
     }
 
 }

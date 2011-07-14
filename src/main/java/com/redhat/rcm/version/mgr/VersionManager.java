@@ -45,7 +45,6 @@ import org.jdom.output.Format.TextMode;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.config.SessionConfigurator;
 import com.redhat.rcm.version.mgr.inject.PomInjector;
-import com.redhat.rcm.version.model.FullProjectKey;
 import com.redhat.rcm.version.model.ProjectKey;
 import com.redhat.rcm.version.model.VersionlessProjectKey;
 import com.redhat.rcm.version.report.Report;
@@ -54,9 +53,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -226,15 +222,9 @@ public class VersionManager
             session.setProcessPomPlugins( processPomPlugins );
         }
         
-        Map<FullProjectKey, MavenProject> projectMap = new HashMap<FullProjectKey, MavenProject>();
         if ( projects != null )
         {
-            Collections.sort( projects, new ParentLastComparator() );
-            
-            for ( MavenProject project : projects )
-            {
-                projectMap.put( new FullProjectKey( project ), project );
-            }
+            session.setProjects( projects );
         }
 
         LOGGER.info( "Modifying " + projects.size() + " project(s)..." );
@@ -251,7 +241,7 @@ public class VersionManager
                     PomInjector injector = entry.getValue();
                     
                     LOGGER.info( "Injecting POM changes from: '" + key + "'." );
-                    changed = changed || injector.injectChanges( project, projectMap, session );
+                    changed = changed || injector.injectChanges( project, session );
                 }
             }
             
@@ -452,32 +442,4 @@ public class VersionManager
         return "RedHat POM Version Modifier";
     }
     
-    private static final class ParentLastComparator
-        implements Comparator<MavenProject>
-    {
-        @Override
-        public int compare( MavenProject one, MavenProject two )
-        {
-            int result = 0;
-            
-            Parent oneParent = one.getModel().getParent();
-            Parent twoParent = two.getModel().getParent();
-            
-            VersionlessProjectKey oneId = new VersionlessProjectKey( one );
-            VersionlessProjectKey twoId = new VersionlessProjectKey( two );
-            
-            if ( oneParent != null && new VersionlessProjectKey( oneParent ).equals( twoId ) )
-            {
-                result = -1;
-            }
-            else if ( twoParent != null && new VersionlessProjectKey( twoParent ).equals( oneId ) )
-            {
-                result = 1;
-            }
-            
-            return result;
-        }
-        
-    }
-
 }

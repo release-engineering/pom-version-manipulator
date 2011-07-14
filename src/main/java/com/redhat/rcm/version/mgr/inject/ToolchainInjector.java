@@ -20,7 +20,6 @@ package com.redhat.rcm.version.mgr.inject;
 
 import org.apache.maven.model.Build;
 import org.apache.maven.model.Model;
-import org.apache.maven.model.Parent;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginManagement;
 import org.apache.maven.model.merge.MavenModelMerger;
@@ -28,7 +27,6 @@ import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.component.annotations.Component;
 
 import com.redhat.rcm.version.mgr.VersionManagerSession;
-import com.redhat.rcm.version.model.FullProjectKey;
 import com.redhat.rcm.version.model.VersionlessProjectKey;
 
 import java.util.Collections;
@@ -44,24 +42,15 @@ public class ToolchainInjector
 
     private final InjectionMerger merger = new InjectionMerger();
 
-    public boolean injectChanges( MavenProject project, Map<FullProjectKey, MavenProject> projectMap,
-                                  VersionManagerSession session )
+    public boolean injectChanges( MavenProject project, VersionManagerSession session )
     {
         boolean changed = false;
 
-        VersionlessProjectKey parentKey = null;
-
-        Parent parent = project.getModel().getParent();
-        if ( parent != null && projectMap.containsKey( new FullProjectKey( parent ) ) )
-        {
-            parentKey = new VersionlessProjectKey( parent );
-        }
-
         Set<VersionlessProjectKey> pluginRefs = new HashSet<VersionlessProjectKey>();
         pluginRefs.addAll( session.getPluginReferences( new VersionlessProjectKey( project ) ) );
-        pluginRefs.addAll( accumulatePluginRefs( project, parentKey, session ) );
+        pluginRefs.addAll( accumulatePluginRefs( project, session ) );
 
-        if ( parentKey == null )
+        if ( !session.hasParentInGraph( project ) )
         {
             changed = changed || injectPluginManagement( project, pluginRefs, session );
             changed = changed || injectPluginUsages( project, session );
@@ -159,9 +148,10 @@ public class ToolchainInjector
         return changed;
     }
 
-    private Set<VersionlessProjectKey> accumulatePluginRefs( MavenProject project, VersionlessProjectKey parentKey,
-                                                             VersionManagerSession session )
+    private Set<VersionlessProjectKey> accumulatePluginRefs( MavenProject project, VersionManagerSession session )
     {
+        VersionlessProjectKey projectKey = new VersionlessProjectKey( project );
+        
         List<Plugin> plugins = project.getBuildPlugins();
 
         Model originalModel = project.getOriginalModel();
@@ -197,14 +187,18 @@ public class ToolchainInjector
                         originalPlugin.setVersion( null );
                     }
 
-                    if ( parentKey != null )
+                    if ( projectKey != null )
                     {
-                        session.addPluginReference( parentKey, pluginKey );
+                        session.addPluginReference( projectKey, pluginKey );
                     }
                     else
                     {
                         pluginKeys.add( pluginKey );
                     }
+                }
+                else
+                {
+                    session.addUnmanagedPlugin( project.getFile(), pluginKey );
                 }
             }
         }
