@@ -24,10 +24,10 @@ import org.apache.maven.model.Dependency;
 import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
-import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.component.annotations.Component;
 
 import com.redhat.rcm.version.mgr.VersionManagerSession;
+import com.redhat.rcm.version.mgr.model.Project;
 import com.redhat.rcm.version.model.FullProjectKey;
 import com.redhat.rcm.version.model.ProjectKey;
 import com.redhat.rcm.version.model.VersionlessProjectKey;
@@ -45,21 +45,21 @@ public class BomInjector
 
     private static final Logger LOGGER = Logger.getLogger( BomInjector.class );
 
-    public boolean injectChanges( final MavenProject project, final VersionManagerSession session )
+    public boolean injectChanges( final Project project, final VersionManagerSession session )
     {
-        Model model = project.getOriginalModel();
-        File pom = project.getFile();
+        Model model = project.getModel();
+        File pom = project.getPom();
 
         boolean changed = modifyCoord( model, pom, session );
         if ( session.isNormalizeBomUsage() )
         {
-            LOGGER.info( "Introducing BOMs to '" + project.getId() + "'..." );
+            LOGGER.info( "Introducing BOMs to '" + project.getKey() + "'..." );
             changed = changed || introduceBoms( model, project, pom, session );
         }
 
         if ( model.getDependencies() != null )
         {
-            LOGGER.info( "Processing dependencies for '" + project.getId() + "'..." );
+            LOGGER.info( "Processing dependencies for '" + project.getKey() + "'..." );
             for ( final Iterator<Dependency> it = model.getDependencies().iterator(); it.hasNext(); )
             {
                 final Dependency dep = it.next();
@@ -78,7 +78,7 @@ public class BomInjector
 
         if ( model.getDependencyManagement() != null && model.getDependencyManagement().getDependencies() != null )
         {
-            LOGGER.info( "Processing dependencyManagement for '" + project.getId() + "'..." );
+            LOGGER.info( "Processing dependencyManagement for '" + project.getKey() + "'..." );
             for ( final Iterator<Dependency> it = model.getDependencyManagement().getDependencies().iterator(); it.hasNext(); )
             {
                 final Dependency dep = it.next();
@@ -182,7 +182,7 @@ public class BomInjector
         return changed;
     }
 
-    private boolean introduceBoms( final Model model, MavenProject project, final File pom,
+    private boolean introduceBoms( final Model model, Project project, final File pom,
                                    final VersionManagerSession session )
     {
         boolean changed = false;
@@ -233,7 +233,7 @@ public class BomInjector
         return changed;
     }
 
-    private DepModResult modifyDep( final Dependency dep, final Model model, final MavenProject project,
+    private DepModResult modifyDep( final Dependency dep, final Model model, final Project project,
                                     final File pom, final VersionManagerSession session, final boolean isManaged )
     {
         DepModResult result = DepModResult.UNCHANGED;

@@ -18,9 +18,10 @@
 package com.redhat.rcm.version.model;
 
 import org.apache.maven.model.Parent;
-import org.apache.maven.project.MavenProject;
 import org.commonjava.emb.graph.DirectionalEdge;
 import org.commonjava.emb.graph.SimpleDirectedGraph;
+
+import com.redhat.rcm.version.mgr.model.Project;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,7 +35,7 @@ public class ProjectAncestryGraph
 
 //    private final FullProjectKey toolchainKey;
 
-    public ProjectAncestryGraph( final FullProjectKey toolchainKey, final List<MavenProject> projects )
+    public ProjectAncestryGraph( final FullProjectKey toolchainKey, final List<Project> projects )
     {
 //        this.toolchainKey = toolchainKey;
         
@@ -43,8 +44,8 @@ public class ProjectAncestryGraph
             getNakedGraph().addVertex( toolchainKey );
         }
         
-        Collections.sort( new ArrayList<MavenProject>( projects ), new ParentFirstComparator() );
-        for ( MavenProject project : projects )
+        Collections.sort( new ArrayList<Project>( projects ), new ParentFirstComparator() );
+        for ( Project project : projects )
         {
             FullProjectKey projectKey = new FullProjectKey( project );
             getNakedGraph().addVertex( projectKey );
@@ -61,7 +62,7 @@ public class ProjectAncestryGraph
         }
     }
 
-    public boolean hasParentInGraph( MavenProject current )
+    public boolean hasParentInGraph( Project current )
     {
         FullProjectKey currentKey = new FullProjectKey( current );
         Collection<DirectionalEdge<FullProjectKey>> outEdges = getNakedGraph().getOutEdges( currentKey );
@@ -99,15 +100,15 @@ public class ProjectAncestryGraph
 //    }
 
     private static final class ParentFirstComparator
-        implements Comparator<MavenProject>
+        implements Comparator<Project>
     {
         @Override
-        public int compare( MavenProject one, MavenProject two )
+        public int compare( Project one, Project two )
         {
             int result = 0;
 
-            Parent oneParent = one.getModel().getParent();
-            Parent twoParent = two.getModel().getParent();
+            Parent oneParent = one.getParent();
+            Parent twoParent = two.getParent();
 
             VersionlessProjectKey oneId = new VersionlessProjectKey( one );
             VersionlessProjectKey twoId = new VersionlessProjectKey( two );

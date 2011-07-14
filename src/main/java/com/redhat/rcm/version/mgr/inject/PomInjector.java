@@ -18,13 +18,12 @@
 
 package com.redhat.rcm.version.mgr.inject;
 
-import org.apache.maven.project.MavenProject;
-
 import com.redhat.rcm.version.mgr.VersionManagerSession;
+import com.redhat.rcm.version.mgr.model.Project;
 
 public interface PomInjector
 {
 
-    boolean injectChanges( final MavenProject project, final VersionManagerSession session );
+    boolean injectChanges( final Project project, final VersionManagerSession session );
 
 }

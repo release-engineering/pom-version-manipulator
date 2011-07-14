@@ -23,10 +23,10 @@ import org.apache.maven.model.Model;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginManagement;
 import org.apache.maven.model.merge.MavenModelMerger;
-import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.component.annotations.Component;
 
 import com.redhat.rcm.version.mgr.VersionManagerSession;
+import com.redhat.rcm.version.mgr.model.Project;
 import com.redhat.rcm.version.model.VersionlessProjectKey;
 
 import java.util.Collections;
@@ -42,7 +42,7 @@ public class ToolchainInjector
 
     private final InjectionMerger merger = new InjectionMerger();
 
-    public boolean injectChanges( MavenProject project, VersionManagerSession session )
+    public boolean injectChanges( Project project, VersionManagerSession session )
     {
         boolean changed = false;
 
@@ -59,7 +59,7 @@ public class ToolchainInjector
         return changed;
     }
 
-    private boolean injectPluginManagement( MavenProject project, Set<VersionlessProjectKey> pluginRefs,
+    private boolean injectPluginManagement( Project project, Set<VersionlessProjectKey> pluginRefs,
                                             VersionManagerSession session )
     {
         boolean changed = false;
@@ -68,7 +68,7 @@ public class ToolchainInjector
             return changed;
         }
 
-        Model original = project.getOriginalModel();
+        Model original = project.getModel();
         Build build = original.getBuild();
         if ( build == null )
         {
@@ -105,7 +105,7 @@ public class ToolchainInjector
         return changed;
     }
 
-    private boolean injectPluginUsages( MavenProject project, VersionManagerSession session )
+    private boolean injectPluginUsages( Project project, VersionManagerSession session )
     {
         boolean changed = false;
         Map<VersionlessProjectKey, Plugin> injectedPlugins = session.getInjectedPlugins();
@@ -115,7 +115,7 @@ public class ToolchainInjector
             return changed;
         }
 
-        Model original = project.getOriginalModel();
+        Model original = project.getModel();
         Build build = original.getBuild();
         if ( build == null )
         {
@@ -148,13 +148,13 @@ public class ToolchainInjector
         return changed;
     }
 
-    private Set<VersionlessProjectKey> accumulatePluginRefs( MavenProject project, VersionManagerSession session )
+    private Set<VersionlessProjectKey> accumulatePluginRefs( Project project, VersionManagerSession session )
     {
         VersionlessProjectKey projectKey = new VersionlessProjectKey( project );
         
         List<Plugin> plugins = project.getBuildPlugins();
 
-        Model originalModel = project.getOriginalModel();
+        Model originalModel = project.getModel();
         Build build = originalModel.getBuild();
 
         List<Plugin> originalPlugins = null;
@@ -198,7 +198,7 @@ public class ToolchainInjector
                 }
                 else
                 {
-                    session.addUnmanagedPlugin( project.getFile(), pluginKey );
+                    session.addUnmanagedPlugin( project.getPom(), pluginKey );
                 }
             }
         }

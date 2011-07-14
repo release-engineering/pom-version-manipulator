@@ -23,12 +23,9 @@ import static java.io.File.separatorChar;
 import org.apache.log4j.Logger;
 import org.apache.maven.mae.MAEException;
 import org.apache.maven.mae.app.AbstractMAEApplication;
-import org.apache.maven.mae.project.ProjectLoader;
-import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
 import org.apache.maven.model.io.jdom.MavenJDOMWriter;
-import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.component.annotations.Requirement;
 import org.codehaus.plexus.util.DirectoryScanner;
@@ -45,6 +42,8 @@ import org.jdom.output.Format.TextMode;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.config.SessionConfigurator;
 import com.redhat.rcm.version.mgr.inject.PomInjector;
+import com.redhat.rcm.version.mgr.load.ModelLoader;
+import com.redhat.rcm.version.mgr.model.Project;
 import com.redhat.rcm.version.model.ProjectKey;
 import com.redhat.rcm.version.model.VersionlessProjectKey;
 import com.redhat.rcm.version.report.Report;
@@ -67,8 +66,8 @@ public class VersionManager
     private static final Logger LOGGER = Logger.getLogger( VersionManager.class );
     
     @Requirement
-    private ProjectLoader projectLoader;
-
+    private ModelLoader modelLoader;
+    
     @Requirement( role = Report.class )
     private Map<String, Report> reports;
     
@@ -204,15 +203,15 @@ public class VersionManager
     {
         final Set<File> result = new LinkedHashSet<File>();
         
-        List<MavenProject> projects;
+        List<Project> projects;
         
         boolean processPomPlugins = session.isProcessPomPlugins();
         session.setProcessPomPlugins( true );
         try
         {
-            projects = projectLoader.buildReactorProjectInstances( session, session.isProjectBuildRecursive(), pomFiles );
+            projects = modelLoader.buildModels( session, pomFiles );
         }
-        catch ( ProjectToolsException e )
+        catch ( VManException e )
         {
             session.addGlobalError( e );
             return result;
@@ -228,9 +227,9 @@ public class VersionManager
         }
 
         LOGGER.info( "Modifying " + projects.size() + " project(s)..." );
-        for ( final MavenProject project : projects )
+        for ( final Project project : projects )
         {
-            LOGGER.info( "Modifying '" + project.getId() + "'..." );
+            LOGGER.info( "Modifying '" + project.getKey() + "'..." );
 
             boolean changed = false;
             if ( injectors != null )
@@ -247,9 +246,9 @@ public class VersionManager
             
             if ( changed )
             {
-                LOGGER.info( "Writing modified '" + project.getId() + "'..." );
+                LOGGER.info( "Writing modified '" + project.getKey() + "'..." );
 
-                final Model model = project.getOriginalModel();
+                final Model model = project.getModel();
                 final Parent parent = model.getParent();
 
                 String groupId = model.getGroupId();
@@ -268,7 +267,7 @@ public class VersionManager
                 }
                 
                 final ProjectKey originalCoord = new VersionlessProjectKey( groupId, model.getArtifactId() );
-                final File pom = project.getFile();
+                final File pom = project.getPom();
 
                 final File out = writePom( model, originalCoord, originalVersion, pom, basedir, session, preserveDirs );
                 if ( out != null )
@@ -278,7 +277,7 @@ public class VersionManager
             }
             else
             {
-                LOGGER.info( project.getId() + " NOT modified." );
+                LOGGER.info( project.getKey() + " NOT modified." );
             }
         }
 

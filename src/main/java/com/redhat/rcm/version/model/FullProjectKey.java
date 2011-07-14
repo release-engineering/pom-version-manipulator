@@ -20,8 +20,12 @@ package com.redhat.rcm.version.model;
 
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.model.Dependency;
+import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
 import org.apache.maven.project.MavenProject;
+
+import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.mgr.model.Project;
 
 public class FullProjectKey
     extends VersionlessProjectKey
@@ -37,7 +41,7 @@ public class FullProjectKey
         this.version = version;
     }
 
-    public FullProjectKey( final MavenProject project )
+    public FullProjectKey( final Project project )
     {
         this( project.getGroupId(), project.getArtifactId(), project.getVersion() );
     }
@@ -50,6 +54,59 @@ public class FullProjectKey
     public FullProjectKey( final Dependency dependency )
     {
         this( dependency.getGroupId(), dependency.getArtifactId(), dependency.getVersion() );
+    }
+
+    public FullProjectKey( Model model )
+        throws VManException
+    {
+        this( selectGroupId( model ), model.getArtifactId(), selectVersion( model ) );
+    }
+
+    public FullProjectKey( MavenProject project )
+    {
+        this( project.getGroupId(), project.getArtifactId(), project.getVersion() );
+    }
+
+    private static String selectVersion( Model model )
+        throws VManException
+    {
+        String version = model.getVersion();
+        if ( version == null )
+        {
+            Parent parent = model.getParent();
+            if ( parent != null )
+            {
+                version = parent.getVersion();
+            }
+        }
+        
+        if ( version == null )
+        {
+            throw new VManException( "Invalid model (missing version): %s", model );
+        }
+        
+        return version;
+    }
+
+    private static String selectGroupId( Model model )
+        throws VManException
+    {
+        String gid = model.getGroupId();
+        if ( gid == null )
+        {
+            Parent parent = model.getParent();
+            if ( parent != null )
+            {
+                gid = parent.getGroupId();
+            }
+        }
+        
+        if ( gid == null )
+        {
+            throw new VManException( "Invalid model (missing groupId): %s", model );
+        }
+        
+        return gid;
     }
 
     public String getVersion()

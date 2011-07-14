@@ -28,6 +28,7 @@ import org.apache.maven.model.PluginManagement;
 import org.apache.maven.project.MavenProject;
 
 import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.mgr.model.Project;
 import com.redhat.rcm.version.model.FullProjectKey;
 import com.redhat.rcm.version.model.ProjectAncestryGraph;
 import com.redhat.rcm.version.model.ProjectKey;
@@ -420,7 +421,7 @@ public class VersionManagerSession
         return bomCoords.contains( key );
     }
 
-    public boolean hasParentInGraph( MavenProject project )
+    public boolean hasParentInGraph( Project project )
     {
         return ancestryGraph.hasParentInGraph( project );
     }
@@ -435,7 +436,7 @@ public class VersionManagerSession
 //        return ancestryGraph.hasAncestor( ancestorKey, project );
 //    }
 
-    public VersionManagerSession setProjects( List<MavenProject> projects )
+    public VersionManagerSession setProjects( List<Project> projects )
     {
         ancestryGraph = new ProjectAncestryGraph( toolchainKey, projects );
         return this;
