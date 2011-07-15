@@ -20,45 +20,27 @@ package com.redhat.rcm.version.mgr;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.fail;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import org.apache.log4j.Appender;
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-import org.apache.log4j.SimpleLayout;
-import org.apache.log4j.spi.Configurator;
-import org.apache.log4j.spi.LoggerRepository;
 import org.apache.maven.artifact.Artifact;
-import org.apache.maven.mae.MAEException;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.FileUtils;
 import org.codehaus.plexus.util.ReaderFactory;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
-import java.net.URL;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
-public class VersionManagerTest
+public class BOMManagementTest extends AbstractVersionManagerTest
 {
-
+    
     @Test
     public void modifySinglePom_NormalizeToBOMUsage()
         throws Exception
@@ -289,24 +271,6 @@ public class VersionManagerTest
         System.out.println( "\n\n" );
     }
 
-    private void assertNoErrors( VersionManagerSession session )
-    {
-        Map<File, Set<Throwable>> errors = session.getErrors();
-        if ( errors != null && !errors.isEmpty() )
-        {
-            for ( Map.Entry<File, Set<Throwable>> entry: errors.entrySet() )
-            {
-                System.out.printf( "%d errors encountered while processing file: %s\n\n", entry.getValue().size(), entry.getKey() );
-                for ( Throwable error : entry.getValue() )
-                {
-                    error.printStackTrace();
-                }
-            }
-            
-            fail( "See above errors." );
-        }
-    }
-
     @Test
     public void modifySinglePomUsingInterpolatedBOM()
         throws IOException
@@ -326,144 +290,6 @@ public class VersionManagerTest
         vman.generateReports( reports, session );
 
         System.out.println( "\n\n" );
-    }
-
-    private static VersionManager vman;
-
-    private static final Set<File> toDelete = new HashSet<File>();
-
-    private File repo;
-
-    private File workspace;
-
-    private File reports;
-
-    @BeforeClass
-    public static void setupVersionManager()
-        throws MAEException
-    {
-        vman = VersionManager.getInstance();
-    }
-
-    @BeforeClass
-    public static void setupLogging()
-    {
-        final Configurator log4jConfigurator = new Configurator()
-        {
-            @Override
-            @SuppressWarnings( "unchecked" )
-            public void doConfigure( final URL notUsed, final LoggerRepository repo )
-            {
-                final ConsoleAppender appender = new ConsoleAppender( new SimpleLayout() );
-                appender.setImmediateFlush( true );
-                appender.setThreshold( Level.ALL );
-
-                if ( !hasConsoleAppender( repo.getRootLogger() ) )
-                {
-                    repo.getRootLogger().addAppender( appender );
-                }
-
-                final Enumeration<Logger> loggers = repo.getCurrentLoggers();
-                while ( loggers.hasMoreElements() )
-                {
-                    final Logger logger = loggers.nextElement();
-                    if ( !hasConsoleAppender( logger ) )
-                    {
-                        logger.addAppender( appender );
-                    }
-                    logger.setLevel( Level.INFO );
-                }
-            }
-
-            private boolean hasConsoleAppender( final Logger logger )
-            {
-                @SuppressWarnings( "unchecked" )
-                final Enumeration<Appender> e = logger.getAllAppenders();
-
-                while ( e.hasMoreElements() )
-                {
-                    if ( e.nextElement() instanceof ConsoleAppender )
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-        };
-
-        log4jConfigurator.doConfigure( null, LogManager.getLoggerRepository() );
-    }
-
-    @AfterClass
-    public static void deleteDirs()
-    {
-        if ( null == System.getProperty( "debug" ) )
-        {
-            for ( final File f : toDelete )
-            {
-                if ( f.exists() )
-                {
-                    try
-                    {
-                        FileUtils.forceDelete( f );
-                    }
-                    catch ( final IOException e )
-                    {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }
-    }
-
-    @Before
-    public void setupDirs()
-        throws IOException
-    {
-        repo = createTempDir( "repository" );
-        workspace = createTempDir( "workspace" );
-        reports = createTempDir( "reports" );
-    }
-
-    private VersionManagerSession modifyRepo( final String... boms )
-    {
-        final VersionManagerSession session = newVersionManagerSession();
-
-        vman.modifyVersions( repo, "**/*.pom", Arrays.asList( boms ), null, session );
-        assertNoErrors( session );
-        vman.generateReports( reports, session );
-
-        return session;
-    }
-
-    private VersionManagerSession newVersionManagerSession()
-    {
-        return new VersionManagerSession( workspace, reports, false, false, false );
-    }
-
-    private File createTempDir( final String basename )
-        throws IOException
-    {
-        final File temp = File.createTempFile( basename, ".dir" );
-        temp.delete();
-
-        temp.mkdirs();
-
-        toDelete.add( temp );
-
-        return temp;
-    }
-
-    private File getResourceFile( final String path )
-    {
-        final URL resource = Thread.currentThread().getContextClassLoader().getResource( path );
-        if ( resource == null )
-        {
-            fail( "Resource not found: " + path );
-        }
-
-        return new File( resource.getPath() );
     }
 
 }

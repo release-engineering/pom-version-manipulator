@@ -71,7 +71,10 @@ public class DefaultSessionConfigurator
     @Override
     public void configureSession( List<String> boms, String toolchain, VersionManagerSession session )
     {
-        loadBOMs( boms, session );
+        if ( boms != null )
+        {
+            loadBOMs( boms, session );
+        }
         
         if ( toolchain != null )
         {

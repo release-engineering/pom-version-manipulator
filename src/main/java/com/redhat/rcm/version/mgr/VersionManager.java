@@ -192,7 +192,7 @@ public class VersionManager
             final File out = result.iterator().next();
 
             LOGGER.info( "Modified POM versions.\n\n\tTop POM: " + out + "\n\tBOMs:\t"
-                + StringUtils.join( boms.iterator(), "\n\t\t" ) + "\n\tPOM Backups: " + session.getBackups() + "\n\n" );
+                + ( boms == null ? "-NONE-" : StringUtils.join( boms.iterator(), "\n\t\t" ) ) + "\n\tPOM Backups: " + session.getBackups() + "\n\n" );
         }
 
         return result;

@@ -29,6 +29,8 @@ import com.redhat.rcm.version.mgr.VersionManagerSession;
 import com.redhat.rcm.version.mgr.model.Project;
 import com.redhat.rcm.version.model.VersionlessProjectKey;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -48,12 +50,14 @@ public class ToolchainInjector
 
         Set<VersionlessProjectKey> pluginRefs = new HashSet<VersionlessProjectKey>();
         pluginRefs.addAll( session.getPluginReferences( new VersionlessProjectKey( project ) ) );
-        pluginRefs.addAll( accumulatePluginRefs( project, session ) );
+        accumulatePluginRefs( project, session, pluginRefs );
 
+        changed = stripToolchainPluginInfo( project, session ) || changed;
+        
         if ( !session.hasParentInGraph( project ) )
         {
-            changed = changed || injectPluginManagement( project, pluginRefs, session );
-            changed = changed || injectPluginUsages( project, session );
+            changed = injectPluginManagement( project, pluginRefs, session ) || changed;
+            changed = injectPluginUsages( project, session ) || changed;
         }
 
         return changed;
@@ -148,12 +152,70 @@ public class ToolchainInjector
         return changed;
     }
 
-    private Set<VersionlessProjectKey> accumulatePluginRefs( Project project, VersionManagerSession session )
+    private void accumulatePluginRefs( Project project, VersionManagerSession session,
+                                       Set<VersionlessProjectKey> pluginRefs )
     {
-        VersionlessProjectKey projectKey = new VersionlessProjectKey( project );
-        
-        List<Plugin> plugins = project.getBuildPlugins();
+        VersionlessProjectKey parentKey = session.hasParentInGraph( project ) ? new VersionlessProjectKey( project.getParent() ) : null;
 
+        List<Plugin> plugins = project.getPlugins();
+        if ( plugins != null )
+        {
+            for ( Plugin plugin : plugins )
+            {
+                VersionlessProjectKey pluginKey = new VersionlessProjectKey( plugin );
+                Plugin managedPlugin = session.getManagedPlugin( pluginKey );
+                if ( managedPlugin != null )
+                {
+                    if ( parentKey != null )
+                    {
+                        session.addPluginReference( parentKey, pluginKey );
+                    }
+                    else
+                    {
+                        pluginRefs.add( pluginKey );
+                    }
+                }
+                else
+                {
+                    session.addUnmanagedPlugin( project.getPom(), pluginKey );
+                }
+            }
+        }
+        
+        plugins = project.getManagedPlugins();
+        if ( plugins != null )
+        {
+            for ( Plugin plugin : plugins )
+            {
+                VersionlessProjectKey pluginKey = new VersionlessProjectKey( plugin );
+                Plugin managedPlugin = session.getManagedPlugin( pluginKey );
+                if ( managedPlugin != null )
+                {
+                    if ( parentKey != null )
+                    {
+                        session.addPluginReference( parentKey, pluginKey );
+                    }
+                    else
+                    {
+                        pluginRefs.add( pluginKey );
+                    }
+                }
+                else
+                {
+                    session.addUnmanagedPlugin( project.getPom(), pluginKey );
+                }
+            }
+        }
+    }
+
+    private boolean stripToolchainPluginInfo( Project project, VersionManagerSession session )
+    {
+        return stripToolchainPluginInfo( project, project.getPlugins(), session )
+            || stripToolchainPluginInfo( project, project.getManagedPlugins(), session );
+    }
+
+    private boolean stripToolchainPluginInfo( Project project, List<Plugin> plugins, VersionManagerSession session )
+    {
         Model originalModel = project.getModel();
         Build build = originalModel.getBuild();
 
@@ -168,42 +230,35 @@ public class ToolchainInjector
             originalPlugins = Collections.emptyList();
         }
 
-        Set<VersionlessProjectKey> pluginKeys = new HashSet<VersionlessProjectKey>();
-
+        boolean changed = false;
         if ( plugins != null )
         {
-            for ( Plugin plugin : plugins )
+            for ( Plugin plugin : new ArrayList<Plugin>( plugins ) )
             {
                 VersionlessProjectKey pluginKey = new VersionlessProjectKey( plugin );
                 Plugin managedPlugin = session.getManagedPlugin( pluginKey );
 
-                int originalIdx = originalPlugins.indexOf( plugin );
-                Plugin originalPlugin = originalIdx > -1 ? originalPlugins.get( originalIdx ) : null;
-
                 if ( managedPlugin != null )
                 {
-                    if ( originalPlugin != null )
+                    plugin.setVersion( null );
+
+                    if ( isEmpty( plugin.getDependencies() ) && isEmpty( plugin.getExecutions() )
+                        && plugin.getConfiguration() == null )
                     {
-                        originalPlugin.setVersion( null );
+                        plugins.remove( plugin );
                     }
 
-                    if ( projectKey != null )
-                    {
-                        session.addPluginReference( projectKey, pluginKey );
-                    }
-                    else
-                    {
-                        pluginKeys.add( pluginKey );
-                    }
-                }
-                else
-                {
-                    session.addUnmanagedPlugin( project.getPom(), pluginKey );
+                    changed = true;
                 }
             }
         }
 
-        return pluginKeys;
+        return changed;
+    }
+
+    private boolean isEmpty( Collection<?> collection )
+    {
+        return collection == null || collection.isEmpty();
     }
 
     private static final class InjectionMerger

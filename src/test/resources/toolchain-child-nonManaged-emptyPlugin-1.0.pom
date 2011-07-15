@@ -1,0 +1,19 @@
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.test</groupId>
+    <artifactId>toolchain-parent</artifactId>
+    <version>1.0</version>
+  </parent>
+  
+  <artifactId>toolchain-child</artifactId>
+  
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>2.3.2</version>
+      </plugin>
+    </plugins>
+  </build>
+</project>

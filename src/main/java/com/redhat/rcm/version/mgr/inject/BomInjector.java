@@ -54,7 +54,7 @@ public class BomInjector
         if ( session.isNormalizeBomUsage() )
         {
             LOGGER.info( "Introducing BOMs to '" + project.getKey() + "'..." );
-            changed = changed || introduceBoms( model, project, pom, session );
+            changed = introduceBoms( model, project, pom, session ) || changed;
         }
 
         if ( model.getDependencies() != null )

@@ -21,6 +21,7 @@ import org.apache.maven.model.Build;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
 import org.apache.maven.model.Plugin;
+import org.apache.maven.model.PluginManagement;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.model.FullProjectKey;
@@ -116,7 +117,7 @@ public class Project
         return key.getVersion();
     }
 
-    public List<Plugin> getBuildPlugins()
+    public List<Plugin> getPlugins()
     {
         Build build = model.getBuild();
         if ( build == null )
@@ -125,6 +126,29 @@ public class Project
         }
         
         List<Plugin> result = build.getPlugins();
+        if( result == null )
+        {
+            return Collections.emptyList();
+        }
+        
+        return result;
+    }
+
+    public List<Plugin> getManagedPlugins()
+    {
+        Build build = model.getBuild();
+        if ( build == null )
+        {
+            return Collections.emptyList();
+        }
+        
+        PluginManagement pm = build.getPluginManagement();
+        if ( pm == null )
+        {
+            return Collections.emptyList();
+        }
+        
+        List<Plugin> result = pm.getPlugins();
         if( result == null )
         {
             return Collections.emptyList();
