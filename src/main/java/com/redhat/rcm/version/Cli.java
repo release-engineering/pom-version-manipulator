@@ -70,8 +70,8 @@ public class Cli
     @Option( name = "-r", aliases = { "--report-dir" }, usage = "Write reports here." )
     private File reports = new File( "vman-reports" );
     
-    @Option( name = "-n", aliases = { "--normalize-boms" }, usage = "Normalize the BOM usage (introduce the BOM and remove dependency versions)." )
-    private boolean normalizeBOMUsage = false;
+    @Option( name = "-n", aliases = { "--normalize-boms=TRUE_OR_FALSE" }, usage = "Normalize the BOM usage (introduce the BOM and remove dependency versions)." )
+    private boolean normalizeBOMUsage = true;
 
     @Option( name = "-h", aliases = { "--help" }, usage = "Print this message and quit" )
     private boolean help = false;
