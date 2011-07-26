@@ -39,7 +39,8 @@ import org.apache.maven.model.Dependency;
 import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Model;
 import org.codehaus.plexus.util.FileUtils;
-import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.redhat.rcm.version.mgr.inject.BomInjector;
@@ -49,13 +50,24 @@ public class BOMManagementTest
     extends AbstractVersionManagerTest
 {
 
-    @BeforeClass
-    public static void setupLogging()
+    @Before
+    public void setup()
+        throws Throwable
     {
         Map<Class<?>, Level> levels = new HashMap<Class<?>, Level>();
         levels.put( BomInjector.class, Level.INFO );
 
         setupLogging( levels );
+
+        setupDirs();
+        setupVersionManager();
+    }
+
+    @After
+    public void teardown()
+    {
+        deleteDirs();
+        flushLogging();
     }
 
     @Test

@@ -42,8 +42,6 @@ import org.apache.maven.model.Model;
 import org.apache.maven.model.io.DefaultModelReader;
 import org.apache.maven.model.io.ModelReader;
 import org.codehaus.plexus.util.FileUtils;
-import org.junit.After;
-import org.junit.Before;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.model.FullProjectKey;
@@ -55,6 +53,8 @@ public abstract class AbstractVersionManagerTest
 
     protected final Set<File> toDelete = new HashSet<File>();
 
+    protected ConsoleAppender appender = new ConsoleAppender( new SimpleLayout() );
+
     protected File repo;
 
     protected File workspace;
@@ -65,14 +65,46 @@ public abstract class AbstractVersionManagerTest
     {
     }
 
-    @Before
     public void setupVersionManager()
         throws MAEException
     {
-        vman = VersionManager.getInstance();
+        if ( vman == null )
+        {
+            vman = VersionManager.getInstance();
+        }
     }
 
-    protected static void setupLogging( final Map<Class<?>, Level> levels )
+    public synchronized void setupDirs()
+        throws IOException
+    {
+        if ( repo == null )
+        {
+            repo = createTempDir( "repository" );
+        }
+
+        if ( workspace == null )
+        {
+            workspace = createTempDir( "workspace" );
+        }
+
+        if ( reports == null )
+        {
+            reports = createTempDir( "reports" );
+        }
+    }
+
+    protected synchronized void flushLogging()
+    {
+        System.out.flush();
+        System.err.flush();
+        if ( appender != null )
+        {
+            appender.close();
+            appender = null;
+        }
+    }
+
+    protected void setupLogging( final Map<Class<?>, Level> levels )
     {
         System.out.println( "Setting up logging..." );
         final Configurator log4jConfigurator = new Configurator()
@@ -83,9 +115,8 @@ public abstract class AbstractVersionManagerTest
             {
                 Level defaultLevel = Level.ERROR;
 
-                final ConsoleAppender appender = new ConsoleAppender( new SimpleLayout() );
-                appender.setImmediateFlush( true );
-                appender.setThreshold( Level.WARN );
+                // appender.setImmediateFlush( true );
+                appender.setThreshold( Level.TRACE );
 
                 repo.getRootLogger().removeAllAppenders();
                 repo.getRootLogger().addAppender( appender );
@@ -131,35 +162,22 @@ public abstract class AbstractVersionManagerTest
         log4jConfigurator.doConfigure( null, LogManager.getLoggerRepository() );
     }
 
-    @After
-    public synchronized void deleteDirs()
+    protected synchronized void deleteDirs()
     {
-        if ( null == System.getProperty( "debug" ) )
+        for ( final File f : toDelete )
         {
-            for ( final File f : toDelete )
+            if ( f.exists() )
             {
-                if ( f.exists() )
+                try
                 {
-                    try
-                    {
-                        FileUtils.forceDelete( f );
-                    }
-                    catch ( final IOException e )
-                    {
-                        e.printStackTrace();
-                    }
+                    FileUtils.forceDelete( f );
+                }
+                catch ( final IOException e )
+                {
+                    e.printStackTrace();
                 }
             }
         }
-    }
-
-    @Before
-    public void setupDirs()
-        throws IOException
-    {
-        repo = createTempDir( "repository" );
-        workspace = createTempDir( "workspace" );
-        reports = createTempDir( "reports" );
     }
 
     protected void assertNoErrors( VersionManagerSession session )

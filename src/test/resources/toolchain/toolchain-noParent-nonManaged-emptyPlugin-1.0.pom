@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.test</groupId>
   <version>1.0</version>
-  <artifactId>toolchain-child</artifactId>
+  <artifactId>toolchain-noParent-nonManaged-emptyPlugin</artifactId>
   
   <build>
     <plugins>

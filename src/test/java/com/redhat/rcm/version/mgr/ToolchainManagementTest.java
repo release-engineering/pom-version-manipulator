@@ -37,12 +37,14 @@ import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginManagement;
-import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.inject.ToolchainInjector;
 import com.redhat.rcm.version.model.FullProjectKey;
+import com.redhat.rcm.version.model.Project;
 
 public class ToolchainManagementTest
     extends AbstractVersionManagerTest
@@ -54,22 +56,36 @@ public class ToolchainManagementTest
 
     private static FullProjectKey toolchainKey;
 
-    @BeforeClass
-    public static void setupLogging()
+    @Before
+    public void setup()
+        throws Throwable
     {
         Map<Class<?>, Level> levels = new HashMap<Class<?>, Level>();
         levels.put( ToolchainInjector.class, Level.INFO );
 
         setupLogging( levels );
+
+        setupDirs();
+        setupVersionManager();
+    }
+
+    @After
+    public void teardown()
+    {
+        deleteDirs();
+        flushLogging();
     }
 
     @Test
     public void adjustNonManagedPluginForInheritedToolchain()
         throws Throwable
     {
-        Model changed =
+        Project project =
             adjustSingle( "Adjust single non-managed plugin in POM inherited from toolchain",
                           "toolchain-child-nonManaged-1.0.pom" );
+
+        Model changed = project.getModel();
+
         Build build = changed.getBuild();
         assertThat( build, notNullValue() );
 
@@ -86,8 +102,10 @@ public class ToolchainManagementTest
     public void adjustManagedPluginForInheritedToolchain()
         throws Throwable
     {
-        Model changed =
+        Project project =
             adjustSingle( "Adjust managed plugin in POM inherited from toolchain", "toolchain-child-managed-1.0.pom" );
+
+        Model changed = project.getModel();
 
         Build build = changed.getBuild();
         assertThat( build, notNullValue() );
@@ -108,9 +126,13 @@ public class ToolchainManagementTest
     public void adjustNonManagedPluginForNonInheritedToolchain()
         throws Throwable
     {
-        Model changed =
+        Project project =
             adjustSingle( "Adjust non-managed plugin in POM NOT inheriting from toolchain",
                           "toolchain-externalParent-nonManaged-1.0.pom" );
+
+        Model changed = project.getModel();
+        System.out.println( "Verifying POM: " + project.getPom() );
+        flushLogging();
 
         Build build = changed.getBuild();
         assertThat( build, notNullValue() );
@@ -137,9 +159,11 @@ public class ToolchainManagementTest
     public void adjustNonManagedPluginForInjectedToolchainParent()
         throws Throwable
     {
-        Model changed =
+        Project project =
             adjustSingle( "Adjust single non-managed plugin in POM to be inherited from toolchain",
                           "toolchain-noParent-nonManaged-1.0.pom" );
+
+        Model changed = project.getModel();
 
         Parent parent = changed.getParent();
         assertThat( parent, notNullValue() );
@@ -165,9 +189,12 @@ public class ToolchainManagementTest
     public void removeEmptyNonManagedPluginForInheritedToolchain()
         throws Throwable
     {
-        Model changed =
+        Project project =
             adjustSingle( "Adjust single non-managed plugin in POM inherited from toolchain",
                           "toolchain-child-nonManaged-emptyPlugin-1.0.pom" );
+
+        Model changed = project.getModel();
+
         Build build = changed.getBuild();
         assertThat( build, notNullValue() );
 
@@ -179,9 +206,11 @@ public class ToolchainManagementTest
     public void removeEmptyNonManagedPluginForInjectedToolchainParent()
         throws Throwable
     {
-        Model changed =
+        Project project =
             adjustSingle( "Adjust single non-managed plugin in POM inherited from toolchain",
                           "toolchain-noParent-nonManaged-emptyPlugin-1.0.pom" );
+
+        Model changed = project.getModel();
 
         Parent parent = changed.getParent();
         assertThat( parent, notNullValue() );
@@ -202,9 +231,11 @@ public class ToolchainManagementTest
     public void removeEmptyManagedPluginForInheritedToolchain()
         throws Throwable
     {
-        Model changed =
+        Project project =
             adjustSingle( "Adjust managed plugin in POM inherited from toolchain",
                           "toolchain-child-managed-emptyPlugin-1.0.pom" );
+
+        Model changed = project.getModel();
 
         Build build = changed.getBuild();
         assertThat( build, notNullValue() );
@@ -220,9 +251,11 @@ public class ToolchainManagementTest
     public void removeEmptyNonManagedPluginForNonInheritedToolchain()
         throws Throwable
     {
-        Model changed =
+        Project project =
             adjustSingle( "Adjust non-managed plugin in POM NOT inheriting from toolchain",
                           "toolchain-externalParent-nonManaged-emptyPlugin-1.0.pom" );
+
+        Model changed = project.getModel();
 
         Build build = changed.getBuild();
         assertThat( build, notNullValue() );
@@ -240,27 +273,35 @@ public class ToolchainManagementTest
         assertThat( plugin.getVersion(), equalTo( "2.0" ) );
     }
 
-    private Model adjustSingle( String description, String pomPath )
+    private Project adjustSingle( String description, String pomPath )
         throws Throwable
     {
-        System.setProperty( "debug", Boolean.toString( true ) );
-        System.out.println( "TESTING: " + description );
+        try
+        {
+            System.setProperty( "debug", Boolean.toString( true ) );
+            System.out.println( "TESTING: " + description + "\nPOM: " + pomPath );
 
-        final File srcPom = getResourceFile( TOOLCHAIN_TEST_POMS + pomPath );
-        final String toolchain = getResourceFile( TOOLCHAIN_PATH ).getAbsolutePath();
+            final File srcPom = getResourceFile( TOOLCHAIN_TEST_POMS + pomPath );
+            final String toolchain = getResourceFile( TOOLCHAIN_PATH ).getAbsolutePath();
 
-        final File pom = new File( repo, srcPom.getName() );
-        copyFile( srcPom, pom );
+            final File pom = new File( repo, srcPom.getName() );
+            copyFile( srcPom, pom );
 
-        final VersionManagerSession session = new VersionManagerSession( workspace, reports, false, false );
+            final VersionManagerSession session = new VersionManagerSession( workspace, reports, false, false );
 
-        final Set<File> modified = vman.modifyVersions( pom, null, toolchain, session );
-        assertNoErrors( session );
+            final Set<File> modified = vman.modifyVersions( pom, null, toolchain, session );
+            assertNoErrors( session );
 
-        Set<Model> changedModels = loadModels( modified );
-        assertThat( changedModels.size(), equalTo( 1 ) );
+            Set<Model> changedModels = loadModels( modified );
+            assertThat( changedModels.size(), equalTo( 1 ) );
 
-        return changedModels.iterator().next();
+            return new Project( pom, changedModels.iterator().next() );
+        }
+        catch ( Throwable t )
+        {
+            t.printStackTrace();
+            throw t;
+        }
     }
 
     private static FullProjectKey getToolchainKey()

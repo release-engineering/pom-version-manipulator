@@ -7,7 +7,7 @@
   </parent>
   
   <version>1.0</version>
-  <artifactId>toolchain-child</artifactId>
+  <artifactId>toolchain-externalParent-nonManaged</artifactId>
   
   <build>
     <plugins>
