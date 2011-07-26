@@ -22,7 +22,6 @@ import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Parent;
 import org.apache.maven.model.Plugin;
 
-import com.redhat.rcm.version.mgr.model.Project;
 
 public class VersionlessProjectKey
     implements Comparable<ProjectKey>, ProjectKey

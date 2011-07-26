@@ -18,24 +18,6 @@
 
 package com.redhat.rcm.version.mgr;
 
-import org.apache.log4j.Logger;
-import org.apache.maven.mae.project.session.SimpleProjectToolsSession;
-import org.apache.maven.model.Build;
-import org.apache.maven.model.Dependency;
-import org.apache.maven.model.Model;
-import org.apache.maven.model.Plugin;
-import org.apache.maven.model.PluginManagement;
-import org.apache.maven.project.MavenProject;
-
-import com.redhat.rcm.version.VManException;
-import com.redhat.rcm.version.mgr.model.Project;
-import com.redhat.rcm.version.model.FullProjectKey;
-import com.redhat.rcm.version.model.ProjectAncestryGraph;
-import com.redhat.rcm.version.model.ProjectKey;
-import com.redhat.rcm.version.model.Relocations;
-import com.redhat.rcm.version.model.VersionlessProjectKey;
-import com.redhat.rcm.version.util.ActivityLog;
-
 import java.io.File;
 import java.util.Collections;
 import java.util.HashMap;
@@ -46,6 +28,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+
+import org.apache.log4j.Logger;
+import org.apache.maven.mae.project.session.SimpleProjectToolsSession;
+import org.apache.maven.model.Build;
+import org.apache.maven.model.Dependency;
+import org.apache.maven.model.Model;
+import org.apache.maven.model.Plugin;
+import org.apache.maven.model.PluginManagement;
+import org.apache.maven.project.MavenProject;
+
+import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.model.FullProjectKey;
+import com.redhat.rcm.version.model.Project;
+import com.redhat.rcm.version.model.ProjectAncestryGraph;
+import com.redhat.rcm.version.model.ProjectKey;
+import com.redhat.rcm.version.model.Relocations;
+import com.redhat.rcm.version.model.VersionlessProjectKey;
+import com.redhat.rcm.version.util.ActivityLog;
 
 public class VersionManagerSession
     extends SimpleProjectToolsSession
@@ -59,8 +59,9 @@ public class VersionManagerSession
 
     private final Map<VersionlessProjectKey, Set<File>> missingVersions =
         new HashMap<VersionlessProjectKey, Set<File>>();
-    
-    private final Map<File, Set<VersionlessProjectKey>> unmanagedPlugins = new HashMap<File, Set<VersionlessProjectKey>>();
+
+    private final Map<File, Set<VersionlessProjectKey>> unmanagedPlugins =
+        new HashMap<File, Set<VersionlessProjectKey>>();
 
     private final Map<File, Set<Throwable>> errors = new LinkedHashMap<File, Set<Throwable>>();
 
@@ -70,13 +71,13 @@ public class VersionManagerSession
 
     private final Map<File, Map<VersionlessProjectKey, String>> bomDepMap =
         new HashMap<File, Map<VersionlessProjectKey, String>>();
-    
+
     private final Map<VersionlessProjectKey, Plugin> managedPlugins =
         new LinkedHashMap<VersionlessProjectKey, Plugin>();
 
     private final Map<VersionlessProjectKey, Plugin> injectedPlugins =
         new LinkedHashMap<VersionlessProjectKey, Plugin>();
-    
+
     private final Map<VersionlessProjectKey, Set<VersionlessProjectKey>> accumulatedPluginRefs =
         new HashMap<VersionlessProjectKey, Set<VersionlessProjectKey>>();
 
@@ -90,20 +91,18 @@ public class VersionManagerSession
 
     private final boolean preserveFiles;
 
-    private final boolean normalizeBomUsage;
-
     private final File workspace;
 
     private final File reports;
 
     private final boolean projectBuildRecursive;
-    
+
     private ProjectAncestryGraph ancestryGraph;
 
     private FullProjectKey toolchainKey;
 
     public VersionManagerSession( final File workspace, final File reports, final boolean preserveFiles,
-                                  final boolean normalizeBomUsage, final boolean projectBuildRecursive )
+                                  final boolean projectBuildRecursive )
     {
         this.workspace = workspace;
         this.reports = reports;
@@ -116,7 +115,6 @@ public class VersionManagerSession
         downloads.mkdirs();
 
         this.preserveFiles = preserveFiles;
-        this.normalizeBomUsage = normalizeBomUsage;
     }
 
     public FullProjectKey getRelocation( final ProjectKey key )
@@ -140,8 +138,8 @@ public class VersionManagerSession
 
         return log;
     }
-    
-    public synchronized VersionManagerSession addUnmanagedPlugin( File pom, VersionlessProjectKey pluginKey )
+
+    public synchronized VersionManagerSession addUnmanagedPlugin( final File pom, final VersionlessProjectKey pluginKey )
     {
         Set<VersionlessProjectKey> pluginKeys = unmanagedPlugins.get( pom );
         if ( pluginKeys == null )
@@ -149,9 +147,9 @@ public class VersionManagerSession
             pluginKeys = new HashSet<VersionlessProjectKey>();
             unmanagedPlugins.put( pom, pluginKeys );
         }
-        
+
         pluginKeys.add( pluginKey );
-        
+
         return this;
     }
 
@@ -217,7 +215,7 @@ public class VersionManagerSession
     {
         return preserveFiles;
     }
-    
+
     public Map<File, Set<VersionlessProjectKey>> getUnmanagedPlugins()
     {
         return unmanagedPlugins;
@@ -311,7 +309,7 @@ public class VersionManagerSession
         }
 
         bomMap.put( key, version );
-        
+
         return this;
     }
 
@@ -335,41 +333,36 @@ public class VersionManagerSession
         return relocations;
     }
 
-    public boolean isNormalizeBomUsage()
-    {
-        return normalizeBomUsage;
-    }
-
     public boolean isProjectBuildRecursive()
     {
         return projectBuildRecursive;
     }
 
-    public VersionManagerSession setToolchain( File toolchainFile, MavenProject project )
+    public VersionManagerSession setToolchain( final File toolchainFile, final MavenProject project )
     {
-        this.toolchainKey = new FullProjectKey( project );
-        
-        PluginManagement pm = project.getPluginManagement();
+        toolchainKey = new FullProjectKey( project );
+
+        final PluginManagement pm = project.getPluginManagement();
         if ( pm != null )
         {
-            for ( Plugin plugin : pm.getPlugins() )
+            for ( final Plugin plugin : pm.getPlugins() )
             {
                 managedPlugins.put( new VersionlessProjectKey( plugin ), plugin );
             }
         }
-        
-        Model model = project.getOriginalModel();
-        Build build = model.getBuild();
+
+        final Model model = project.getOriginalModel();
+        final Build build = model.getBuild();
         if ( build != null )
         {
-            List<Plugin> plugins = build.getPlugins();
+            final List<Plugin> plugins = build.getPlugins();
             if ( plugins != null )
             {
-                for ( Plugin plugin : plugins )
+                for ( final Plugin plugin : plugins )
                 {
-                    VersionlessProjectKey key = new VersionlessProjectKey( plugin );
+                    final VersionlessProjectKey key = new VersionlessProjectKey( plugin );
                     injectedPlugins.put( key, plugin );
-                    
+
                     if ( !managedPlugins.containsKey( key ) && plugin.getVersion() != null )
                     {
                         injectedPlugins.put( key, plugin );
@@ -377,32 +370,38 @@ public class VersionManagerSession
                 }
             }
         }
-        
+
         return this;
     }
-    
-    public Plugin getManagedPlugin( VersionlessProjectKey key )
+
+    public FullProjectKey getToolchainKey()
+    {
+        return toolchainKey;
+    }
+
+    public Plugin getManagedPlugin( final VersionlessProjectKey key )
     {
         return managedPlugins.get( key );
     }
-    
+
     public Map<VersionlessProjectKey, Plugin> getInjectedPlugins()
     {
         return injectedPlugins;
     }
-    
-    public Set<VersionlessProjectKey> getPluginReferences( VersionlessProjectKey owner )
+
+    public Set<VersionlessProjectKey> getPluginReferences( final VersionlessProjectKey owner )
     {
         Set<VersionlessProjectKey> refs = accumulatedPluginRefs.get( owner );
         if ( refs == null )
         {
             refs = Collections.emptySet();
         }
-        
+
         return refs;
     }
-    
-    public VersionManagerSession addPluginReference( VersionlessProjectKey owner, VersionlessProjectKey plugin )
+
+    public VersionManagerSession addPluginReference( final VersionlessProjectKey owner,
+                                                     final VersionlessProjectKey plugin )
     {
         Set<VersionlessProjectKey> plugins = accumulatedPluginRefs.get( owner );
         if ( plugins == null )
@@ -410,35 +409,45 @@ public class VersionManagerSession
             plugins = new HashSet<VersionlessProjectKey>();
             accumulatedPluginRefs.put( owner, plugins );
         }
-        
+
         plugins.add( plugin );
-        
+
         return this;
     }
 
-    public boolean isBom( FullProjectKey key )
+    public boolean isBom( final FullProjectKey key )
     {
         return bomCoords.contains( key );
     }
 
-    public boolean hasParentInGraph( Project project )
+    public boolean hasParentInGraph( final Project project )
     {
         return ancestryGraph.hasParentInGraph( project );
     }
-    
-//    public boolean hasToolchainAncestor( MavenProject project )
-//    {
-//        return ancestryGraph.hasToolchainAncestor( project );
-//    }
-//    
-//    public boolean hasAncestor( FullProjectKey ancestorKey, MavenProject project )
-//    {
-//        return ancestryGraph.hasAncestor( ancestorKey, project );
-//    }
 
-    public VersionManagerSession setProjects( List<Project> projects )
+    // public boolean hasToolchainAncestor( MavenProject project )
+    // {
+    // return ancestryGraph.hasToolchainAncestor( project );
+    // }
+    //
+    // public boolean hasAncestor( FullProjectKey ancestorKey, MavenProject project )
+    // {
+    // return ancestryGraph.hasAncestor( ancestorKey, project );
+    // }
+
+    public VersionManagerSession setProjects( final List<Project> projects )
     {
         ancestryGraph = new ProjectAncestryGraph( toolchainKey, projects );
+        return this;
+    }
+
+    public VersionManagerSession connectProject( final Project project )
+    {
+        if ( ancestryGraph != null )
+        {
+            ancestryGraph.connect( project );
+        }
+
         return this;
     }
 

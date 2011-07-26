@@ -19,7 +19,7 @@
 package com.redhat.rcm.version.mgr.inject;
 
 import com.redhat.rcm.version.mgr.VersionManagerSession;
-import com.redhat.rcm.version.mgr.model.Project;
+import com.redhat.rcm.version.model.Project;
 
 public interface PomInjector
 {

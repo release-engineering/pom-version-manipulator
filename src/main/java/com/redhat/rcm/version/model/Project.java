@@ -15,7 +15,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.redhat.rcm.version.mgr.model;
+package com.redhat.rcm.version.model;
 
 import org.apache.maven.model.Build;
 import org.apache.maven.model.Model;
@@ -24,7 +24,6 @@ import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginManagement;
 
 import com.redhat.rcm.version.VManException;
-import com.redhat.rcm.version.model.FullProjectKey;
 
 import java.io.File;
 import java.util.Collections;

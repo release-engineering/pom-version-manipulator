@@ -25,7 +25,6 @@ import org.apache.maven.model.Parent;
 import org.apache.maven.project.MavenProject;
 
 import com.redhat.rcm.version.VManException;
-import com.redhat.rcm.version.mgr.model.Project;
 
 public class FullProjectKey
     extends VersionlessProjectKey

@@ -20,6 +20,14 @@ package com.redhat.rcm.version;
 
 import static org.apache.commons.io.IOUtils.closeQuietly;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.log4j.Logger;
 import org.apache.maven.mae.MAEException;
 import org.codehaus.plexus.util.StringUtils;
@@ -31,14 +39,6 @@ import org.kohsuke.args4j.Option;
 
 import com.redhat.rcm.version.mgr.VersionManager;
 import com.redhat.rcm.version.mgr.VersionManagerSession;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 public class Cli
 {
@@ -69,9 +69,6 @@ public class Cli
 
     @Option( name = "-r", aliases = { "--report-dir" }, usage = "Write reports here." )
     private File reports = new File( "vman-reports" );
-    
-    @Option( name = "-n", aliases = { "--normalize-boms=TRUE_OR_FALSE" }, usage = "Normalize the BOM usage (introduce the BOM and remove dependency versions)." )
-    private boolean normalizeBOMUsage = true;
 
     @Option( name = "-h", aliases = { "--help" }, usage = "Print this message and quit" )
     private boolean help = false;
@@ -134,7 +131,7 @@ public class Cli
         vman = VersionManager.getInstance();
 
         final VersionManagerSession session =
-            new VersionManagerSession( workspace, reports, preserveFiles, normalizeBOMUsage, !nonRecursive );
+            new VersionManagerSession( workspace, reports, preserveFiles, !nonRecursive );
 
         if ( bomList != null )
         {
@@ -230,16 +227,6 @@ public class Cli
     protected void setHelp( final boolean help )
     {
         this.help = help;
-    }
-
-    protected boolean isNormalizeBomUsage()
-    {
-        return normalizeBOMUsage;
-    }
-
-    protected void setNormalizeBomUsage( final boolean normalizeBomUsage )
-    {
-        this.normalizeBOMUsage = normalizeBomUsage;
     }
 
     public File getTarget()

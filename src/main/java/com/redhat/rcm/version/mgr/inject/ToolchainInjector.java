@@ -18,17 +18,6 @@
 
 package com.redhat.rcm.version.mgr.inject;
 
-import org.apache.maven.model.Build;
-import org.apache.maven.model.Model;
-import org.apache.maven.model.Plugin;
-import org.apache.maven.model.PluginManagement;
-import org.apache.maven.model.merge.MavenModelMerger;
-import org.codehaus.plexus.component.annotations.Component;
-
-import com.redhat.rcm.version.mgr.VersionManagerSession;
-import com.redhat.rcm.version.mgr.model.Project;
-import com.redhat.rcm.version.model.VersionlessProjectKey;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -37,23 +26,42 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.log4j.Logger;
+import org.apache.maven.model.Build;
+import org.apache.maven.model.Model;
+import org.apache.maven.model.Parent;
+import org.apache.maven.model.Plugin;
+import org.apache.maven.model.PluginManagement;
+import org.apache.maven.model.merge.MavenModelMerger;
+import org.codehaus.plexus.component.annotations.Component;
+
+import com.redhat.rcm.version.mgr.VersionManagerSession;
+import com.redhat.rcm.version.model.FullProjectKey;
+import com.redhat.rcm.version.model.Project;
+import com.redhat.rcm.version.model.VersionlessProjectKey;
+
 @Component( role = PomInjector.class, hint = "toolchain-realignment" )
 public class ToolchainInjector
     implements PomInjector
 {
 
+    private static final Logger LOGGER = Logger.getLogger( ToolchainInjector.class );
+
     private final InjectionMerger merger = new InjectionMerger();
 
-    public boolean injectChanges( Project project, VersionManagerSession session )
+    @Override
+    public boolean injectChanges( final Project project, final VersionManagerSession session )
     {
         boolean changed = false;
 
-        Set<VersionlessProjectKey> pluginRefs = new HashSet<VersionlessProjectKey>();
+        changed = attemptToolchainParentInjection( project, session ) || changed;
+
+        final Set<VersionlessProjectKey> pluginRefs = new HashSet<VersionlessProjectKey>();
         pluginRefs.addAll( session.getPluginReferences( new VersionlessProjectKey( project ) ) );
         accumulatePluginRefs( project, session, pluginRefs );
 
         changed = stripToolchainPluginInfo( project, session ) || changed;
-        
+
         if ( !session.hasParentInGraph( project ) )
         {
             changed = injectPluginManagement( project, pluginRefs, session ) || changed;
@@ -63,16 +71,43 @@ public class ToolchainInjector
         return changed;
     }
 
-    private boolean injectPluginManagement( Project project, Set<VersionlessProjectKey> pluginRefs,
-                                            VersionManagerSession session )
+    private boolean attemptToolchainParentInjection( final Project project, final VersionManagerSession session )
     {
+        final Model model = project.getModel();
+        final FullProjectKey toolchainKey = session.getToolchainKey();
+
+        boolean changed = false;
+        Parent parent = model.getParent();
+        if ( parent == null && toolchainKey != null )
+        {
+            LOGGER.info( "Injecting toolchain as parent for: " + project.getKey() );
+
+            parent = new Parent();
+            parent.setGroupId( toolchainKey.getGroupId() );
+            parent.setArtifactId( toolchainKey.getArtifactId() );
+            parent.setVersion( toolchainKey.getVersion() );
+
+            model.setParent( parent );
+            session.connectProject( project );
+
+            changed = true;
+        }
+
+        return changed;
+    }
+
+    private boolean injectPluginManagement( final Project project, final Set<VersionlessProjectKey> pluginRefs,
+                                            final VersionManagerSession session )
+    {
+        LOGGER.info( "Injecting pluginManagement section from toolchain for: " + project.getKey() );
+
         boolean changed = false;
         if ( pluginRefs.isEmpty() )
         {
             return changed;
         }
 
-        Model original = project.getModel();
+        final Model original = project.getModel();
         Build build = original.getBuild();
         if ( build == null )
         {
@@ -89,17 +124,21 @@ public class ToolchainInjector
             changed = true;
         }
 
-        Map<String, Plugin> pluginMap = pm.getPluginsAsMap();
-        for ( VersionlessProjectKey pluginRef : pluginRefs )
+        final Map<String, Plugin> pluginMap = pm.getPluginsAsMap();
+        for ( final VersionlessProjectKey pluginRef : pluginRefs )
         {
-            Plugin managed = session.getManagedPlugin( pluginRef );
-            Plugin existing = pluginMap.get( pluginRef.getId() );
+            final Plugin managed = session.getManagedPlugin( pluginRef );
+            final Plugin existing = pluginMap.get( pluginRef.getId() );
             if ( existing == null )
             {
+                LOGGER.info( "Adding plugin: " + pluginRef );
+
                 pm.addPlugin( managed );
             }
             else
             {
+                LOGGER.info( "Merging plugin: " + pluginRef );
+
                 merger.mergePlugin( managed, existing );
             }
 
@@ -109,17 +148,19 @@ public class ToolchainInjector
         return changed;
     }
 
-    private boolean injectPluginUsages( Project project, VersionManagerSession session )
+    private boolean injectPluginUsages( final Project project, final VersionManagerSession session )
     {
+        LOGGER.info( "Injecting plugin usages from toolchain for project: " + project.getKey() );
+
         boolean changed = false;
-        Map<VersionlessProjectKey, Plugin> injectedPlugins = session.getInjectedPlugins();
+        final Map<VersionlessProjectKey, Plugin> injectedPlugins = session.getInjectedPlugins();
 
         if ( injectedPlugins.isEmpty() )
         {
             return changed;
         }
 
-        Model original = project.getModel();
+        final Model original = project.getModel();
         Build build = original.getBuild();
         if ( build == null )
         {
@@ -128,21 +169,25 @@ public class ToolchainInjector
             changed = true;
         }
 
-        Map<String, Plugin> pluginMap = build.getPluginsAsMap();
+        final Map<String, Plugin> pluginMap = build.getPluginsAsMap();
 
-        for ( Map.Entry<VersionlessProjectKey, Plugin> entry : injectedPlugins.entrySet() )
+        for ( final Map.Entry<VersionlessProjectKey, Plugin> entry : injectedPlugins.entrySet() )
         {
-            VersionlessProjectKey key = entry.getKey();
+            final VersionlessProjectKey key = entry.getKey();
 
-            Plugin injected = entry.getValue();
-            Plugin existing = pluginMap.get( key.getId() );
+            final Plugin injected = entry.getValue();
+            final Plugin existing = pluginMap.get( key.getId() );
 
             if ( existing == null )
             {
+                LOGGER.info( "Adding plugin: " + key );
+
                 build.addPlugin( injected );
             }
             else
             {
+                LOGGER.info( "Merging plugin: " + key );
+
                 merger.mergePlugin( injected, existing );
             }
 
@@ -152,18 +197,19 @@ public class ToolchainInjector
         return changed;
     }
 
-    private void accumulatePluginRefs( Project project, VersionManagerSession session,
-                                       Set<VersionlessProjectKey> pluginRefs )
+    private void accumulatePluginRefs( final Project project, final VersionManagerSession session,
+                                       final Set<VersionlessProjectKey> pluginRefs )
     {
-        VersionlessProjectKey parentKey = session.hasParentInGraph( project ) ? new VersionlessProjectKey( project.getParent() ) : null;
+        final VersionlessProjectKey parentKey =
+            session.hasParentInGraph( project ) ? new VersionlessProjectKey( project.getParent() ) : null;
 
         List<Plugin> plugins = project.getPlugins();
         if ( plugins != null )
         {
-            for ( Plugin plugin : plugins )
+            for ( final Plugin plugin : plugins )
             {
-                VersionlessProjectKey pluginKey = new VersionlessProjectKey( plugin );
-                Plugin managedPlugin = session.getManagedPlugin( pluginKey );
+                final VersionlessProjectKey pluginKey = new VersionlessProjectKey( plugin );
+                final Plugin managedPlugin = session.getManagedPlugin( pluginKey );
                 if ( managedPlugin != null )
                 {
                     if ( parentKey != null )
@@ -181,14 +227,14 @@ public class ToolchainInjector
                 }
             }
         }
-        
+
         plugins = project.getManagedPlugins();
         if ( plugins != null )
         {
-            for ( Plugin plugin : plugins )
+            for ( final Plugin plugin : plugins )
             {
-                VersionlessProjectKey pluginKey = new VersionlessProjectKey( plugin );
-                Plugin managedPlugin = session.getManagedPlugin( pluginKey );
+                final VersionlessProjectKey pluginKey = new VersionlessProjectKey( plugin );
+                final Plugin managedPlugin = session.getManagedPlugin( pluginKey );
                 if ( managedPlugin != null )
                 {
                     if ( parentKey != null )
@@ -208,16 +254,24 @@ public class ToolchainInjector
         }
     }
 
-    private boolean stripToolchainPluginInfo( Project project, VersionManagerSession session )
+    private boolean stripToolchainPluginInfo( final Project project, final VersionManagerSession session )
     {
-        return stripToolchainPluginInfo( project, project.getPlugins(), session )
-            || stripToolchainPluginInfo( project, project.getManagedPlugins(), session );
+        LOGGER.info( "Stripping toolchain plugin info for project: " + project.getKey() );
+
+        boolean changed = stripToolchainPluginInfo( project, project.getPlugins(), session );
+
+        LOGGER.info( "Stripping toolchain pluginManagement info for project: " + project.getKey() );
+
+        changed = stripToolchainPluginInfo( project, project.getManagedPlugins(), session ) || changed;
+
+        return changed;
     }
 
-    private boolean stripToolchainPluginInfo( Project project, List<Plugin> plugins, VersionManagerSession session )
+    private boolean stripToolchainPluginInfo( final Project project, final List<Plugin> plugins,
+                                              final VersionManagerSession session )
     {
-        Model originalModel = project.getModel();
-        Build build = originalModel.getBuild();
+        final Model originalModel = project.getModel();
+        final Build build = originalModel.getBuild();
 
         List<Plugin> originalPlugins = null;
         if ( build != null )
@@ -233,18 +287,22 @@ public class ToolchainInjector
         boolean changed = false;
         if ( plugins != null )
         {
-            for ( Plugin plugin : new ArrayList<Plugin>( plugins ) )
+            for ( final Plugin plugin : new ArrayList<Plugin>( plugins ) )
             {
-                VersionlessProjectKey pluginKey = new VersionlessProjectKey( plugin );
-                Plugin managedPlugin = session.getManagedPlugin( pluginKey );
+                final VersionlessProjectKey pluginKey = new VersionlessProjectKey( plugin );
+                final Plugin managedPlugin = session.getManagedPlugin( pluginKey );
 
                 if ( managedPlugin != null )
                 {
+                    LOGGER.info( "Stripping plugin version from: " + pluginKey );
+
                     plugin.setVersion( null );
 
                     if ( isEmpty( plugin.getDependencies() ) && isEmpty( plugin.getExecutions() )
                         && plugin.getConfiguration() == null )
                     {
+                        LOGGER.info( "Removing plugin: " + pluginKey );
+
                         plugins.remove( plugin );
                     }
 
@@ -256,7 +314,7 @@ public class ToolchainInjector
         return changed;
     }
 
-    private boolean isEmpty( Collection<?> collection )
+    private boolean isEmpty( final Collection<?> collection )
     {
         return collection == null || collection.isEmpty();
     }
@@ -264,7 +322,7 @@ public class ToolchainInjector
     private static final class InjectionMerger
         extends MavenModelMerger
     {
-        public void mergePlugin( Plugin injected, Plugin existing )
+        public void mergePlugin( final Plugin injected, final Plugin existing )
         {
             super.mergePlugin( injected, existing, true, Collections.emptyMap() );
         }

@@ -18,6 +18,12 @@
 
 package com.redhat.rcm.version.mgr.inject;
 
+import java.io.File;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.log4j.Logger;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.model.Dependency;
@@ -27,16 +33,10 @@ import org.apache.maven.model.Parent;
 import org.codehaus.plexus.component.annotations.Component;
 
 import com.redhat.rcm.version.mgr.VersionManagerSession;
-import com.redhat.rcm.version.mgr.model.Project;
 import com.redhat.rcm.version.model.FullProjectKey;
+import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.model.ProjectKey;
 import com.redhat.rcm.version.model.VersionlessProjectKey;
-
-import java.io.File;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
 
 @Component( role = PomInjector.class, hint = "BOM-realignment" )
 public class BomInjector
@@ -45,17 +45,15 @@ public class BomInjector
 
     private static final Logger LOGGER = Logger.getLogger( BomInjector.class );
 
+    @Override
     public boolean injectChanges( final Project project, final VersionManagerSession session )
     {
         Model model = project.getModel();
         File pom = project.getPom();
 
         boolean changed = modifyCoord( model, pom, session );
-        if ( session.isNormalizeBomUsage() )
-        {
-            LOGGER.info( "Introducing BOMs to '" + project.getKey() + "'..." );
-            changed = introduceBoms( model, project, pom, session ) || changed;
-        }
+        LOGGER.info( "Introducing BOMs to '" + project.getKey() + "'..." );
+        changed = introduceBoms( model, project, pom, session ) || changed;
 
         if ( model.getDependencies() != null )
         {
@@ -165,10 +163,8 @@ public class BomInjector
             {
                 if ( !version.equals( parent.getVersion() ) )
                 {
-                    session.getLog( pom ).add( "Changing POM parent (%s) version\n\tFrom: %s\n\tTo: %s",
-                                               key,
-                                               parent.getVersion(),
-                                               version );
+                    session.getLog( pom ).add( "Changing POM parent (%s) version\n\tFrom: %s\n\tTo: %s", key,
+                                               parent.getVersion(), version );
                     parent.setVersion( version );
                     changed = true;
                 }
@@ -233,12 +229,12 @@ public class BomInjector
         return changed;
     }
 
-    private DepModResult modifyDep( final Dependency dep, final Model model, final Project project,
-                                    final File pom, final VersionManagerSession session, final boolean isManaged )
+    private DepModResult modifyDep( final Dependency dep, final Model model, final Project project, final File pom,
+                                    final VersionManagerSession session, final boolean isManaged )
     {
         DepModResult result = DepModResult.UNCHANGED;
 
-        if ( session.hasParentInGraph( project ) && session.isBom( new FullProjectKey( dep ) ) )
+        if ( !session.hasParentInGraph( project ) && session.isBom( new FullProjectKey( dep ) ) )
         {
             return result;
         }
@@ -261,8 +257,7 @@ public class BomInjector
 
         if ( version == null )
         {
-            session.getLog( pom ).add( "NOT changing version for: %s%s. Version is inherited.",
-                                       key,
+            session.getLog( pom ).add( "NOT changing version for: %s%s. Version is inherited.", key,
                                        isManaged ? " [MANAGED]" : "" );
             return result;
         }
@@ -272,34 +267,9 @@ public class BomInjector
         {
             if ( !version.equals( dep.getVersion() ) )
             {
-                session.getLog( pom ).add( "Changing version for: %s%s.\n\tFrom: %s\n\tTo: %s.",
-                                           key,
-                                           isManaged ? " [MANAGED]" : "",
-                                           dep.getVersion(),
-                                           version );
+                session.getLog( pom ).add( "Changing version for: %s%s.\n\tFrom: %s\n\tTo: %s.", key,
+                                           isManaged ? " [MANAGED]" : "", dep.getVersion(), version );
 
-                if ( session.isNormalizeBomUsage() )
-                {
-                    // wipe this out, and use the one in the BOM implicitly...DRY-style.
-                    dep.setVersion( null );
-                    if ( isManaged
-                        && ( dep.getScope() == null || dep.getExclusions() == null || dep.getExclusions().isEmpty() ) )
-                    {
-                        result = DepModResult.DELETED;
-                    }
-                    else
-                    {
-                        result = DepModResult.MODIFIED;
-                    }
-                }
-                else
-                {
-                    dep.setVersion( version );
-                    result = DepModResult.MODIFIED;
-                }
-            }
-            else if ( session.isNormalizeBomUsage() )
-            {
                 // wipe this out, and use the one in the BOM implicitly...DRY-style.
                 dep.setVersion( null );
                 if ( isManaged
@@ -314,7 +284,17 @@ public class BomInjector
             }
             else
             {
-                session.getLog( pom ).add( "Version for: %s%s is already correct.", key, isManaged ? " [MANAGED]" : "" );
+                // wipe this out, and use the one in the BOM implicitly...DRY-style.
+                dep.setVersion( null );
+                if ( isManaged
+                    && ( dep.getScope() == null || dep.getExclusions() == null || dep.getExclusions().isEmpty() ) )
+                {
+                    result = DepModResult.DELETED;
+                }
+                else
+                {
+                    result = DepModResult.MODIFIED;
+                }
             }
         }
         else

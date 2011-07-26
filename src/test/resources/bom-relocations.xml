@@ -18,7 +18,7 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
-        <groupId>commons-codec</groupId>
+        <groupId>org.apache.commons.codec</groupId>
         <artifactId>commons-codec</artifactId>
         <version>1.4-redhat-1</version>
       </dependency>

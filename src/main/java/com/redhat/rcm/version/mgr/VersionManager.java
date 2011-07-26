@@ -43,7 +43,7 @@ import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.config.SessionConfigurator;
 import com.redhat.rcm.version.mgr.inject.PomInjector;
 import com.redhat.rcm.version.mgr.load.ModelLoader;
-import com.redhat.rcm.version.mgr.model.Project;
+import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.model.ProjectKey;
 import com.redhat.rcm.version.model.VersionlessProjectKey;
 import com.redhat.rcm.version.report.Report;

@@ -19,7 +19,17 @@ package com.redhat.rcm.version.mgr;
 
 import static junit.framework.Assert.fail;
 
-import org.apache.log4j.Appender;
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
@@ -28,19 +38,15 @@ import org.apache.log4j.SimpleLayout;
 import org.apache.log4j.spi.Configurator;
 import org.apache.log4j.spi.LoggerRepository;
 import org.apache.maven.mae.MAEException;
+import org.apache.maven.model.Model;
+import org.apache.maven.model.io.DefaultModelReader;
+import org.apache.maven.model.io.ModelReader;
 import org.codehaus.plexus.util.FileUtils;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.URL;
-import java.util.Arrays;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.model.FullProjectKey;
 
 public abstract class AbstractVersionManagerTest
 {
@@ -66,8 +72,7 @@ public abstract class AbstractVersionManagerTest
         vman = VersionManager.getInstance();
     }
 
-    @BeforeClass
-    public static void setupLogging()
+    protected static void setupLogging( final Map<Class<?>, Level> levels )
     {
         System.out.println( "Setting up logging..." );
         final Configurator log4jConfigurator = new Configurator()
@@ -76,41 +81,50 @@ public abstract class AbstractVersionManagerTest
             @SuppressWarnings( "unchecked" )
             public void doConfigure( final URL notUsed, final LoggerRepository repo )
             {
+                Level defaultLevel = Level.ERROR;
+
                 final ConsoleAppender appender = new ConsoleAppender( new SimpleLayout() );
                 appender.setImmediateFlush( true );
-                appender.setThreshold( Level.ALL );
+                appender.setThreshold( Level.WARN );
 
-                if ( !hasConsoleAppender( repo.getRootLogger() ) )
+                repo.getRootLogger().removeAllAppenders();
+                repo.getRootLogger().addAppender( appender );
+                repo.getRootLogger().setLevel( defaultLevel );
+
+                Set<String> processed = new HashSet<String>();
+                if ( levels != null )
                 {
-                    repo.getRootLogger().addAppender( appender );
+                    for ( Map.Entry<Class<?>, Level> entry : levels.entrySet() )
+                    {
+                        String name = entry.getKey().getName();
+
+                        Logger logger = repo.getLogger( name );
+                        if ( logger != null )
+                        {
+                            logger.removeAllAppenders();
+                            logger.addAppender( appender );
+                            logger.setLevel( entry.getValue() );
+                        }
+
+                        processed.add( name );
+                    }
                 }
 
                 final Enumeration<Logger> loggers = repo.getCurrentLoggers();
                 while ( loggers.hasMoreElements() )
                 {
                     final Logger logger = loggers.nextElement();
-                    if ( !hasConsoleAppender( logger ) )
+                    String name = logger.getName();
+
+                    if ( !processed.contains( name ) )
                     {
+                        logger.removeAllAppenders();
                         logger.addAppender( appender );
-                    }
-                    logger.setLevel( Level.INFO );
-                }
-            }
 
-            private boolean hasConsoleAppender( final Logger logger )
-            {
-                @SuppressWarnings( "unchecked" )
-                final Enumeration<Appender> e = logger.getAllAppenders();
-
-                while ( e.hasMoreElements() )
-                {
-                    if ( e.nextElement() instanceof ConsoleAppender )
-                    {
-                        return true;
+                        logger.setLevel( defaultLevel );
+                        processed.add( name );
                     }
                 }
-
-                return false;
             }
         };
 
@@ -118,7 +132,7 @@ public abstract class AbstractVersionManagerTest
     }
 
     @After
-    public void deleteDirs()
+    public synchronized void deleteDirs()
     {
         if ( null == System.getProperty( "debug" ) )
         {
@@ -155,8 +169,7 @@ public abstract class AbstractVersionManagerTest
         {
             for ( Map.Entry<File, Set<Throwable>> entry : errors.entrySet() )
             {
-                System.out.printf( "%d errors encountered while processing file: %s\n\n",
-                                   entry.getValue().size(),
+                System.out.printf( "%d errors encountered while processing file: %s\n\n", entry.getValue().size(),
                                    entry.getKey() );
                 for ( Throwable error : entry.getValue() )
                 {
@@ -181,7 +194,7 @@ public abstract class AbstractVersionManagerTest
 
     protected VersionManagerSession newVersionManagerSession()
     {
-        return new VersionManagerSession( workspace, reports, false, false, false );
+        return new VersionManagerSession( workspace, reports, false, false );
     }
 
     protected File createTempDir( final String basename )
@@ -197,7 +210,7 @@ public abstract class AbstractVersionManagerTest
         return temp;
     }
 
-    protected File getResourceFile( final String path )
+    protected static File getResourceFile( final String path )
     {
         final URL resource = Thread.currentThread().getContextClassLoader().getResource( path );
         if ( resource == null )
@@ -206,6 +219,50 @@ public abstract class AbstractVersionManagerTest
         }
 
         return new File( resource.getPath() );
+    }
+
+    protected static Model loadModel( String path )
+        throws IOException
+    {
+        final File pom = getResourceFile( path );
+        return loadModel( pom );
+    }
+
+    protected static Model loadModel( File pom )
+        throws IOException
+    {
+        Map<String, Object> options = new HashMap<String, Object>();
+        options.put( ModelReader.IS_STRICT, Boolean.FALSE.toString() );
+
+        return new DefaultModelReader().read( pom, options );
+    }
+
+    protected static FullProjectKey loadProjectKey( String path )
+        throws VManException, IOException
+    {
+        Model model = loadModel( path );
+
+        return new FullProjectKey( model );
+    }
+
+    protected static FullProjectKey loadProjectKey( File pom )
+        throws VManException, IOException
+    {
+        Model model = loadModel( pom );
+
+        return new FullProjectKey( model );
+    }
+
+    protected static Set<Model> loadModels( Set<File> poms )
+        throws VManException, IOException
+    {
+        Set<Model> models = new LinkedHashSet<Model>( poms.size() );
+        for ( File pom : poms )
+        {
+            models.add( loadModel( pom ) );
+        }
+
+        return models;
     }
 
 }

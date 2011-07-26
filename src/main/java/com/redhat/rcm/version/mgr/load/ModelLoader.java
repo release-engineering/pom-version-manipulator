@@ -19,7 +19,7 @@ package com.redhat.rcm.version.mgr.load;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.VersionManagerSession;
-import com.redhat.rcm.version.mgr.model.Project;
+import com.redhat.rcm.version.model.Project;
 
 import java.io.File;
 import java.util.List;
