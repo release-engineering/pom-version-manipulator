@@ -20,6 +20,17 @@ package com.redhat.rcm.version.mgr;
 
 import static java.io.File.separatorChar;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.log4j.Logger;
 import org.apache.maven.mae.MAEException;
 import org.apache.maven.mae.app.AbstractMAEApplication;
@@ -48,39 +59,29 @@ import com.redhat.rcm.version.model.ProjectKey;
 import com.redhat.rcm.version.model.VersionlessProjectKey;
 import com.redhat.rcm.version.report.Report;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 @Component( role = VersionManager.class )
 public class VersionManager
     extends AbstractMAEApplication
 {
 
     private static final Logger LOGGER = Logger.getLogger( VersionManager.class );
-    
+
     @Requirement
     private ModelLoader modelLoader;
-    
+
     @Requirement( role = Report.class )
     private Map<String, Report> reports;
-    
+
     @Requirement( role = PomInjector.class )
     private Map<String, PomInjector> injectors;
-    
+
     @Requirement
     private SessionConfigurator sessionConfigurator;
-    
+
     private static Object lock = new Object();
 
     private static VersionManager instance;
-    
+
     public static VersionManager getInstance()
         throws MAEException
     {
@@ -125,7 +126,8 @@ public class VersionManager
     }
 
     public Set<File> modifyVersions( final File dir, final String pomNamePattern, final List<String> boms,
-                                     final String toolchain, final VersionManagerSession session )
+                                     final String toolchain, final Collection<String> removedPlugins,
+                                     final VersionManagerSession session )
     {
         final DirectoryScanner scanner = new DirectoryScanner();
         scanner.setBasedir( dir );
@@ -140,7 +142,7 @@ public class VersionManager
 
         scanner.scan();
 
-        sessionConfigurator.configureSession( boms, toolchain, session );
+        sessionConfigurator.configureSession( boms, toolchain, removedPlugins, session );
 
         final List<File> pomFiles = new ArrayList<File>();
         final String[] includedSubpaths = scanner.getIncludedFiles();
@@ -163,7 +165,8 @@ public class VersionManager
             }
         }
 
-        final Set<File> outFiles = modVersions( dir, session, session.isPreserveFiles(), pomFiles.toArray( new File[]{} ) );
+        final Set<File> outFiles =
+            modVersions( dir, session, session.isPreserveFiles(), pomFiles.toArray( new File[] {} ) );
 
         LOGGER.info( "Modified " + outFiles.size() + " POM versions in directory.\n\n\tDirectory: " + dir
             + "\n\tBOMs:\t" + StringUtils.join( boms.iterator(), "\n\t\t" ) + "\n\tPOM Backups: "
@@ -173,7 +176,7 @@ public class VersionManager
     }
 
     public Set<File> modifyVersions( File pom, final List<String> boms, final String toolchain,
-                                     final VersionManagerSession session )
+                                     final Collection<String> removedPlugins, final VersionManagerSession session )
     {
         try
         {
@@ -184,27 +187,28 @@ public class VersionManager
             pom = pom.getAbsoluteFile();
         }
 
-        sessionConfigurator.configureSession( boms, toolchain, session );
-        
+        sessionConfigurator.configureSession( boms, toolchain, removedPlugins, session );
+
         final Set<File> result = modVersions( pom.getParentFile(), session, true, pom );
         if ( !result.isEmpty() )
         {
             final File out = result.iterator().next();
 
             LOGGER.info( "Modified POM versions.\n\n\tTop POM: " + out + "\n\tBOMs:\t"
-                + ( boms == null ? "-NONE-" : StringUtils.join( boms.iterator(), "\n\t\t" ) ) + "\n\tPOM Backups: " + session.getBackups() + "\n\n" );
+                + ( boms == null ? "-NONE-" : StringUtils.join( boms.iterator(), "\n\t\t" ) ) + "\n\tPOM Backups: "
+                + session.getBackups() + "\n\n" );
         }
 
         return result;
     }
 
-    private Set<File> modVersions( final File basedir, final VersionManagerSession session,
-                                   final boolean preserveDirs, final File...pomFiles )
+    private Set<File> modVersions( final File basedir, final VersionManagerSession session, final boolean preserveDirs,
+                                   final File... pomFiles )
     {
         final Set<File> result = new LinkedHashSet<File>();
-        
+
         List<Project> projects;
-        
+
         boolean processPomPlugins = session.isProcessPomPlugins();
         session.setProcessPomPlugins( true );
         try
@@ -213,14 +217,14 @@ public class VersionManager
         }
         catch ( VManException e )
         {
-            session.addGlobalError( e );
+            session.addError( e );
             return result;
         }
         finally
         {
             session.setProcessPomPlugins( processPomPlugins );
         }
-        
+
         if ( projects != null )
         {
             session.setProjects( projects );
@@ -238,12 +242,12 @@ public class VersionManager
                 {
                     String key = entry.getKey();
                     PomInjector injector = entry.getValue();
-                    
+
                     LOGGER.info( "Injecting POM changes from: '" + key + "'." );
                     changed = changed || injector.injectChanges( project, session );
                 }
             }
-            
+
             if ( changed )
             {
                 LOGGER.info( "Writing modified '" + project.getKey() + "'..." );
@@ -265,7 +269,7 @@ public class VersionManager
                         originalVersion = parent.getVersion();
                     }
                 }
-                
+
                 final ProjectKey originalCoord = new VersionlessProjectKey( groupId, model.getArtifactId() );
                 final File pom = project.getPom();
 
@@ -299,7 +303,7 @@ public class VersionManager
             final File dir = new File( backupDir, path );
             if ( !dir.exists() && !dir.mkdirs() )
             {
-                session.addError( pom, new VManException( "Failed to create backup subdirectory: %s", dir ) );
+                session.addError( new VManException( "Failed to create backup subdirectory: %s", dir ) );
                 return null;
             }
 
@@ -311,12 +315,8 @@ public class VersionManager
             }
             catch ( final IOException e )
             {
-                session.addError( pom,
-                                  new VManException( "Error making backup of POM: %s.\n\tTarget: %s\n\tReason: %s",
-                                                     e,
-                                                     pom,
-                                                     backup,
-                                                     e.getMessage() ) );
+                session.addError( new VManException( "Error making backup of POM: %s.\n\tTarget: %s\n\tReason: %s", e,
+                                                     pom, backup, e.getMessage() ) );
                 return null;
             }
         }
@@ -349,16 +349,7 @@ public class VersionManager
         if ( relocatePom )
         {
             final StringBuilder pathBuilder = new StringBuilder();
-            pathBuilder.append( coord.getGroupId().replace( '.', separatorChar ) )
-                       .append( separatorChar )
-                       .append( coord.getArtifactId() )
-                       .append( separatorChar )
-                       .append( version )
-                       .append( separatorChar )
-                       .append( coord.getArtifactId() )
-                       .append( '-' )
-                       .append( version )
-                       .append( ".pom" );
+            pathBuilder.append( coord.getGroupId().replace( '.', separatorChar ) ).append( separatorChar ).append( coord.getArtifactId() ).append( separatorChar ).append( version ).append( separatorChar ).append( coord.getArtifactId() ).append( '-' ).append( version ).append( ".pom" );
 
             out = new File( basedir, pathBuilder.toString() );
             final File outDir = out.getParentFile();
@@ -409,18 +400,13 @@ public class VersionManager
         }
         catch ( final IOException e )
         {
-            session.addError( pom,
-                              new VManException( "Failed to write modified POM to: %s\n\tReason: %s",
-                                                 e,
-                                                 out,
+            session.addError( new VManException( "Failed to write modified POM: %s to: %s\n\tReason: %s", e, pom, out,
                                                  e.getMessage() ) );
         }
         catch ( final JDOMException e )
         {
-            session.addError( pom, new VManException( "Failed to read original POM for rewrite: %s\n\tReason: %s",
-                                                      e,
-                                                      out,
-                                                      e.getMessage() ) );
+            session.addError( new VManException( "Failed to read original POM for rewrite: %s\n\tReason: %s", e, pom,
+                                                 e.getMessage() ) );
         }
         finally
         {
@@ -436,9 +422,10 @@ public class VersionManager
         return "rh.vmod";
     }
 
+    @Override
     public String getName()
     {
         return "RedHat POM Version Modifier";
     }
-    
+
 }

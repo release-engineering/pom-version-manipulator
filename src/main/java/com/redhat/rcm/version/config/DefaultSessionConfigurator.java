@@ -22,6 +22,17 @@ import static org.apache.commons.io.IOUtils.closeQuietly;
 import static org.apache.commons.io.IOUtils.copy;
 import static org.apache.commons.lang.StringUtils.isEmpty;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.Credentials;
@@ -40,49 +51,45 @@ import org.codehaus.plexus.component.annotations.Requirement;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.VersionManagerSession;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
-
 @Component( role = SessionConfigurator.class )
 public class DefaultSessionConfigurator
     implements SessionConfigurator
 {
-    
+
     private static final Logger LOGGER = Logger.getLogger( DefaultSessionConfigurator.class );
 
     @Requirement
     private ProjectLoader projectLoader;
 
     private final DefaultHttpClient client;
-    
+
     DefaultSessionConfigurator()
     {
         client = new DefaultHttpClient();
         client.setRedirectStrategy( new DefaultRedirectStrategy() );
     }
-    
+
     @Override
-    public void configureSession( List<String> boms, String toolchain, VersionManagerSession session )
+    public void configureSession( final List<String> boms, final String toolchain,
+                                  final Collection<String> removedPlugins, final VersionManagerSession session )
     {
         if ( boms != null )
         {
             loadBOMs( boms, session );
         }
-        
+
         if ( toolchain != null )
         {
             loadToolchain( toolchain, session );
         }
+
+        if ( removedPlugins != null )
+        {
+            session.setRemovedPlugins( removedPlugins );
+        }
     }
 
-    private void loadToolchain( String toolchain, VersionManagerSession session )
+    private void loadToolchain( final String toolchain, final VersionManagerSession session )
     {
         File toolchainFile = getFile( toolchain, session );
         if ( toolchainFile != null )
@@ -94,7 +101,7 @@ public class DefaultSessionConfigurator
             }
             catch ( ProjectToolsException e )
             {
-                session.addGlobalError( e );
+                session.addError( e );
                 return;
             }
 
@@ -115,16 +122,16 @@ public class DefaultSessionConfigurator
             }
             catch ( ProjectToolsException e )
             {
-                session.addGlobalError( e );
+                session.addError( e );
                 return;
             }
-            
+
             if ( projects != null )
             {
                 for ( MavenProject project : projects )
                 {
                     File bom = project.getFile();
-                    
+
                     LOGGER.info( "Adding BOM to session: " + bom + "; " + project );
                     session.addBOM( bom, project );
                 }
@@ -145,10 +152,10 @@ public class DefaultSessionConfigurator
             }
         }
 
-        return result.toArray( new File[]{} );
+        return result.toArray( new File[] {} );
     }
 
-    private File getFile( String location, VersionManagerSession session )
+    private File getFile( final String location, final VersionManagerSession session )
     {
         File result = null;
 
@@ -192,22 +199,20 @@ public class DefaultSessionConfigurator
                     else
                     {
                         LOGGER.info( String.format( "Received status: '%s' while downloading: %s",
-                                                    response.getStatusLine(),
-                                                    location ) );
-                        session.addGlobalError( new VManException( "Received status: '%s' while downloading: %s",
-                                                                   response.getStatusLine(),
-                                                                   location ) );
+                                                    response.getStatusLine(), location ) );
+                        session.addError( new VManException( "Received status: '%s' while downloading: %s",
+                                                             response.getStatusLine(), location ) );
                     }
 
                     result = downloaded;
                 }
                 catch ( final ClientProtocolException e )
                 {
-                    session.addGlobalError( e );
+                    session.addError( e );
                 }
                 catch ( final IOException e )
                 {
-                    session.addGlobalError( e );
+                    session.addError( e );
                 }
                 finally
                 {

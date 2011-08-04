@@ -21,7 +21,7 @@ package com.redhat.rcm.version.model;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Parent;
 import org.apache.maven.model.Plugin;
-
+import org.apache.maven.model.ReportPlugin;
 
 public class VersionlessProjectKey
     implements Comparable<ProjectKey>, ProjectKey
@@ -42,22 +42,40 @@ public class VersionlessProjectKey
         artifactId = dep.getArtifactId();
     }
 
-    public VersionlessProjectKey( Plugin plugin )
+    public VersionlessProjectKey( final Plugin plugin )
     {
         groupId = plugin.getGroupId();
         artifactId = plugin.getArtifactId();
     }
 
-    public VersionlessProjectKey( Project project )
+    public VersionlessProjectKey( final Project project )
     {
         groupId = project.getGroupId();
         artifactId = project.getArtifactId();
     }
 
-    public VersionlessProjectKey( Parent parent )
+    public VersionlessProjectKey( final Parent parent )
     {
         groupId = parent.getGroupId();
         artifactId = parent.getArtifactId();
+    }
+
+    public VersionlessProjectKey( final String ga )
+    {
+        String[] parts = ga.split( ":" );
+        if ( parts.length < 2 )
+        {
+            throw new IllegalArgumentException( "Invalid versionless POM key: '" + ga + "'" );
+        }
+
+        groupId = parts[0].trim();
+        artifactId = parts[1].trim();
+    }
+
+    public VersionlessProjectKey( final ReportPlugin plugin )
+    {
+        groupId = plugin.getGroupId();
+        artifactId = plugin.getArtifactId();
     }
 
     /**
@@ -156,6 +174,7 @@ public class VersionlessProjectKey
         return comp;
     }
 
+    @Override
     public String getId()
     {
         return groupId + ":" + artifactId;

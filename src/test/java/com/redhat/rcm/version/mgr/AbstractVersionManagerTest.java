@@ -21,12 +21,14 @@ import static junit.framework.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -41,6 +43,7 @@ import org.apache.maven.mae.MAEException;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.DefaultModelReader;
 import org.apache.maven.model.io.ModelReader;
+import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 import org.codehaus.plexus.util.FileUtils;
 
 import com.redhat.rcm.version.VManException;
@@ -180,19 +183,15 @@ public abstract class AbstractVersionManagerTest
         }
     }
 
-    protected void assertNoErrors( VersionManagerSession session )
+    protected void assertNoErrors( final VersionManagerSession session )
     {
-        Map<File, Set<Throwable>> errors = session.getErrors();
+        List<Throwable> errors = session.getErrors();
         if ( errors != null && !errors.isEmpty() )
         {
-            for ( Map.Entry<File, Set<Throwable>> entry : errors.entrySet() )
+            System.out.printf( "%d errors encountered\n\n", errors.size() );
+            for ( Throwable error : errors )
             {
-                System.out.printf( "%d errors encountered while processing file: %s\n\n", entry.getValue().size(),
-                                   entry.getKey() );
-                for ( Throwable error : entry.getValue() )
-                {
-                    error.printStackTrace();
-                }
+                error.printStackTrace();
             }
 
             fail( "See above errors." );
@@ -203,7 +202,7 @@ public abstract class AbstractVersionManagerTest
     {
         final VersionManagerSession session = newVersionManagerSession();
 
-        vman.modifyVersions( repo, "**/*.pom", Arrays.asList( boms ), null, session );
+        vman.modifyVersions( repo, "**/*.pom", Arrays.asList( boms ), null, null, session );
         assertNoErrors( session );
         vman.generateReports( reports, session );
 
@@ -212,7 +211,7 @@ public abstract class AbstractVersionManagerTest
 
     protected VersionManagerSession newVersionManagerSession()
     {
-        return new VersionManagerSession( workspace, reports, false, false );
+        return new VersionManagerSession( workspace, reports, false );
     }
 
     protected File createTempDir( final String basename )
@@ -239,14 +238,14 @@ public abstract class AbstractVersionManagerTest
         return new File( resource.getPath() );
     }
 
-    protected static Model loadModel( String path )
+    protected static Model loadModel( final String path )
         throws IOException
     {
         final File pom = getResourceFile( path );
         return loadModel( pom );
     }
 
-    protected static Model loadModel( File pom )
+    protected static Model loadModel( final File pom )
         throws IOException
     {
         Map<String, Object> options = new HashMap<String, Object>();
@@ -255,7 +254,7 @@ public abstract class AbstractVersionManagerTest
         return new DefaultModelReader().read( pom, options );
     }
 
-    protected static FullProjectKey loadProjectKey( String path )
+    protected static FullProjectKey loadProjectKey( final String path )
         throws VManException, IOException
     {
         Model model = loadModel( path );
@@ -263,7 +262,7 @@ public abstract class AbstractVersionManagerTest
         return new FullProjectKey( model );
     }
 
-    protected static FullProjectKey loadProjectKey( File pom )
+    protected static FullProjectKey loadProjectKey( final File pom )
         throws VManException, IOException
     {
         Model model = loadModel( pom );
@@ -271,7 +270,7 @@ public abstract class AbstractVersionManagerTest
         return new FullProjectKey( model );
     }
 
-    protected static Set<Model> loadModels( Set<File> poms )
+    protected static Set<Model> loadModels( final Set<File> poms )
         throws VManException, IOException
     {
         Set<Model> models = new LinkedHashSet<Model>( poms.size() );
@@ -281,6 +280,15 @@ public abstract class AbstractVersionManagerTest
         }
 
         return models;
+    }
+
+    protected static void dumpModel( final Model model )
+        throws IOException
+    {
+        StringWriter writer = new StringWriter();
+        new MavenXpp3Writer().write( writer, model );
+
+        System.out.println( "\n\n" + writer.toString() + "\n\n" );
     }
 
 }

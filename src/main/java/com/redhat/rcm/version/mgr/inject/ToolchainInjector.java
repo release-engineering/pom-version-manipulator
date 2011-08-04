@@ -21,6 +21,7 @@ package com.redhat.rcm.version.mgr.inject;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +33,8 @@ import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginManagement;
+import org.apache.maven.model.ReportPlugin;
+import org.apache.maven.model.Reporting;
 import org.apache.maven.model.merge.MavenModelMerger;
 import org.codehaus.plexus.component.annotations.Component;
 
@@ -58,14 +61,45 @@ public class ToolchainInjector
 
         final Set<VersionlessProjectKey> pluginRefs = new HashSet<VersionlessProjectKey>();
         pluginRefs.addAll( session.getPluginReferences( new VersionlessProjectKey( project ) ) );
-        accumulatePluginRefs( project, session, pluginRefs );
+        accumulatePluginRefs( project, pluginRefs, session );
 
         changed = stripToolchainPluginInfo( project, session ) || changed;
+        changed = stripRemovedPlugins( project, session ) || changed;
 
         if ( !session.hasParentInGraph( project ) )
         {
+            changed = injectPluginUsages( project, pluginRefs, session ) || changed;
             changed = injectPluginManagement( project, pluginRefs, session ) || changed;
-            changed = injectPluginUsages( project, session ) || changed;
+        }
+
+        // NOTE: Having versions in pluginManagement isn't normally enough for
+        // report plugins, unless they're also during the normal build process.
+        //
+        // So, we have to inject the versions directly into the reporting section.
+        //
+        // This happens regardless of whether the toolchain is in the ancestry of the POM or not.
+        changed = adjustReportPlugins( project, session ) || changed;
+
+        return changed;
+    }
+
+    private boolean adjustReportPlugins( final Project project, final VersionManagerSession session )
+    {
+        boolean changed = false;
+
+        List<ReportPlugin> reportPlugins = project.getReportPlugins();
+        if ( reportPlugins != null )
+        {
+            for ( ReportPlugin plugin : reportPlugins )
+            {
+                final VersionlessProjectKey pluginKey = new VersionlessProjectKey( plugin );
+                final Plugin managedPlugin = session.getManagedPlugin( pluginKey );
+                if ( managedPlugin != null && !managedPlugin.getVersion().equals( plugin.getVersion() ) )
+                {
+                    plugin.setVersion( managedPlugin.getVersion() );
+                    changed = true;
+                }
+            }
         }
 
         return changed;
@@ -78,19 +112,34 @@ public class ToolchainInjector
 
         boolean changed = false;
         Parent parent = model.getParent();
-        if ( parent == null && toolchainKey != null )
+        if ( toolchainKey != null )
         {
-            LOGGER.info( "Injecting toolchain as parent for: " + project.getKey() );
+            if ( parent == null )
+            {
+                LOGGER.info( "Injecting toolchain as parent for: " + project.getKey() );
 
-            parent = new Parent();
-            parent.setGroupId( toolchainKey.getGroupId() );
-            parent.setArtifactId( toolchainKey.getArtifactId() );
-            parent.setVersion( toolchainKey.getVersion() );
+                parent = new Parent();
+                parent.setGroupId( toolchainKey.getGroupId() );
+                parent.setArtifactId( toolchainKey.getArtifactId() );
+                parent.setVersion( toolchainKey.getVersion() );
 
-            model.setParent( parent );
-            session.connectProject( project );
+                model.setParent( parent );
+                session.connectProject( project );
 
-            changed = true;
+                changed = true;
+            }
+            else
+            {
+                VersionlessProjectKey vtk =
+                    new VersionlessProjectKey( toolchainKey.getGroupId(), toolchainKey.getArtifactId() );
+
+                VersionlessProjectKey vpk = new VersionlessProjectKey( parent );
+
+                if ( vtk.equals( vpk ) )
+                {
+                    parent.setVersion( toolchainKey.getVersion() );
+                }
+            }
         }
 
         return changed;
@@ -148,7 +197,8 @@ public class ToolchainInjector
         return changed;
     }
 
-    private boolean injectPluginUsages( final Project project, final VersionManagerSession session )
+    private boolean injectPluginUsages( final Project project, final Set<VersionlessProjectKey> pluginRefs,
+                                        final VersionManagerSession session )
     {
         LOGGER.info( "Injecting plugin usages from toolchain for project: " + project.getKey() );
 
@@ -166,7 +216,6 @@ public class ToolchainInjector
         {
             build = new Build();
             original.setBuild( build );
-            changed = true;
         }
 
         final Map<String, Plugin> pluginMap = build.getPluginsAsMap();
@@ -183,6 +232,7 @@ public class ToolchainInjector
                 LOGGER.info( "Adding plugin: " + key );
 
                 build.addPlugin( injected );
+                pluginRefs.add( key );
             }
             else
             {
@@ -197,8 +247,81 @@ public class ToolchainInjector
         return changed;
     }
 
-    private void accumulatePluginRefs( final Project project, final VersionManagerSession session,
-                                       final Set<VersionlessProjectKey> pluginRefs )
+    private boolean stripRemovedPlugins( final Project project, final VersionManagerSession session )
+    {
+        LOGGER.info( "Deleting plugins marked for removal for project: " + project.getKey() );
+
+        boolean changed = false;
+        final Set<VersionlessProjectKey> removedPlugins = session.getRemovedPlugins();
+
+        if ( removedPlugins.isEmpty() )
+        {
+            return changed;
+        }
+
+        final Model original = project.getModel();
+        Build build = original.getBuild();
+
+        if ( build != null )
+        {
+            Map<String, Plugin> pluginMap = new HashMap<String, Plugin>( build.getPluginsAsMap() );
+
+            for ( final VersionlessProjectKey key : removedPlugins )
+            {
+                final Plugin existing = pluginMap.get( key.getId() );
+
+                if ( existing != null )
+                {
+                    LOGGER.info( "Removing plugin: " + key );
+                    build.removePlugin( existing );
+
+                    changed = true;
+                }
+            }
+
+            PluginManagement pm = build.getPluginManagement();
+            if ( pm != null )
+            {
+                pluginMap = pm.getPluginsAsMap();
+
+                for ( final VersionlessProjectKey key : removedPlugins )
+                {
+                    final Plugin existing = pluginMap.get( key.getId() );
+
+                    if ( existing != null )
+                    {
+                        LOGGER.info( "Removing managed plugin: " + key );
+                        pm.removePlugin( existing );
+
+                        changed = true;
+                    }
+                }
+
+            }
+        }
+
+        Reporting reporting = original.getReporting();
+        if ( reporting != null )
+        {
+            Map<String, ReportPlugin> pluginMap = new HashMap<String, ReportPlugin>( reporting.getReportPluginsAsMap() );
+            for ( VersionlessProjectKey key : removedPlugins )
+            {
+                ReportPlugin existing = pluginMap.get( key.getId() );
+                if ( existing != null )
+                {
+                    LOGGER.info( "Removing report plugin: " + key );
+                    reporting.removePlugin( existing );
+
+                    changed = true;
+                }
+            }
+        }
+
+        return changed;
+    }
+
+    private void accumulatePluginRefs( final Project project, final Set<VersionlessProjectKey> pluginRefs,
+                                       final VersionManagerSession session )
     {
         final VersionlessProjectKey parentKey =
             session.hasParentInGraph( project ) ? new VersionlessProjectKey( project.getParent() ) : null;
@@ -232,6 +355,31 @@ public class ToolchainInjector
         if ( plugins != null )
         {
             for ( final Plugin plugin : plugins )
+            {
+                final VersionlessProjectKey pluginKey = new VersionlessProjectKey( plugin );
+                final Plugin managedPlugin = session.getManagedPlugin( pluginKey );
+                if ( managedPlugin != null )
+                {
+                    if ( parentKey != null )
+                    {
+                        session.addPluginReference( parentKey, pluginKey );
+                    }
+                    else
+                    {
+                        pluginRefs.add( pluginKey );
+                    }
+                }
+                else
+                {
+                    session.addUnmanagedPlugin( project.getPom(), pluginKey );
+                }
+            }
+        }
+
+        List<ReportPlugin> reportPlugins = project.getReportPlugins();
+        if ( reportPlugins != null )
+        {
+            for ( ReportPlugin plugin : reportPlugins )
             {
                 final VersionlessProjectKey pluginKey = new VersionlessProjectKey( plugin );
                 final Plugin managedPlugin = session.getManagedPlugin( pluginKey );

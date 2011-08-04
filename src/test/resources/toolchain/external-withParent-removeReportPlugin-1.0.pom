@@ -1,0 +1,21 @@
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>other.test</groupId>
+    <artifactId>external-parent</artifactId>
+    <version>1</version>
+  </parent>
+  
+  <version>1.0</version>
+  <artifactId>toolchain-externalParent-nonManaged</artifactId>
+  
+  <reporting>
+    <plugins>
+      <plugin>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>2.6</version>
+      </plugin>
+    </plugins>
+  </reporting>
+  
+</project>

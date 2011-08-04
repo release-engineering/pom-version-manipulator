@@ -22,11 +22,14 @@ import static org.apache.commons.io.IOUtils.closeQuietly;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
+import java.util.Properties;
 
 import org.apache.log4j.Logger;
 import org.apache.maven.mae.MAEException;
@@ -43,32 +46,32 @@ import com.redhat.rcm.version.mgr.VersionManagerSession;
 public class Cli
 {
     @Argument( index = 0, metaVar = "target", usage = "POM file (or directory containing POM files) to modify." )
-    private File target;
+    private File target = new File( System.getProperty( "user.dir" ), "pom.xml" );
 
-    @Argument( index = 1, metaVar = "BOM", usage = "Bill-of-Materials POM file supplying versions.", multiValued = true )
-    private List<String> boms;
+    @Option( name = "-r", aliases = "--rm-plugins", usage = "List of plugins (format: <groupId:artifactId>[,<groupId:artifactId>]) to REMOVE if found" )
+    private String removedPluginsList;
 
-    @Option( name = "-b", usage = "File containing a list of BOMs to use (instead of listing them on the command line)" )
+    @Option( name = "-b", aliases = "--boms", usage = "File containing a list of BOM URLs to use for standardizing dependencies" )
     private File bomList;
 
-    @Option( name = "-t", usage = "Toolchain POM, containing standard plugin versions in the build/pluginManagement section, "
+    @Option( name = "-t", aliases = "--toolchain", usage = "Toolchain POM URL, containing standard plugin versions in the build/pluginManagement section, "
         + "and plugin injections in the regular build/plugins section." )
     private String toolchain;
 
     @Option( name = "-p", usage = "POM path pattern (glob)" )
     private String pomPattern = "**/*.pom,**/pom.xml";
 
-    @Option( name = "-R", usage = "Don't process POM modules (use non-recursive project build)" )
-    private boolean nonRecursive = false;
-
     @Option( name = "-P", aliases = { "--preserve" }, usage = "Write changed POMs back to original input files" )
     private boolean preserveFiles = false;
 
-    @Option( name = "-w", aliases = { "--workspace" }, usage = "Backup original files here up before modifying." )
+    @Option( name = "-C", aliases = "--config", usage = "Load default configuration for BOMs, toolchain, removedPluginsList, etc. from this file." )
+    private final File config = new File( System.getProperty( "user.home" ), ".vman.properties" );
+
+    @Option( name = "-W", aliases = { "--workspace" }, usage = "Backup original files here up before modifying." )
     private File workspace = new File( "vman-workspace" );
 
-    @Option( name = "-r", aliases = { "--report-dir" }, usage = "Write reports here." )
-    private File reports = new File( "vman-reports" );
+    @Option( name = "-R", aliases = { "--report-dir" }, usage = "Write reports here." )
+    private File reports = new File( "vman-workspace/reports" );
 
     @Option( name = "-h", aliases = { "--help" }, usage = "Print this message and quit" )
     private boolean help = false;
@@ -76,6 +79,10 @@ public class Cli
     private static final Logger LOGGER = Logger.getLogger( Cli.class );
 
     private static VersionManager vman;
+
+    private List<String> boms;
+
+    private List<String> removedPlugins;
 
     public static void main( final String[] args )
         throws Exception
@@ -90,7 +97,7 @@ public class Cli
             {
                 printUsage( parser, null );
             }
-            else if ( cli.target == null || ( cli.boms == null && cli.bomList == null ) )
+            else if ( cli.target == null || cli.bomList == null )
             {
                 printUsage( parser, null );
             }
@@ -105,19 +112,11 @@ public class Cli
         }
     }
 
-    public Cli( final File target, final String... boms )
-        throws MAEException
-    {
-        this.target = target;
-        this.boms = new ArrayList<String>( Arrays.asList( boms ) );
-    }
-
     public Cli( final File target, final File bomList )
         throws MAEException
     {
         this.target = target;
         this.bomList = bomList;
-        boms = new ArrayList<String>();
     }
 
     public Cli()
@@ -130,41 +129,100 @@ public class Cli
     {
         vman = VersionManager.getInstance();
 
-        final VersionManagerSession session =
-            new VersionManagerSession( workspace, reports, preserveFiles, !nonRecursive );
+        final VersionManagerSession session = new VersionManagerSession( workspace, reports, preserveFiles );
 
-        if ( bomList != null )
+        loadConfiguration( session );
+
+        if ( boms == null && bomList != null )
         {
             loadBomList( session );
         }
 
-        LOGGER.info( "Modifying POM(s).\n\nTarget:\n\t" + target + "\n\nBOMs:\n\t"
-            + StringUtils.join( boms.iterator(), "\n\t" ) + "\n\nWorkspace:\n\t" + workspace + "\n\nReports:\n\t"
-            + reports );
-
-        if ( target.isDirectory() )
+        if ( removedPlugins == null && removedPluginsList != null )
         {
-            vman.modifyVersions( target, pomPattern, boms, toolchain, session );
+            loadRemovedPlugins( session );
         }
-        else
+
+        if ( session.getErrors().isEmpty() )
         {
-            vman.modifyVersions( target, boms, toolchain, session );
+            LOGGER.info( "Modifying POM(s).\n\nTarget:\n\t" + target + "\n\nBOMs:\n\t"
+                + StringUtils.join( boms.iterator(), "\n\t" ) + "\n\nWorkspace:\n\t" + workspace + "\n\nReports:\n\t"
+                + reports );
+
+            if ( target.isDirectory() )
+            {
+                vman.modifyVersions( target, pomPattern, boms, toolchain, removedPlugins, session );
+            }
+            else
+            {
+                vman.modifyVersions( target, boms, toolchain, removedPlugins, session );
+            }
         }
 
         reports.mkdirs();
         vman.generateReports( reports, session );
     }
 
-    private boolean loadBomList( final VersionManagerSession session )
+    private Collection<String> loadRemovedPlugins( final VersionManagerSession session )
     {
-        boolean success = true;
+        String[] ls = removedPluginsList.split( "\\s*,\\s*" );
+        return removedPlugins = Arrays.asList( ls );
+    }
+
+    private void loadConfiguration( final VersionManagerSession session )
+    {
+        if ( config != null && config.canRead() )
+        {
+            InputStream is = null;
+            try
+            {
+                is = new FileInputStream( config );
+                Properties props = new Properties();
+                props.load( is );
+
+                if ( removedPluginsList == null )
+                {
+                    removedPlugins = readListProperty( props, "removed-plugins" );
+                }
+
+                if ( bomList == null )
+                {
+                    boms = readListProperty( props, "boms" );
+                }
+
+                if ( toolchain == null )
+                {
+                    toolchain = props.getProperty( "toolchain" ).trim();
+                }
+
+            }
+            catch ( IOException e )
+            {
+                session.addError( e );
+            }
+            finally
+            {
+                closeQuietly( is );
+            }
+        }
+    }
+
+    private List<String> readListProperty( final Properties props, final String string )
+    {
+        String val = props.getProperty( "remove-plugins" );
+        if ( val != null )
+        {
+            String[] rm = val.split( "(\\s)*,(\\s)*" );
+            return Arrays.asList( rm );
+        }
+
+        return null;
+    }
+
+    private void loadBomList( final VersionManagerSession session )
+    {
         if ( bomList != null && bomList.canRead() )
         {
-            if ( boms == null )
-            {
-                boms = new ArrayList<String>();
-            }
-
             BufferedReader reader = null;
             try
             {
@@ -177,8 +235,7 @@ public class Cli
             }
             catch ( final IOException e )
             {
-                session.addGlobalError( e );
-                success = false;
+                session.addError( e );
             }
             finally
             {
@@ -189,8 +246,6 @@ public class Cli
         {
             LOGGER.error( "No such BOM list file: '" + bomList + "'." );
         }
-
-        return success;
     }
 
     private static void printUsage( final CmdLineParser parser, final CmdLineException error )
@@ -202,7 +257,7 @@ public class Cli
         }
 
         parser.printUsage( System.err );
-        System.err.println( "Usage: $0 [OPTIONS] <target-path> <BOM-path>" );
+        System.err.println( "Usage: $0 [OPTIONS] [<target-path>]" );
         System.err.println();
         System.err.println();
         System.err.println( parser.printExample( ExampleMode.ALL ) );
@@ -239,16 +294,6 @@ public class Cli
         this.target = target;
     }
 
-    public List<String> getBoms()
-    {
-        return boms;
-    }
-
-    public void setBoms( final List<String> boms )
-    {
-        this.boms = boms;
-    }
-
     public File getBomList()
     {
         return bomList;
@@ -259,14 +304,14 @@ public class Cli
         this.bomList = bomList;
     }
 
-    public boolean isNonRecursive()
+    public void setRemovedPluginsList( final String removedPluginsList )
     {
-        return nonRecursive;
+        this.removedPluginsList = removedPluginsList;
     }
 
-    public void setNonRecursive( final boolean nonRecursive )
+    public String getRemovedPluginsList()
     {
-        this.nonRecursive = nonRecursive;
+        return removedPluginsList;
     }
 
     public boolean isPreserveFiles()
@@ -297,6 +342,16 @@ public class Cli
     public void setReports( final File reports )
     {
         this.reports = reports;
+    }
+
+    public String getToolchain()
+    {
+        return toolchain;
+    }
+
+    public void setToolchain( final String toolchain )
+    {
+        this.toolchain = toolchain;
     }
 
 }

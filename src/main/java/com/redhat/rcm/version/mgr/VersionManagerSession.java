@@ -19,6 +19,8 @@
 package com.redhat.rcm.version.mgr;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -63,7 +65,7 @@ public class VersionManagerSession
     private final Map<File, Set<VersionlessProjectKey>> unmanagedPlugins =
         new HashMap<File, Set<VersionlessProjectKey>>();
 
-    private final Map<File, Set<Throwable>> errors = new LinkedHashMap<File, Set<Throwable>>();
+    private final List<Throwable> errors = new ArrayList<Throwable>();
 
     private final Map<File, ActivityLog> logs = new LinkedHashMap<File, ActivityLog>();
 
@@ -77,6 +79,8 @@ public class VersionManagerSession
 
     private final Map<VersionlessProjectKey, Plugin> injectedPlugins =
         new LinkedHashMap<VersionlessProjectKey, Plugin>();
+
+    private final Set<VersionlessProjectKey> removedPlugins = new HashSet<VersionlessProjectKey>();
 
     private final Map<VersionlessProjectKey, Set<VersionlessProjectKey>> accumulatedPluginRefs =
         new HashMap<VersionlessProjectKey, Set<VersionlessProjectKey>>();
@@ -95,18 +99,14 @@ public class VersionManagerSession
 
     private final File reports;
 
-    private final boolean projectBuildRecursive;
-
     private ProjectAncestryGraph ancestryGraph;
 
     private FullProjectKey toolchainKey;
 
-    public VersionManagerSession( final File workspace, final File reports, final boolean preserveFiles,
-                                  final boolean projectBuildRecursive )
+    public VersionManagerSession( final File workspace, final File reports, final boolean preserveFiles )
     {
         this.workspace = workspace;
         this.reports = reports;
-        this.projectBuildRecursive = projectBuildRecursive;
 
         backups = new File( workspace, "backups" );
         backups.mkdirs();
@@ -167,27 +167,9 @@ public class VersionManagerSession
         return this;
     }
 
-    public VersionManagerSession addGlobalError( final Throwable error )
+    public VersionManagerSession addError( final Throwable error )
     {
-        getErrors( GLOBAL, true ).add( error );
-        return this;
-    }
-
-    public synchronized Set<Throwable> getErrors( final File file, final boolean create )
-    {
-        Set<Throwable> errors = this.errors.get( GLOBAL );
-        if ( create && errors == null )
-        {
-            errors = new LinkedHashSet<Throwable>();
-            this.errors.put( GLOBAL, errors );
-        }
-
-        return errors;
-    }
-
-    public VersionManagerSession addError( final File pom, final Throwable error )
-    {
-        getErrors( pom, true ).add( error );
+        errors.add( error );
         return this;
     }
 
@@ -226,7 +208,7 @@ public class VersionManagerSession
         return missingVersions;
     }
 
-    public Map<File, Set<Throwable>> getErrors()
+    public List<Throwable> getErrors()
     {
         return errors;
     }
@@ -287,7 +269,7 @@ public class VersionManagerSession
         }
         catch ( final VManException e )
         {
-            addGlobalError( e );
+            addError( e );
         }
     }
 
@@ -333,11 +315,6 @@ public class VersionManagerSession
         return relocations;
     }
 
-    public boolean isProjectBuildRecursive()
-    {
-        return projectBuildRecursive;
-    }
-
     public VersionManagerSession setToolchain( final File toolchainFile, final MavenProject project )
     {
         toolchainKey = new FullProjectKey( project );
@@ -372,6 +349,21 @@ public class VersionManagerSession
         }
 
         return this;
+    }
+
+    public VersionManagerSession setRemovedPlugins( final Collection<String> removedPlugins )
+    {
+        for ( String rm : removedPlugins )
+        {
+            this.removedPlugins.add( new VersionlessProjectKey( rm ) );
+        }
+
+        return this;
+    }
+
+    public Set<VersionlessProjectKey> getRemovedPlugins()
+    {
+        return removedPlugins;
     }
 
     public FullProjectKey getToolchainKey()

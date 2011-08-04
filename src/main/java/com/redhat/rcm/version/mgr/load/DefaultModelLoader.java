@@ -17,6 +17,15 @@
 
 package com.redhat.rcm.version.mgr.load;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.ModelParseException;
 import org.apache.maven.model.io.ModelReader;
@@ -27,39 +36,30 @@ import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
 @Component( role = ModelLoader.class )
 public class DefaultModelLoader
     implements ModelLoader
 {
-    
+
     @Requirement
     private ModelReader modelReader;
-    
+
     @Override
     public List<Project> buildModels( VersionManagerSession session, File... poms )
         throws VManException
     {
         List<Project> projects = new ArrayList<Project>();
-        
+
         Map<String, Object> options = new HashMap<String, Object>();
         options.put( ModelReader.IS_STRICT, Boolean.FALSE.toString() );
-        
+
         LinkedList<File> allPoms = new LinkedList<File>( Arrays.asList( poms ) );
-        while( !allPoms.isEmpty() )
+        while ( !allPoms.isEmpty() )
         {
             File pom = allPoms.removeFirst();
-            
+
             Model model;
-            
+
             try
             {
                 model = modelReader.read( pom, options );
@@ -72,16 +72,16 @@ public class DefaultModelLoader
             {
                 throw new VManException( "Cannot build model from POM: %s. Reason: %s", e, pom, e.getMessage() );
             }
-            
+
             projects.add( new Project( pom, model ) );
-            if ( session.isProjectBuildRecursive() && model.getModules() != null && !model.getModules().isEmpty() )
+            if ( model.getModules() != null && !model.getModules().isEmpty() )
             {
                 File dir = pom.getParentFile();
                 if ( dir == null )
                 {
                     dir = new File( System.getProperty( "user.dir" ) ).getAbsoluteFile();
                 }
-                
+
                 for ( String module : model.getModules() )
                 {
                     File modPom = new File( dir, module );
@@ -89,7 +89,7 @@ public class DefaultModelLoader
                     {
                         modPom = new File( modPom, "pom.xml" );
                     }
-                    
+
                     if ( modPom.exists() )
                     {
                         allPoms.add( modPom );
@@ -97,7 +97,7 @@ public class DefaultModelLoader
                 }
             }
         }
-        
+
         return projects;
     }
 

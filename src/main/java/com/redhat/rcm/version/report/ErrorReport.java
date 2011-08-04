@@ -18,19 +18,17 @@
 
 package com.redhat.rcm.version.report;
 
-import org.codehaus.plexus.component.annotations.Component;
-import org.codehaus.plexus.util.IOUtil;
-
-import com.redhat.rcm.version.VManException;
-import com.redhat.rcm.version.mgr.VersionManagerSession;
-
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Map;
-import java.util.Set;
+
+import org.codehaus.plexus.component.annotations.Component;
+import org.codehaus.plexus.util.IOUtil;
+
+import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.mgr.VersionManagerSession;
 
 @Component( role = Report.class, hint = ErrorReport.ID )
 public class ErrorReport
@@ -55,37 +53,16 @@ public class ErrorReport
         try
         {
             writer = new BufferedWriter( new FileWriter( reportFile ) );
+            final PrintWriter pWriter = new PrintWriter( writer );
 
-            for ( final Map.Entry<File, Set<Throwable>> entry : sessionData.getErrors().entrySet() )
+            int count = 0;
+            for ( final Throwable error : sessionData.getErrors() )
             {
-                if ( entry.getKey().equals( VersionManagerSession.GLOBAL ) )
-                {
-                    writer.write( "GLOBAL" );
-                }
-                else
-                {
-                    writer.write( entry.getKey().getPath() );
-                }
-
-                writer.write( ":" );
-                writer.newLine();
-                writer.write( "-----------------------------------------------------------" );
-                writer.newLine();
-                writer.newLine();
-
-                final PrintWriter pWriter = new PrintWriter( writer );
-                if ( entry.getValue() != null )
-                {
-                    int count = 0;
-                    for ( final Throwable error : entry.getValue() )
-                    {
-                        pWriter.printf( "%d:  ", count );
-                        error.printStackTrace( pWriter );
-                        pWriter.println();
-                        pWriter.println();
-                        count++;
-                    }
-                }
+                pWriter.printf( "%d:  ", count );
+                error.printStackTrace( pWriter );
+                pWriter.println();
+                pWriter.println();
+                count++;
 
                 writer.newLine();
                 writer.newLine();

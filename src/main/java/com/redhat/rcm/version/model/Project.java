@@ -17,28 +17,30 @@
 
 package com.redhat.rcm.version.model;
 
+import java.io.File;
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.maven.model.Build;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginManagement;
+import org.apache.maven.model.ReportPlugin;
+import org.apache.maven.model.Reporting;
 
 import com.redhat.rcm.version.VManException;
 
-import java.io.File;
-import java.util.Collections;
-import java.util.List;
-
 public class Project
 {
-    
+
     private final File pom;
-    
+
     private final Model model;
-    
+
     private final FullProjectKey key;
-    
-    public Project( File pom, Model model )
+
+    public Project( final File pom, final Model model )
         throws VManException
     {
         this.pom = pom;
@@ -55,7 +57,7 @@ public class Project
     {
         return model;
     }
-    
+
     public FullProjectKey getKey()
     {
         return key;
@@ -71,22 +73,32 @@ public class Project
     }
 
     @Override
-    public boolean equals( Object obj )
+    public boolean equals( final Object obj )
     {
         if ( this == obj )
+        {
             return true;
+        }
         if ( obj == null )
+        {
             return false;
+        }
         if ( getClass() != obj.getClass() )
+        {
             return false;
+        }
         Project other = (Project) obj;
         if ( key == null )
         {
             if ( other.key != null )
+            {
                 return false;
+            }
         }
         else if ( !key.equals( other.key ) )
+        {
             return false;
+        }
         return true;
     }
 
@@ -123,13 +135,13 @@ public class Project
         {
             return Collections.emptyList();
         }
-        
+
         List<Plugin> result = build.getPlugins();
-        if( result == null )
+        if ( result == null )
         {
             return Collections.emptyList();
         }
-        
+
         return result;
     }
 
@@ -140,20 +152,31 @@ public class Project
         {
             return Collections.emptyList();
         }
-        
+
         PluginManagement pm = build.getPluginManagement();
         if ( pm == null )
         {
             return Collections.emptyList();
         }
-        
+
         List<Plugin> result = pm.getPlugins();
-        if( result == null )
+        if ( result == null )
         {
             return Collections.emptyList();
         }
-        
+
         return result;
+    }
+
+    public List<ReportPlugin> getReportPlugins()
+    {
+        Reporting reporting = model.getReporting();
+        if ( reporting == null )
+        {
+            return Collections.emptyList();
+        }
+
+        return reporting.getPlugins();
     }
 
 }
