@@ -588,7 +588,7 @@ public class ToolchainManagementTest
             assertThat( "POM: " + pomPath + " was not modified!", changedModels.size(), equalTo( 1 ) );
 
             Model model = changedModels.iterator().next();
-            // dumpModel( model );
+            dumpModel( model );
 
             return new Project( pom, model );
         }
