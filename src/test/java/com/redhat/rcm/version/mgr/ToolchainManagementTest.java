@@ -587,7 +587,10 @@ public class ToolchainManagementTest
             Set<Model> changedModels = loadModels( modified );
             assertThat( "POM: " + pomPath + " was not modified!", changedModels.size(), equalTo( 1 ) );
 
-            return new Project( pom, changedModels.iterator().next() );
+            Model model = changedModels.iterator().next();
+            // dumpModel( model );
+
+            return new Project( pom, model );
         }
         catch ( Throwable t )
         {
