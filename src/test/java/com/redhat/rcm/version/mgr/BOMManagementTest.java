@@ -19,7 +19,6 @@
 package com.redhat.rcm.version.mgr;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -132,24 +131,25 @@ public class BOMManagementTest
             Model model = loadModel( out );
 
             final DependencyManagement dm = model.getDependencyManagement();
-            assertThat( dm, notNullValue() );
-
-            Set<FullProjectKey> foundBoms = new HashSet<FullProjectKey>();
-
-            for ( final Dependency dep : dm.getDependencies() )
+            if ( dm != null )
             {
-                if ( ( "pom".equals( dep.getType() ) && Artifact.SCOPE_IMPORT.equals( dep.getScope() ) ) )
-                {
-                    foundBoms.add( new FullProjectKey( dep ) );
-                }
-                else
-                {
-                    assertNull( "Managed Dependency version was NOT nullified: " + dep.getManagementKey() + "\nPOM: "
-                        + out, dep.getVersion() );
-                }
-            }
+                Set<FullProjectKey> foundBoms = new HashSet<FullProjectKey>();
 
-            assertThat( foundBoms, equalTo( bomKeys ) );
+                for ( final Dependency dep : dm.getDependencies() )
+                {
+                    if ( ( "pom".equals( dep.getType() ) && Artifact.SCOPE_IMPORT.equals( dep.getScope() ) ) )
+                    {
+                        foundBoms.add( new FullProjectKey( dep ) );
+                    }
+                    else
+                    {
+                        assertNull( "Managed Dependency version was NOT nullified: " + dep.getManagementKey()
+                            + "\nPOM: " + out, dep.getVersion() );
+                    }
+                }
+
+                assertThat( foundBoms, equalTo( bomKeys ) );
+            }
 
             for ( final Dependency dep : model.getDependencies() )
             {
