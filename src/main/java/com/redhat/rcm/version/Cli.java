@@ -199,6 +199,10 @@ public class Cli
                     toolchain = props.getProperty( "toolchain" ).trim();
                 }
 
+                if ( versionSuffix == null )
+                {
+                    versionSuffix = props.getProperty( "version-suffix" ).trim();
+                }
             }
             catch ( IOException e )
             {
