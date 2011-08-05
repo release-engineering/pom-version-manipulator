@@ -29,19 +29,25 @@ run at build time. Therefore, any references required to accomplish this will
 be added to the project.</p>
 <br/>
 
-<p>Finally, if the user wishes to ban certain plugins, VMan supports specifying
+<p>If the user wishes to ban certain plugins, VMan supports specifying
 a list of plugin groupId:artifactId coordinates to be removed from the projects 
 processed.</p>
 <br/>
 
-<h2 id="easy_usage">EASY USAGE</h2>
+<p>Finally, it can append a version suffix to every POM file it processes, and
+intelligently modify versions of parent references, too.</p>
 <br/>
+<br/>
+
+<h2 id="easy_usage">EASY USAGE</h2>
 <br/>
 
 <p><strong>1. Specify Defaults</strong></p>
 <br/>
 
 <p>Specify default configuration in <strong>$HOME/.vman.properties</strong>:</p>
+<br/>
+
 <hr>
 <br/>
 <br/>
@@ -53,6 +59,8 @@ toolchain = http://www.host.com/path/to/toolchain-1.0.pom
 
 removed-plugins = org.apache.maven.plugins:maven-checkstyle-plugin,\
                   org.apache.maven.plugins:maven-cobertura-plugin
+
+version-suffix = -rebuild-1
 </code></pre>
 <br/>
 <br/>
@@ -63,7 +71,6 @@ any additional command-line options.</p>
 <br/>
 
 <p><strong>2. Execute VMan</strong></p>
-<br/>
 <br/>
 
 <p>Now, in your project directory, simply execute the command:</p>
@@ -78,9 +85,9 @@ any additional command-line options.</p>
 <p>This should modify the POMs in your project directory (traversing module references from <code>./pom.xml</code>)
 to comply with the standard information you specified in your <code>.vman.properties</code> configuration file.</p>
 <br/>
+<br/>
 
 <h2 id="advanced_usage">ADVANCED USAGE</h2>
-<br/>
 <br/>
 
 <p>You can override any of the options in your <code>.vman.properties</code> file on the command line. Additionally,
@@ -91,38 +98,40 @@ written, and how VMan will decide which POMs to process (from the <code>target</
 
 <pre><code>java -jar vman.jar [OPTIONS] [&lt;target-path&gt;]
 
- target                 : POM file (or directory containing POM files) to modify.
+ target                       : POM file (or directory containing POM files) to modify.
 
- -C (--config) FILE     : Load default configuration for BOMs, toolchain, removedPluginsList, etc. from this file.
+ -C (--config) FILE           : Load default configuration for BOMs, toolchain, removedPluginsList, etc. from this file.
 
- -P (--preserve)        : Write changed POMs back to original input files
+ -P (--preserve)              : Write changed POMs back to original input files
 
- -R (--report-dir) FILE : Write reports here.
+ -R (--report-dir) FILE       : Write reports here.
 
- -W (--workspace) FILE  : Backup original files here up before modifying.
+ -W (--workspace) FILE        : Backup original files here up before modifying.
 
- -b (--boms) FILE       : File containing a list of BOM URLs to use for standardizing dependencies
+ -b (--boms) FILE             : File containing a list of BOM URLs to use for standardizing dependencies
 
- -h (--help)            : Print this message and quit
+ -h (--help)                  : Print this message and quit
 
- -p VAL                 : POM path pattern (glob)
+ -p VAL                       : POM path pattern (glob)
 
- -r (--rm-plugins) VAL  : List of plugins (format: &lt;groupId:artifactId&gt;[,&lt;groupId:artifactId&gt;]) to REMOVE if found
+ -r (--rm-plugins) VAL        : List of plugins (format: &lt;groupId:artifactId&gt;[,&lt;groupId:artifactId&gt;]) to REMOVE if found
 
- -t (--toolchain) VAL   : Toolchain POM URL, containing standard plugin versions in the build/pluginManagement section, 
-                          and plugin injections in the regular build/plugins section.
+  -s (--version-suffix) VAL   : A suffix to append to each POM's version
+
+ -t (--toolchain) VAL         : Toolchain POM URL, containing standard plugin versions in the build/pluginManagement section, 
+                                and plugin injections in the regular build/plugins section.
 </code></pre>
 <br/>
 <br/>
 
 <h2 id="simple_example">SIMPLE EXAMPLE</h2>
 <br/>
-<br/>
 
 <p>Imagine you have a series of POMs in a project directory structure, and want to 
 align them to Red Hat&#8217;s rebuild of the <code>jboss-parent</code> POM. You also want dependency
 versions to be aligned to those contained in a set of BOMs thatwere generated for 
-Red Hat EAP 6. Finally, since Checkstyle is non-free, you want to disable the use of
+Red Hat EAP 6. You also want to use a version suffix to denote that you're rebuilding these projects.
+Finally, since Checkstyle is non-free, you want to disable the use of
 the <code>maven-checkstyle-plugin</code>.</p>
 <br/>
 
@@ -135,6 +144,7 @@ boms = http://download.devel.redhat.com/brewroot/repos/jb-eap-6-rhel-6-build/lat
        http://download.devel.redhat.com/brewroot/repos/jb-eap-6-rhel-6-build/latest/maven/com/redhat/jboss/thirdparty-bom/6.0.0/thirdparty-bom-6.0.0.pom
 
 removed-plugins = org.apache.maven.plugins:maven-checkstyle-plugin
+version-suffix = -redhat-1
 </code></pre>
 <br/>
 <br/>
@@ -158,12 +168,39 @@ system to view the patch generated by these modifications:</p>
 <br/>
 <br/>
 
+<h2 id="building">BUILDING</h2>
+<br/>
+
+<p>The following project source Git repositories and tags will have to be built, in the specified order, in order to build VMan.
+These projects are built using Maven 3.0.3+ and JDK 1.6+. The build order is:</p>
+<br/>
+<br/>
+
+<ol>
+<li>git://git.engineering.redhat.com/users/jcasey/maven/sisu.git (tag: <em>2.2.1-selectable-1</em>)  <br/>
+</li>
+<li>git://git.engineering.redhat.com/users/jcasey/maven/maven-sandbox.git (tag: <em>mae-0.9.3-redhat-1</em>, sub-path: <em>mae/</em>)<br/>
+</li>
+<li>git://git.engineering.redhat.com/users/jcasey/maven/emb.git (tag: <em>mae-components-0.5.9-redhat-3</em>)<br/>
+</li>
+<li>git://git.engineering.redhat.com/users/jcasey/tools/pom-version-manipulator.git (tag: <em>0.9.5-redhat-1</em>)<br/>
+</li>
+</ol>
+<br/>
+<br/>
+
+<p>The last of these will render the VMan binary under target/pom-version-manipulator-*-bin.jar.</p>
+<br/>
+<br/>
+
 <h2 id="known_bugs">KNOWN BUGS</h2>
 <br/>
 <br/>
 
 <ul>
-<li>Currently, VMan cannot preserve CDATA sections in POM files.</li>
+<li>Currently, VMan cannot preserve CDATA sections in POM files.  <br/>
+</li>
 <li>Additionally, some users have reported injected newlines being added using the Windows (\r\n) format, instead of
-the operating-system-dependent line ending.</li>
+the operating-system-dependent line ending.  <br/>
+</li>
 </ul>
