@@ -211,7 +211,7 @@ public abstract class AbstractVersionManagerTest
 
     protected VersionManagerSession newVersionManagerSession()
     {
-        return new VersionManagerSession( workspace, reports, false );
+        return new VersionManagerSession( workspace, reports, null, false );
     }
 
     protected File createTempDir( final String basename )

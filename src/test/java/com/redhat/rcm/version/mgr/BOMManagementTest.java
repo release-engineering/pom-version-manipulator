@@ -74,7 +74,6 @@ public class BOMManagementTest
     public void modifySinglePom_NormalizeToBOMUsage()
         throws Exception
     {
-        System.setProperty( "debug", Boolean.toString( true ) );
         System.out.println( "Single POM test (normalize to BOM usage)..." );
 
         final File srcPom = getResourceFile( "rwx-parent-0.2.1.pom" );
@@ -83,7 +82,7 @@ public class BOMManagementTest
         final File pom = new File( repo, srcPom.getName() );
         FileUtils.copyFile( srcPom, pom );
 
-        final VersionManagerSession session = new VersionManagerSession( workspace, reports, false );
+        final VersionManagerSession session = new VersionManagerSession( workspace, reports, null, false );
 
         final Set<File> modified =
             vman.modifyVersions( pom, Collections.singletonList( bom.getAbsolutePath() ), null, null, session );
@@ -104,7 +103,7 @@ public class BOMManagementTest
 
         FileUtils.copyDirectoryStructure( srcRepo, repo );
 
-        final VersionManagerSession session = new VersionManagerSession( workspace, reports, false );
+        final VersionManagerSession session = new VersionManagerSession( workspace, reports, null, false );
 
         final Set<File> modified =
             vman.modifyVersions( repo, "pom.xml", Collections.singletonList( bom.getAbsolutePath() ), null, null,

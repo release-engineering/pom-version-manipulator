@@ -1,0 +1,11 @@
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.test</groupId>
+    <artifactId>toolchain-parent</artifactId>
+    <version>1.0</version>
+  </parent>
+  
+  <artifactId>child</artifactId>
+  
+</project>

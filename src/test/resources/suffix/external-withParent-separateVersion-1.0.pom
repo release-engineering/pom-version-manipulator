@@ -1,0 +1,12 @@
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>other.test</groupId>
+    <artifactId>external-parent</artifactId>
+    <version>1</version>
+  </parent>
+  
+  <version>1.0</version>
+  <artifactId>project</artifactId>
+  
+</project>

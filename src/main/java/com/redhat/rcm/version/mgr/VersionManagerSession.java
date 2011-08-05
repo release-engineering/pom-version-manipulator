@@ -103,10 +103,14 @@ public class VersionManagerSession
 
     private FullProjectKey toolchainKey;
 
-    public VersionManagerSession( final File workspace, final File reports, final boolean preserveFiles )
+    private final String versionSuffix;
+
+    public VersionManagerSession( final File workspace, final File reports, final String versionSuffix,
+                                  final boolean preserveFiles )
     {
         this.workspace = workspace;
         this.reports = reports;
+        this.versionSuffix = versionSuffix;
 
         backups = new File( workspace, "backups" );
         backups.mkdirs();
@@ -115,6 +119,11 @@ public class VersionManagerSession
         downloads.mkdirs();
 
         this.preserveFiles = preserveFiles;
+    }
+
+    public String getVersionSuffix()
+    {
+        return versionSuffix;
     }
 
     public FullProjectKey getRelocation( final ProjectKey key )

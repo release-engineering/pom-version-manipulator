@@ -579,7 +579,7 @@ public class ToolchainManagementTest
             final File pom = new File( repo, srcPom.getName() );
             copyFile( srcPom, pom );
 
-            final VersionManagerSession session = new VersionManagerSession( workspace, reports, false );
+            final VersionManagerSession session = new VersionManagerSession( workspace, reports, null, false );
 
             final Set<File> modified = vman.modifyVersions( pom, null, toolchain, removedPlugins, session );
             assertNoErrors( session );

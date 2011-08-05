@@ -48,6 +48,12 @@ public class Project
         this.key = new FullProjectKey( model );
     }
 
+    public Project( final Model model )
+        throws VManException
+    {
+        this( model.getPomFile(), model );
+    }
+
     public File getPom()
     {
         return pom;

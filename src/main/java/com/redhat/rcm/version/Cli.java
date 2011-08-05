@@ -61,6 +61,9 @@ public class Cli
     @Option( name = "-p", usage = "POM path pattern (glob)" )
     private String pomPattern = "**/*.pom,**/pom.xml";
 
+    @Option( name = "-s", aliases = "--version-suffix", usage = "A suffix to append to each POM's version" )
+    private String versionSuffix;
+
     @Option( name = "-P", aliases = { "--preserve" }, usage = "Write changed POMs back to original input files" )
     private boolean preserveFiles = false;
 
@@ -129,7 +132,8 @@ public class Cli
     {
         vman = VersionManager.getInstance();
 
-        final VersionManagerSession session = new VersionManagerSession( workspace, reports, preserveFiles );
+        final VersionManagerSession session =
+            new VersionManagerSession( workspace, reports, versionSuffix, preserveFiles );
 
         loadConfiguration( session );
 
@@ -352,6 +356,16 @@ public class Cli
     public void setToolchain( final String toolchain )
     {
         this.toolchain = toolchain;
+    }
+
+    public String getVersionSuffix()
+    {
+        return versionSuffix;
+    }
+
+    public void setVersionSuffix( final String versionSuffix )
+    {
+        this.versionSuffix = versionSuffix;
     }
 
 }

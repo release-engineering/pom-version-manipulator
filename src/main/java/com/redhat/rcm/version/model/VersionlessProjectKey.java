@@ -78,6 +78,12 @@ public class VersionlessProjectKey
         artifactId = plugin.getArtifactId();
     }
 
+    public VersionlessProjectKey( final ProjectKey tk )
+    {
+        groupId = tk.getGroupId();
+        artifactId = tk.getArtifactId();
+    }
+
     /**
      * {@inheritDoc}
      * 

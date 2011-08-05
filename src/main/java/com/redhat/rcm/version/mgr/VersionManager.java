@@ -244,7 +244,7 @@ public class VersionManager
                     PomInjector injector = entry.getValue();
 
                     LOGGER.info( "Injecting POM changes from: '" + key + "'." );
-                    changed = changed || injector.injectChanges( project, session );
+                    changed = injector.injectChanges( project, session ) || changed;
                 }
             }
 

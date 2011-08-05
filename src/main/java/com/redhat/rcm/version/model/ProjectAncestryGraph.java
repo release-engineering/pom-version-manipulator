@@ -17,16 +17,15 @@
 
 package com.redhat.rcm.version.model;
 
-import org.apache.maven.model.Parent;
-import org.commonjava.emb.graph.DirectionalEdge;
-import org.commonjava.emb.graph.SimpleDirectedGraph;
-
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+
+import org.apache.maven.model.Parent;
+import org.commonjava.emb.graph.DirectionalEdge;
+import org.commonjava.emb.graph.SimpleDirectedGraph;
 
 public class ProjectAncestryGraph
     extends SimpleDirectedGraph<FullProjectKey>
@@ -53,6 +52,11 @@ public class ProjectAncestryGraph
     public void connect( final Project project )
     {
         final FullProjectKey projectKey = new FullProjectKey( project );
+        if ( !getNakedGraph().containsVertex( projectKey ) )
+        {
+            getNakedGraph().addVertex( projectKey );
+        }
+
         final Parent parent = project.getModel().getParent();
         if ( parent != null )
         {
