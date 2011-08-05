@@ -21,7 +21,7 @@
 
   <groupId>com.redhat.rcm</groupId>
   <artifactId>pom-version-manipulator</artifactId>
-  <version>0.9.4-redhat</version>
+  <version>0.9.5-redhat</version>
 
   <name>Red Hat Artifact-Version Manipulator</name>
 
