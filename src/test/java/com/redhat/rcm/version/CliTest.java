@@ -19,6 +19,19 @@
 package com.redhat.rcm.version;
 
 import static junit.framework.Assert.fail;
+import static org.apache.commons.io.FileUtils.copyDirectory;
+import static org.apache.commons.io.FileUtils.copyFile;
+import static org.apache.commons.io.FileUtils.forceDelete;
+import static org.apache.commons.io.FileUtils.writeLines;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.apache.log4j.Appender;
 import org.apache.log4j.ConsoleAppender;
@@ -28,23 +41,10 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.SimpleLayout;
 import org.apache.log4j.spi.Configurator;
 import org.apache.log4j.spi.LoggerRepository;
-import org.codehaus.plexus.util.FileUtils;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import com.redhat.rcm.version.Cli;
-
-import java.io.File;
-import java.io.IOException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 public class CliTest
 {
@@ -64,7 +64,7 @@ public class CliTest
         final File srcRepo = getResourceFile( "repository" );
         final File bom = getResourceFile( "bom.xml" );
 
-        FileUtils.copyDirectoryStructure( srcRepo, repo );
+        copyDirectory( srcRepo, repo );
 
         modifyRepo( bom );
 
@@ -80,7 +80,7 @@ public class CliTest
         final File srcRepo = getResourceFile( "repository.partial" );
         final File bom = getResourceFile( "bom.xml" );
 
-        FileUtils.copyDirectoryStructure( srcRepo, repo );
+        copyDirectory( srcRepo, repo );
 
         modifyRepo( bom );
 
@@ -97,7 +97,7 @@ public class CliTest
         final File bom1 = getResourceFile( "bom.part1.xml" );
         final File bom2 = getResourceFile( "bom.part2.xml" );
 
-        FileUtils.copyDirectoryStructure( srcRepo, repo );
+        copyDirectory( srcRepo, repo );
 
         modifyRepo( bom1, bom2 );
 
@@ -114,7 +114,7 @@ public class CliTest
         final File bom1 = getResourceFile( "bom.part1.xml" );
         final File bom2 = getResourceFile( "bom.part2.xml" );
 
-        FileUtils.copyDirectoryStructure( srcRepo, repo );
+        copyDirectory( srcRepo, repo );
 
         modifyRepo( bom1, bom2 );
 
@@ -130,10 +130,12 @@ public class CliTest
         final File srcPom = getResourceFile( "rwx-parent-0.2.1.pom" );
         final File bom = getResourceFile( "bom.xml" );
 
-        final File pom = new File( repo, srcPom.getName() );
-        FileUtils.copyFile( srcPom, pom );
+        File bomListing = writeBomList( bom );
 
-        final String[] args = { "-r", reports.getPath(), "-b", backups.getPath(), pom.getPath(), bom.getPath() };
+        final File pom = new File( repo, srcPom.getName() );
+        copyFile( srcPom, pom );
+
+        final String[] args = { "-b", bomListing.getPath(), pom.getPath() };
 
         Cli.main( args );
 
@@ -149,10 +151,12 @@ public class CliTest
         final File srcPom = getResourceFile( "rwx-parent-0.2.1.pom" );
         final File bom = getResourceFile( "bom.interp.xml" );
 
-        final File pom = new File( repo, srcPom.getName() );
-        FileUtils.copyFile( srcPom, pom );
+        File bomListing = writeBomList( bom );
 
-        final String[] args = { "-r", reports.getPath(), "-b", backups.getPath(), pom.getPath(), bom.getPath() };
+        final File pom = new File( repo, srcPom.getName() );
+        copyFile( srcPom, pom );
+
+        final String[] args = { "-b", bomListing.getPath(), pom.getPath() };
 
         Cli.main( args );
 
@@ -162,10 +166,6 @@ public class CliTest
     private static final Set<File> toDelete = new HashSet<File>();
 
     private File repo;
-
-    private File backups;
-
-    private File reports;
 
     @BeforeClass
     public static void setupLogging()
@@ -220,20 +220,17 @@ public class CliTest
     @AfterClass
     public static void deleteDirs()
     {
-        if ( null == System.getProperty( "debug" ) )
+        for ( final File f : toDelete )
         {
-            for ( final File f : toDelete )
+            if ( f.exists() )
             {
-                if ( f.exists() )
+                try
                 {
-                    try
-                    {
-                        FileUtils.forceDelete( f );
-                    }
-                    catch ( final IOException e )
-                    {
-                        e.printStackTrace();
-                    }
+                    forceDelete( f );
+                }
+                catch ( final IOException e )
+                {
+                    e.printStackTrace();
                 }
             }
         }
@@ -244,23 +241,33 @@ public class CliTest
         throws IOException
     {
         repo = createTempDir( "repository" );
-        backups = createTempDir( "backup-repo" );
-        reports = createTempDir( "reports" );
     }
 
     private void modifyRepo( final File... boms )
         throws Exception
     {
-        final String[] baseArgs = { "-r", reports.getPath(), "-b", backups.getPath(), repo.getPath() };
+        File bomListing = writeBomList( boms );
 
-        final List<String> args = new ArrayList<String>( Arrays.asList( baseArgs ) );
+        final String[] baseArgs = { "-b", bomListing.getPath(), repo.getPath() };
 
+        Cli.main( baseArgs );
+    }
+
+    private File writeBomList( final File... boms )
+        throws IOException
+    {
+        final List<String> bomList = new ArrayList<String>( boms.length );
         for ( final File bom : boms )
         {
-            args.add( bom.getPath() );
+            bomList.add( bom.getAbsolutePath() );
         }
 
-        Cli.main( args.toArray( new String[] {} ) );
+        File bomListing = File.createTempFile( "boms.", ".lst" );
+        bomListing.deleteOnExit();
+
+        writeLines( bomListing, bomList );
+
+        return bomListing;
     }
 
     private File createTempDir( final String basename )
