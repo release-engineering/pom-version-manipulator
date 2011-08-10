@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -204,17 +205,34 @@ public class Cli
 
                 if ( bomList == null )
                 {
-                    boms = readListProperty( props, "boms" );
+                    if ( boms == null )
+                    {
+                        boms = new ArrayList<String>();
+                    }
+
+                    List<String> pBoms = readListProperty( props, "boms" );
+                    if ( pBoms != null )
+                    {
+                        boms.addAll( pBoms );
+                    }
                 }
 
                 if ( toolchain == null )
                 {
-                    toolchain = props.getProperty( "toolchain" ).trim();
+                    toolchain = props.getProperty( "toolchain" );
+                    if ( toolchain != null )
+                    {
+                        toolchain = toolchain.trim();
+                    }
                 }
 
                 if ( versionSuffix == null )
                 {
-                    versionSuffix = props.getProperty( "version-suffix" ).trim();
+                    versionSuffix = props.getProperty( "version-suffix" );
+                    if ( versionSuffix != null )
+                    {
+                        versionSuffix = versionSuffix.trim();
+                    }
                 }
             }
             catch ( IOException e )
@@ -228,9 +246,9 @@ public class Cli
         }
     }
 
-    private List<String> readListProperty( final Properties props, final String string )
+    private List<String> readListProperty( final Properties props, final String property )
     {
-        String val = props.getProperty( "remove-plugins" );
+        String val = props.getProperty( property );
         if ( val != null )
         {
             String[] rm = val.split( "(\\s)*,(\\s)*" );
@@ -242,6 +260,11 @@ public class Cli
 
     private void loadBomList( final VersionManagerSession session )
     {
+        if ( boms == null )
+        {
+            boms = new ArrayList<String>();
+        }
+
         if ( bomList != null && bomList.canRead() )
         {
             BufferedReader reader = null;

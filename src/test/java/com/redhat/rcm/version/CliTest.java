@@ -23,14 +23,17 @@ import static org.apache.commons.io.FileUtils.copyDirectory;
 import static org.apache.commons.io.FileUtils.copyFile;
 import static org.apache.commons.io.FileUtils.forceDelete;
 import static org.apache.commons.io.FileUtils.writeLines;
+import static org.apache.commons.io.IOUtils.closeQuietly;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 
 import org.apache.log4j.Appender;
@@ -91,7 +94,7 @@ public class CliTest
     public void modifyCompleteRepositoryVersions_UsingTwoBoms()
         throws Exception
     {
-        System.out.println( "Complete repository test..." );
+        System.out.println( "Complete repository test (two BOMs)..." );
 
         final File srcRepo = getResourceFile( "repository" );
         final File bom1 = getResourceFile( "bom.part1.xml" );
@@ -105,10 +108,38 @@ public class CliTest
     }
 
     @Test
+    public void modifyCompleteRepositoryVersions_UsingTwoBoms_ConfigProperties()
+        throws Exception
+    {
+        System.out.println( "Complete repository test (two BOMs, config properties)..." );
+
+        final File srcRepo = getResourceFile( "repository" );
+        final File bom1 = getResourceFile( "bom.part1.xml" );
+        final File bom2 = getResourceFile( "bom.part2.xml" );
+
+        File config = File.createTempFile( "config.", ".properties" );
+        config.deleteOnExit();
+
+        List<String> lines = new ArrayList<String>();
+        lines.add( "boms = " + bom1.getAbsolutePath() + ",\\" );
+        lines.add( "        " + bom2.getAbsolutePath() );
+
+        writeLines( config, lines );
+
+        copyDirectory( srcRepo, repo );
+
+        final String[] args = { "-C", config.getPath(), repo.getPath() };
+
+        Cli.main( args );
+
+        System.out.println( "\n\n" );
+    }
+
+    @Test
     public void modifyPartialRepositoryVersions_UsingTwoBoms()
         throws Exception
     {
-        System.out.println( "Partial repository test..." );
+        System.out.println( "Partial repository test (two BOMs)..." );
 
         final File srcRepo = getResourceFile( "repository.partial" );
         final File bom1 = getResourceFile( "bom.part1.xml" );
@@ -136,6 +167,42 @@ public class CliTest
         copyFile( srcPom, pom );
 
         final String[] args = { "-b", bomListing.getPath(), pom.getPath() };
+
+        Cli.main( args );
+
+        System.out.println( "\n\n" );
+    }
+
+    @Test
+    public void modifySinglePom_ConfigProperties()
+        throws Exception
+    {
+        System.out.println( "Single POM test (with config properties)..." );
+
+        final File srcPom = getResourceFile( "rwx-parent-0.2.1.pom" );
+        final File bom = getResourceFile( "bom.xml" );
+
+        Properties props = new Properties();
+        props.setProperty( "boms", bom.getAbsolutePath() );
+
+        File config = File.createTempFile( "config.", ".properties" );
+        config.deleteOnExit();
+
+        FileOutputStream out = null;
+        try
+        {
+            out = new FileOutputStream( config );
+            props.store( out, "Generated during pom-version-manipulator unit tests." );
+        }
+        finally
+        {
+            closeQuietly( out );
+        }
+
+        final File pom = new File( repo, srcPom.getName() );
+        copyFile( srcPom, pom );
+
+        final String[] args = { "-C", config.getPath(), pom.getPath() };
 
         Cli.main( args );
 
