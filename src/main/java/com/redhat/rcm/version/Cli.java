@@ -26,6 +26,8 @@ import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -88,7 +90,6 @@ public class Cli
     private List<String> removedPlugins;
 
     public static void main( final String[] args )
-        throws Exception
     {
         final Cli cli = new Cli();
         final CmdLineParser parser = new CmdLineParser( cli );
@@ -97,10 +98,6 @@ public class Cli
             parser.parseArgument( args );
 
             if ( cli.help )
-            {
-                printUsage( parser, null );
-            }
-            else if ( cli.target == null || cli.bomList == null )
             {
                 printUsage( parser, null );
             }
@@ -113,17 +110,23 @@ public class Cli
         {
             printUsage( parser, error );
         }
+        catch ( MAEException e )
+        {
+            printUsage( parser, e );
+        }
+        catch ( VManException e )
+        {
+            printUsage( parser, e );
+        }
     }
 
     public Cli( final File target, final File bomList )
-        throws MAEException
     {
         this.target = target;
         this.bomList = bomList;
     }
 
     public Cli()
-        throws MAEException
     {
     }
 
@@ -145,6 +148,11 @@ public class Cli
         if ( removedPlugins == null && removedPluginsList != null )
         {
             loadRemovedPlugins( session );
+        }
+
+        if ( boms == null || boms.isEmpty() )
+        {
+            throw new VManException( "You must specify at least one BOM." );
         }
 
         if ( session.getErrors().isEmpty() )
@@ -183,6 +191,11 @@ public class Cli
                 is = new FileInputStream( config );
                 Properties props = new Properties();
                 props.load( is );
+
+                StringWriter sWriter = new StringWriter();
+                props.list( new PrintWriter( sWriter ) );
+
+                LOGGER.info( "Loading configuration from: " + config + ":\n\n" + sWriter );
 
                 if ( removedPluginsList == null )
                 {
@@ -256,7 +269,7 @@ public class Cli
         }
     }
 
-    private static void printUsage( final CmdLineParser parser, final CmdLineException error )
+    private static void printUsage( final CmdLineParser parser, final Exception error )
     {
         if ( error != null )
         {
