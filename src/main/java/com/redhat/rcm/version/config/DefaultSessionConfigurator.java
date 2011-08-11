@@ -203,8 +203,6 @@ public class DefaultSessionConfigurator
                         session.addError( new VManException( "Received status: '%s' while downloading: %s",
                                                              response.getStatusLine(), location ) );
                     }
-
-                    result = downloaded;
                 }
                 catch ( final ClientProtocolException e )
                 {
@@ -220,6 +218,8 @@ public class DefaultSessionConfigurator
                     get.abort();
                 }
             }
+
+            result = downloaded;
         }
         else
         {

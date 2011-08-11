@@ -30,7 +30,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
 
@@ -136,20 +135,20 @@ public class Cli
     {
         vman = VersionManager.getInstance();
 
-        final VersionManagerSession session =
-            new VersionManagerSession( workspace, reports, versionSuffix, preserveFiles );
-
-        loadConfiguration( session );
+        loadConfiguration();
 
         if ( boms == null && bomList != null )
         {
-            loadBomList( session );
+            loadBomList();
         }
 
         if ( removedPlugins == null && removedPluginsList != null )
         {
-            loadRemovedPlugins( session );
+            loadRemovedPlugins();
         }
+
+        final VersionManagerSession session =
+            new VersionManagerSession( workspace, reports, versionSuffix, preserveFiles );
 
         if ( boms == null || boms.isEmpty() )
         {
@@ -176,13 +175,17 @@ public class Cli
         vman.generateReports( reports, session );
     }
 
-    private Collection<String> loadRemovedPlugins( final VersionManagerSession session )
+    private void loadRemovedPlugins()
     {
-        String[] ls = removedPluginsList.split( "\\s*,\\s*" );
-        return removedPlugins = Arrays.asList( ls );
+        if ( removedPluginsList != null )
+        {
+            String[] ls = removedPluginsList.split( "\\s*,\\s*" );
+            removedPlugins = Arrays.asList( ls );
+        }
     }
 
-    private void loadConfiguration( final VersionManagerSession session )
+    private void loadConfiguration()
+        throws VManException
     {
         if ( config != null && config.canRead() )
         {
@@ -237,7 +240,7 @@ public class Cli
             }
             catch ( IOException e )
             {
-                session.addError( e );
+                throw new VManException( "Failed to load configuration from: " + config, e );
             }
             finally
             {
@@ -258,7 +261,8 @@ public class Cli
         return null;
     }
 
-    private void loadBomList( final VersionManagerSession session )
+    private void loadBomList()
+        throws VManException
     {
         if ( boms == null )
         {
@@ -279,7 +283,7 @@ public class Cli
             }
             catch ( final IOException e )
             {
-                session.addError( e );
+                throw new VManException( "Failed to read bom list from: " + bomList, e );
             }
             finally
             {

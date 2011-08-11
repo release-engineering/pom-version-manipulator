@@ -360,9 +360,6 @@ public class VersionManager
         try
         {
             final SAXBuilder builder = new SAXBuilder();
-            builder.setIgnoringBoundaryWhitespace( false );
-            builder.setIgnoringElementContentWhitespace( false );
-
             final Document doc = builder.build( pom );
 
             String encoding = model.getModelEncoding();
@@ -371,7 +368,8 @@ public class VersionManager
                 encoding = "UTF-8";
             }
 
-            final Format format = Format.getRawFormat().setEncoding( encoding ).setTextMode( TextMode.PRESERVE );
+            final Format format =
+                Format.getRawFormat().setEncoding( encoding ).setTextMode( TextMode.PRESERVE ).setLineSeparator( System.getProperty( "line.separator" ) );
 
             session.getLog( pom ).add( "Writing modified POM: %s", out );
             writer = WriterFactory.newWriter( out, encoding );
