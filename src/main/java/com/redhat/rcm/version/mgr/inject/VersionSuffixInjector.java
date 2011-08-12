@@ -1,13 +1,13 @@
 package com.redhat.rcm.version.mgr.inject;
 
+import org.apache.maven.mae.project.key.ProjectKey;
+import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
 import org.codehaus.plexus.component.annotations.Component;
 
 import com.redhat.rcm.version.mgr.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
-import com.redhat.rcm.version.model.ProjectKey;
-import com.redhat.rcm.version.model.VersionlessProjectKey;
 
 @Component( role = PomInjector.class, hint = "version-suffix" )
 public class VersionSuffixInjector

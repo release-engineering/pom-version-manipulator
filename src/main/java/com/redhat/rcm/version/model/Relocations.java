@@ -19,6 +19,9 @@
 package com.redhat.rcm.version.model;
 
 import org.apache.log4j.Logger;
+import org.apache.maven.mae.project.key.FullProjectKey;
+import org.apache.maven.mae.project.key.ProjectKey;
+import org.apache.maven.mae.project.key.VersionlessProjectKey;
 
 import com.redhat.rcm.version.VManException;
 

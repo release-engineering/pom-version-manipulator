@@ -34,6 +34,7 @@ import java.util.Set;
 
 import org.apache.log4j.Level;
 import org.apache.maven.artifact.Artifact;
+import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Model;
@@ -43,7 +44,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.redhat.rcm.version.mgr.inject.BomInjector;
-import com.redhat.rcm.version.model.FullProjectKey;
 
 public class BOMManagementTest
     extends AbstractVersionManagerTest

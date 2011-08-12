@@ -31,13 +31,13 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.log4j.Level;
+import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.model.Model;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.redhat.rcm.version.mgr.inject.ToolchainInjector;
-import com.redhat.rcm.version.model.FullProjectKey;
 import com.redhat.rcm.version.model.Project;
 
 public class VersionSuffixManagementTest

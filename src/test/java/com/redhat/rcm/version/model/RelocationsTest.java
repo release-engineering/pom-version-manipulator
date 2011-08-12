@@ -21,6 +21,8 @@ package com.redhat.rcm.version.model;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
+import org.apache.maven.mae.project.key.FullProjectKey;
+import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.junit.Test;
 
 import com.redhat.rcm.version.VManException;

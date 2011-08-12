@@ -42,14 +42,18 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.log4j.Logger;
+import org.apache.maven.mae.project.ModelLoader;
 import org.apache.maven.mae.project.ProjectLoader;
 import org.apache.maven.mae.project.ProjectToolsException;
+import org.apache.maven.mae.project.event.EventDispatcher;
+import org.apache.maven.mae.project.event.ModelLoaderEvent;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.component.annotations.Requirement;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.VersionManagerSession;
+import com.redhat.rcm.version.mgr.load.SessionModelLoaderListener;
 
 @Component( role = SessionConfigurator.class )
 public class DefaultSessionConfigurator
@@ -60,6 +64,9 @@ public class DefaultSessionConfigurator
 
     @Requirement
     private ProjectLoader projectLoader;
+
+    @Requirement
+    private ModelLoader modelLoader;
 
     private final DefaultHttpClient client;
 
@@ -72,6 +79,7 @@ public class DefaultSessionConfigurator
     @Override
     public void configureSession( final List<String> boms, final String toolchain,
                                   final Collection<String> removedPlugins, final VersionManagerSession session )
+        throws VManException
     {
         if ( boms != null )
         {
@@ -87,9 +95,15 @@ public class DefaultSessionConfigurator
         {
             session.setRemovedPlugins( removedPlugins );
         }
+
+        EventDispatcher<ModelLoaderEvent> dispatcher = new EventDispatcher<ModelLoaderEvent>();
+        dispatcher.addListener( new SessionModelLoaderListener( session, modelLoader ) );
+
+        session.setEventDispatcher( ModelLoaderEvent.class, dispatcher );
     }
 
     private void loadToolchain( final String toolchain, final VersionManagerSession session )
+        throws VManException
     {
         File toolchainFile = getFile( toolchain, session );
         if ( toolchainFile != null )
@@ -110,6 +124,7 @@ public class DefaultSessionConfigurator
     }
 
     private void loadBOMs( final List<String> boms, final VersionManagerSession session )
+        throws VManException
     {
         if ( !session.hasDependencyMap() )
         {
@@ -140,6 +155,7 @@ public class DefaultSessionConfigurator
     }
 
     private File[] getBomFiles( final List<String> boms, final VersionManagerSession session )
+        throws VManException
     {
         final List<File> result = new ArrayList<File>( boms.size() );
 
@@ -156,6 +172,7 @@ public class DefaultSessionConfigurator
     }
 
     private File getFile( final String location, final VersionManagerSession session )
+        throws VManException
     {
         File result = null;
 
@@ -178,6 +195,7 @@ public class DefaultSessionConfigurator
             catch ( final MalformedURLException e )
             {
                 LOGGER.error( "Malformed URL: '" + location + "'", e );
+                throw new VManException( "Failed to download: %s. Reason: %s", e, location, e.getMessage() );
             }
 
             final File downloaded = new File( session.getDownloads(), new File( location ).getName() );

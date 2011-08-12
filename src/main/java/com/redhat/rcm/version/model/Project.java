@@ -21,6 +21,8 @@ import java.io.File;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.maven.mae.project.ProjectToolsException;
+import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.model.Build;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
@@ -28,8 +30,6 @@ import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginManagement;
 import org.apache.maven.model.ReportPlugin;
 import org.apache.maven.model.Reporting;
-
-import com.redhat.rcm.version.VManException;
 
 public class Project
 {
@@ -40,18 +40,23 @@ public class Project
 
     private final FullProjectKey key;
 
-    public Project( final File pom, final Model model )
-        throws VManException
+    public Project( final FullProjectKey key, final File pom, final Model model )
     {
         this.pom = pom;
         this.model = model;
-        this.key = new FullProjectKey( model );
+        this.key = key;
+    }
+
+    public Project( final File pom, final Model model )
+        throws ProjectToolsException
+    {
+        this( new FullProjectKey( model ), pom, model );
     }
 
     public Project( final Model model )
-        throws VManException
+        throws ProjectToolsException
     {
-        this( model.getPomFile(), model );
+        this( new FullProjectKey( model ), model.getPomFile(), model );
     }
 
     public File getPom()

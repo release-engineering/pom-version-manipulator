@@ -40,6 +40,8 @@ import org.apache.log4j.SimpleLayout;
 import org.apache.log4j.spi.Configurator;
 import org.apache.log4j.spi.LoggerRepository;
 import org.apache.maven.mae.MAEException;
+import org.apache.maven.mae.project.ProjectToolsException;
+import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.DefaultModelReader;
 import org.apache.maven.model.io.ModelReader;
@@ -47,7 +49,6 @@ import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 import org.codehaus.plexus.util.FileUtils;
 
 import com.redhat.rcm.version.VManException;
-import com.redhat.rcm.version.model.FullProjectKey;
 
 public abstract class AbstractVersionManagerTest
 {
@@ -255,7 +256,7 @@ public abstract class AbstractVersionManagerTest
     }
 
     protected static FullProjectKey loadProjectKey( final String path )
-        throws VManException, IOException
+        throws ProjectToolsException, IOException
     {
         Model model = loadModel( path );
 
@@ -263,7 +264,7 @@ public abstract class AbstractVersionManagerTest
     }
 
     protected static FullProjectKey loadProjectKey( final File pom )
-        throws VManException, IOException
+        throws ProjectToolsException, IOException
     {
         Model model = loadModel( pom );
 

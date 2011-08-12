@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
+import org.apache.maven.mae.project.key.FullProjectKey;
+import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Build;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
@@ -39,9 +41,7 @@ import org.apache.maven.model.merge.MavenModelMerger;
 import org.codehaus.plexus.component.annotations.Component;
 
 import com.redhat.rcm.version.mgr.VersionManagerSession;
-import com.redhat.rcm.version.model.FullProjectKey;
 import com.redhat.rcm.version.model.Project;
-import com.redhat.rcm.version.model.VersionlessProjectKey;
 
 @Component( role = PomInjector.class, hint = "toolchain-realignment" )
 public class ToolchainInjector
@@ -60,7 +60,7 @@ public class ToolchainInjector
         changed = attemptToolchainParentInjection( project, session ) || changed;
 
         final Set<VersionlessProjectKey> pluginRefs = new HashSet<VersionlessProjectKey>();
-        pluginRefs.addAll( session.getPluginReferences( new VersionlessProjectKey( project ) ) );
+        pluginRefs.addAll( session.getPluginReferences( new VersionlessProjectKey( project.getKey() ) ) );
         accumulatePluginRefs( project, pluginRefs, session );
 
         changed = stripToolchainPluginInfo( project, session ) || changed;

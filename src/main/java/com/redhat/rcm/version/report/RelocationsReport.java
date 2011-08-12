@@ -18,13 +18,13 @@
 
 package com.redhat.rcm.version.report;
 
+import org.apache.maven.mae.project.key.FullProjectKey;
+import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.util.IOUtil;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.VersionManagerSession;
-import com.redhat.rcm.version.model.FullProjectKey;
-import com.redhat.rcm.version.model.VersionlessProjectKey;
 
 import java.io.File;
 import java.io.FileWriter;

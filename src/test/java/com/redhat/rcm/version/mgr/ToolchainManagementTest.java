@@ -37,6 +37,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.log4j.Level;
+import org.apache.maven.mae.project.ProjectToolsException;
+import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.model.Build;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
@@ -51,10 +53,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.inject.ToolchainInjector;
 import com.redhat.rcm.version.mgr.testutil.PluginMatcher;
-import com.redhat.rcm.version.model.FullProjectKey;
 import com.redhat.rcm.version.model.Project;
 
 public class ToolchainManagementTest
@@ -600,7 +600,7 @@ public class ToolchainManagementTest
     }
 
     private static FullProjectKey getToolchainKey()
-        throws IOException, VManException
+        throws IOException, ProjectToolsException
     {
         if ( toolchainKey == null )
         {

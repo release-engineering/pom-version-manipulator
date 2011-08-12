@@ -17,12 +17,9 @@
 
 package com.redhat.rcm.version.model;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
 
+import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.model.Parent;
 import org.commonjava.emb.graph.DirectionalEdge;
 import org.commonjava.emb.graph.SimpleDirectedGraph;
@@ -31,27 +28,17 @@ public class ProjectAncestryGraph
     extends SimpleDirectedGraph<FullProjectKey>
 {
 
-    // private final FullProjectKey toolchainKey;
-
-    public ProjectAncestryGraph( final FullProjectKey toolchainKey, final List<Project> projects )
+    public ProjectAncestryGraph( final FullProjectKey toolchainKey )
     {
-        // this.toolchainKey = toolchainKey;
-
         if ( toolchainKey != null )
         {
             getNakedGraph().addVertex( toolchainKey );
-        }
-
-        Collections.sort( new ArrayList<Project>( projects ), new ParentFirstComparator() );
-        for ( final Project project : projects )
-        {
-            connect( project );
         }
     }
 
     public void connect( final Project project )
     {
-        final FullProjectKey projectKey = new FullProjectKey( project );
+        final FullProjectKey projectKey = project.getKey();
         if ( !getNakedGraph().containsVertex( projectKey ) )
         {
             getNakedGraph().addVertex( projectKey );
@@ -70,7 +57,7 @@ public class ProjectAncestryGraph
 
     public boolean hasParentInGraph( final Project current )
     {
-        final FullProjectKey currentKey = new FullProjectKey( current );
+        final FullProjectKey currentKey = current.getKey();
         final Collection<DirectionalEdge<FullProjectKey>> outEdges = getNakedGraph().getOutEdges( currentKey );
         if ( outEdges != null && !outEdges.isEmpty() )
         {
@@ -80,56 +67,56 @@ public class ProjectAncestryGraph
         return false;
     }
 
-    // public boolean hasToolchainAncestor( MavenProject current )
-    // {
-    // return toolchainKey != null && hasAncestor( toolchainKey, current );
-    // }
-    //
-    // public boolean hasAncestor( FullProjectKey ancestorKey, MavenProject current )
-    // {
-    // FullProjectKey currentKey = new FullProjectKey( current );
-    // while ( currentKey != null )
-    // {
-    // if ( currentKey.equals( ancestorKey ) )
-    // {
-    // return true;
-    // }
-    //
-    // Collection<DirectionalEdge<FullProjectKey>> outEdges = getNakedGraph().getOutEdges( currentKey );
-    // if ( outEdges != null && !outEdges.isEmpty() )
-    // {
-    // currentKey = outEdges.iterator().next().getTo();
-    // }
-    // }
-    //
-    // return false;
-    // }
-
-    private static final class ParentFirstComparator
-        implements Comparator<Project>
+    public boolean hasAncestor( final FullProjectKey ancestorKey, final Project current )
     {
-        @Override
-        public int compare( final Project one, final Project two )
+        FullProjectKey currentKey = current.getKey();
+        while ( currentKey != null )
         {
-            int result = 0;
-
-            final Parent oneParent = one.getParent();
-            final Parent twoParent = two.getParent();
-
-            final VersionlessProjectKey oneId = new VersionlessProjectKey( one );
-            final VersionlessProjectKey twoId = new VersionlessProjectKey( two );
-
-            if ( oneParent != null && new VersionlessProjectKey( oneParent ).equals( twoId ) )
+            if ( currentKey.equals( ancestorKey ) )
             {
-                result = 1;
-            }
-            else if ( twoParent != null && new VersionlessProjectKey( twoParent ).equals( oneId ) )
-            {
-                result = -1;
+                return true;
             }
 
-            return result;
+            Collection<DirectionalEdge<FullProjectKey>> outEdges = getNakedGraph().getOutEdges( currentKey );
+            if ( outEdges != null && !outEdges.isEmpty() )
+            {
+                currentKey = outEdges.iterator().next().getTo();
+            }
         }
 
+        return false;
     }
+
+    public boolean contains( final FullProjectKey key )
+    {
+        return getNakedGraph().containsVertex( key );
+    }
+
+    // private static final class ParentFirstComparator
+    // implements Comparator<Project>
+    // {
+    // @Override
+    // public int compare( final Project one, final Project two )
+    // {
+    // int result = 0;
+    //
+    // final Parent oneParent = one.getParent();
+    // final Parent twoParent = two.getParent();
+    //
+    // final VersionlessProjectKey oneId = new VersionlessProjectKey( one );
+    // final VersionlessProjectKey twoId = new VersionlessProjectKey( two );
+    //
+    // if ( oneParent != null && new VersionlessProjectKey( oneParent ).equals( twoId ) )
+    // {
+    // result = 1;
+    // }
+    // else if ( twoParent != null && new VersionlessProjectKey( twoParent ).equals( oneId ) )
+    // {
+    // result = -1;
+    // }
+    //
+    // return result;
+    // }
+    //
+    // }
 }

@@ -19,6 +19,8 @@
 package com.redhat.rcm.version.mgr;
 
 import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -32,6 +34,9 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
+import org.apache.maven.mae.project.key.FullProjectKey;
+import org.apache.maven.mae.project.key.ProjectKey;
+import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.mae.project.session.SimpleProjectToolsSession;
 import org.apache.maven.model.Build;
 import org.apache.maven.model.Dependency;
@@ -39,14 +44,13 @@ import org.apache.maven.model.Model;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginManagement;
 import org.apache.maven.project.MavenProject;
+import org.sonatype.aether.repository.Authentication;
+import org.sonatype.aether.repository.RemoteRepository;
 
 import com.redhat.rcm.version.VManException;
-import com.redhat.rcm.version.model.FullProjectKey;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.model.ProjectAncestryGraph;
-import com.redhat.rcm.version.model.ProjectKey;
 import com.redhat.rcm.version.model.Relocations;
-import com.redhat.rcm.version.model.VersionlessProjectKey;
 import com.redhat.rcm.version.util.ActivityLog;
 
 public class VersionManagerSession
@@ -423,33 +427,76 @@ public class VersionManagerSession
 
     public boolean hasParentInGraph( final Project project )
     {
-        return ancestryGraph.hasParentInGraph( project );
-    }
-
-    // public boolean hasToolchainAncestor( MavenProject project )
-    // {
-    // return ancestryGraph.hasToolchainAncestor( project );
-    // }
-    //
-    // public boolean hasAncestor( FullProjectKey ancestorKey, MavenProject project )
-    // {
-    // return ancestryGraph.hasAncestor( ancestorKey, project );
-    // }
-
-    public VersionManagerSession setProjects( final List<Project> projects )
-    {
-        ancestryGraph = new ProjectAncestryGraph( toolchainKey, projects );
-        return this;
+        return getAncestryGraph().hasParentInGraph( project );
     }
 
     public VersionManagerSession connectProject( final Project project )
     {
-        if ( ancestryGraph != null )
-        {
-            ancestryGraph.connect( project );
-        }
+        getAncestryGraph().connect( project );
 
         return this;
+    }
+
+    private synchronized ProjectAncestryGraph getAncestryGraph()
+    {
+        if ( ancestryGraph == null )
+        {
+            ancestryGraph = new ProjectAncestryGraph( toolchainKey );
+        }
+
+        return ancestryGraph;
+    }
+
+    public boolean ancestryGraphContains( final FullProjectKey key )
+    {
+        return getAncestryGraph().contains( key );
+    }
+
+    public void setRemoteRepository( final String remoteRepository )
+        throws MalformedURLException
+    {
+        String id = "vman";
+
+        String u = remoteRepository;
+        int idx = u.indexOf( '|' );
+        if ( idx > 0 )
+        {
+            id = u.substring( 0, idx );
+            u = u.substring( idx + 1 );
+        }
+
+        URL url = new URL( u );
+
+        Authentication auth = null;
+
+        String ui = url.getUserInfo();
+        if ( ui != null )
+        {
+            idx = ui.indexOf( ':' );
+
+            String user = ui;
+            String password = null;
+
+            if ( idx > 0 )
+            {
+                user = ui.substring( 0, idx );
+
+                if ( idx + 1 < ui.length() )
+                {
+                    password = ui.substring( idx + 1 );
+                }
+            }
+
+            auth = new Authentication( user, password );
+        }
+
+        RemoteRepository repo = new RemoteRepository( id, "default", u );
+        if ( auth != null )
+        {
+            repo.setAuthentication( auth );
+        }
+
+        setRemoteRepositories( Collections.singletonList( repo ) );
     }
 
 }

@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -59,6 +60,9 @@ public class Cli
     @Option( name = "-t", aliases = "--toolchain", usage = "Toolchain POM URL, containing standard plugin versions in the build/pluginManagement section, "
         + "and plugin injections in the regular build/plugins section." )
     private String toolchain;
+
+    @Option( name = "-m", aliases = "--maven-repository", usage = "Maven remote repository from which load missing parent POMs." )
+    private String remoteRepository;
 
     @Option( name = "-p", usage = "POM path pattern (glob)" )
     private String pomPattern = "**/*.pom,**/pom.xml";
@@ -114,7 +118,7 @@ public class Cli
         {
             printUsage( parser, e );
         }
-        catch ( VManException e )
+        catch ( MalformedURLException e )
         {
             printUsage( parser, e );
         }
@@ -131,7 +135,7 @@ public class Cli
     }
 
     public void run()
-        throws MAEException, VManException
+        throws MAEException, VManException, MalformedURLException
     {
         vman = VersionManager.getInstance();
 
@@ -149,6 +153,11 @@ public class Cli
 
         final VersionManagerSession session =
             new VersionManagerSession( workspace, reports, versionSuffix, preserveFiles );
+
+        if ( remoteRepository != null )
+        {
+            session.setRemoteRepository( remoteRepository );
+        }
 
         if ( boms == null || boms.isEmpty() )
         {
@@ -235,6 +244,15 @@ public class Cli
                     if ( versionSuffix != null )
                     {
                         versionSuffix = versionSuffix.trim();
+                    }
+                }
+
+                if ( remoteRepository == null )
+                {
+                    remoteRepository = props.getProperty( "remote-repository" );
+                    if ( remoteRepository != null )
+                    {
+                        remoteRepository = remoteRepository.trim();
                     }
                 }
             }
