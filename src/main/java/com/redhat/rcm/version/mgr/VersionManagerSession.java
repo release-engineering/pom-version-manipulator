@@ -41,6 +41,7 @@ import org.apache.maven.mae.project.session.SimpleProjectToolsSession;
 import org.apache.maven.model.Build;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
+import org.apache.maven.model.Parent;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginManagement;
 import org.apache.maven.project.MavenProject;
@@ -90,6 +91,8 @@ public class VersionManagerSession
         new HashMap<VersionlessProjectKey, Set<VersionlessProjectKey>>();
 
     private final Set<FullProjectKey> bomCoords = new LinkedHashSet<FullProjectKey>();
+
+    private final Set<VersionlessProjectKey> currentProjects = new HashSet<VersionlessProjectKey>();
 
     private final Relocations relocations = new Relocations();
 
@@ -425,14 +428,20 @@ public class VersionManagerSession
         return bomCoords.contains( key );
     }
 
+    public boolean hasToolchainAncestor( final Project project )
+    {
+        return toolchainKey == null ? false : getAncestryGraph().hasAncestor( toolchainKey, project );
+    }
+
     public boolean hasParentInGraph( final Project project )
     {
         return getAncestryGraph().hasParentInGraph( project );
     }
 
-    public VersionManagerSession connectProject( final Project project )
+    public VersionManagerSession addProject( final Project project )
     {
         getAncestryGraph().connect( project );
+        currentProjects.add( new VersionlessProjectKey( project.getKey() ) );
 
         return this;
     }
@@ -497,6 +506,17 @@ public class VersionManagerSession
         }
 
         setRemoteRepositories( Collections.singletonList( repo ) );
+    }
+
+    public boolean isToolchainReference( final Parent parent )
+    {
+        return toolchainKey == null ? false
+                        : new VersionlessProjectKey( toolchainKey ).equals( new VersionlessProjectKey( parent ) );
+    }
+
+    public boolean inCurrentSession( final Parent parent )
+    {
+        return currentProjects.contains( new VersionlessProjectKey( parent ) );
     }
 
 }

@@ -37,7 +37,7 @@ public class SessionModelLoaderListener
             Project project = new Project( event.getKey(), event.getPom(), event.getModel() );
             reconstituteParent( project, event.getTrace(), event.getTrace() );
 
-            session.connectProject( project );
+            session.addProject( project );
         }
     }
 
@@ -46,7 +46,7 @@ public class SessionModelLoaderListener
     {
         Parent parent = project.getParent();
 
-        if ( parent != null )
+        if ( parent != null && !session.inCurrentSession( parent ) && !session.isToolchainReference( parent ) )
         {
             FullProjectKey parentKey = new FullProjectKey( parent );
             String suffix = session.getVersionSuffix();
@@ -74,7 +74,7 @@ public class SessionModelLoaderListener
                 // recurse, as long as our parent isn't in the ancestry graph.
                 reconstituteParent( parentProject, originalTrace, parentTrace );
 
-                session.connectProject( parentProject );
+                session.addProject( parentProject );
             }
         }
     }

@@ -97,7 +97,6 @@ public class ToolchainManagementTest
     public void adjustReportPluginWithoutVersion_InheritFromToolchain()
         throws Throwable
     {
-        // TODO: child-reportPlugin-noVersion-1.0.pom
         String toolchainPath = REPORTS_TOOLCHAIN_PATH;
         String path = "child-reportPlugin-noVersion-1.0.pom";
 
@@ -117,7 +116,6 @@ public class ToolchainManagementTest
     public void adjustReportPluginWithWrongVersion_InheritFromToolchain()
         throws Throwable
     {
-        // TODO: child-reportPlugin-wrongVersion-1.0.pom
         String toolchainPath = REPORTS_TOOLCHAIN_PATH;
         String path = "child-reportPlugin-wrongVersion-1.0.pom";
 
@@ -137,7 +135,6 @@ public class ToolchainManagementTest
     public void adjustReportPluginWithoutVersion_NotInheritFromToolchain()
         throws Throwable
     {
-        // TODO: external-withParent-reportPlugin-noVersion-1.0.pom
         String toolchainPath = REPORTS_TOOLCHAIN_PATH;
         String path = "external-withParent-reportPlugin-noVersion-1.0.pom";
 
@@ -150,14 +147,19 @@ public class ToolchainManagementTest
             adjustSingle( "Adjust report plugin version in POM not inherited from toolchain", path, toolchainPath );
 
         assertReportPlugins( project.getModel(), 1, mavenPlugin( "maven-checkstyle-plugin" ).version( "2.6" ) );
-        assertPluginManagementPlugins( project.getModel(), 1, mavenPlugin( "maven-checkstyle-plugin" ).version( "2.6" ) );
+        assertPluginManagementPlugins( project.getModel(), -1 );
+
+        // NOTE: PluginManagement MUST be injected into the highest level possible!
+        // Since all non-toolchain parent POMs MUST be built for the repository to be
+        // complete, we can inject it there.
+        // assertPluginManagementPlugins( project.getModel(), 1, mavenPlugin( "maven-checkstyle-plugin" ).version( "2.6"
+        // ) );
     }
 
     @Test
     public void adjustReportPluginWithWrongVersion_NotInheritFromToolchain()
         throws Throwable
     {
-        // TODO: external-withParent-reportPlugin-wrongVersion-1.0.pom
         String toolchainPath = REPORTS_TOOLCHAIN_PATH;
         String path = "external-withParent-reportPlugin-wrongVersion-1.0.pom";
 
@@ -170,7 +172,13 @@ public class ToolchainManagementTest
             adjustSingle( "Adjust report plugin version in POM not inherited from toolchain", path, toolchainPath );
 
         assertReportPlugins( project.getModel(), 1, mavenPlugin( "maven-checkstyle-plugin" ).version( "2.6" ) );
-        assertPluginManagementPlugins( project.getModel(), 1, mavenPlugin( "maven-checkstyle-plugin" ).version( "2.6" ) );
+        assertPluginManagementPlugins( project.getModel(), -1 );
+
+        // NOTE: PluginManagement MUST be injected into the highest level possible!
+        // Since all non-toolchain parent POMs MUST be built for the repository to be
+        // complete, we can inject it there.
+        // assertPluginManagementPlugins( project.getModel(), 1, mavenPlugin( "maven-checkstyle-plugin" ).version( "2.6"
+        // ) );
     }
 
     @Test
@@ -277,9 +285,14 @@ public class ToolchainManagementTest
         assertBuildPlugins( project.getModel(), 1,
                             mavenPlugin( "maven-source-plugin" ).version( null ).execution( "other-source-jar" ) );
 
-        assertPluginManagementPlugins( project.getModel(),
-                                       1,
-                                       mavenPlugin( "maven-source-plugin" ).version( "2.1.2" ).execution( "create-source-jar" ) );
+        assertPluginManagementPlugins( project.getModel(), -1 );
+
+        // NOTE: PluginManagement MUST be injected into the highest level possible!
+        // Since all non-toolchain parent POMs MUST be built for the repository to be
+        // complete, we can inject it there.
+        // assertPluginManagementPlugins( project.getModel(),
+        // 1,
+        // mavenPlugin( "maven-source-plugin" ).version( "2.1.2" ).execution( "create-source-jar" ) );
     }
 
     @Test
@@ -303,7 +316,13 @@ public class ToolchainManagementTest
         assertBuildPlugins( project.getModel(), 1,
                             mavenPlugin( "maven-source-plugin" ).version( null ).execution( "create-source-jar" ) );
 
-        assertPluginManagementPlugins( project.getModel(), 1, mavenPlugin( "maven-source-plugin" ).version( "2.1.2" ) );
+        assertPluginManagementPlugins( project.getModel(), -1 );
+
+        // NOTE: PluginManagement MUST be injected into the highest level possible!
+        // Since all non-toolchain parent POMs MUST be built for the repository to be
+        // complete, we can inject it there.
+        // assertPluginManagementPlugins( project.getModel(), 1, mavenPlugin( "maven-source-plugin" ).version( "2.1.2" )
+        // );
     }
 
     @Test
@@ -350,11 +369,16 @@ public class ToolchainManagementTest
 
         assertParent( original, toolchain.getGroupId(), toolchain.getArtifactId(), toolchain.getVersion(), false );
 
-        Project project = adjustSingle( "Inject toolchain as parent in POM without a pre-existing parent", path );
+        adjustNone( "Inject toolchain as parent in POM without a pre-existing parent", path, TOOLCHAIN_PATH, null );
 
-        assertThat( project.getModel(), notNullValue() );
-        assertParent( project.getModel(), toolchain.getGroupId(), toolchain.getArtifactId(), toolchain.getVersion(),
-                      false );
+        // NOTE: PluginManagement MUST be injected into the highest level possible!
+        // Since all non-toolchain parent POMs MUST be built for the repository to be
+        // complete, we can inject it there.
+        // adjustSingle( "Inject toolchain as parent in POM without a pre-existing parent", path );
+        //
+        // assertThat( project.getModel(), notNullValue() );
+        // assertParent( project.getModel(), toolchain.getGroupId(), toolchain.getArtifactId(), toolchain.getVersion(),
+        // false );
     }
 
     @Test
@@ -426,14 +450,17 @@ public class ToolchainManagementTest
         assertThat( plugin.getArtifactId(), equalTo( "maven-compiler-plugin" ) );
         assertThat( plugin.getVersion(), nullValue() );
 
-        PluginManagement pm = build.getPluginManagement();
-        assertThat( pm, notNullValue() );
-
-        Map<String, Plugin> pluginMap = pm.getPluginsAsMap();
-        assertThat( pluginMap, notNullValue() );
-
-        plugin = pluginMap.get( "org.apache.maven.plugins:maven-compiler-plugin" );
-        assertThat( plugin.getVersion(), equalTo( "2.0" ) );
+        // NOTE: PluginManagement MUST be injected into the highest level possible!
+        // Since all non-toolchain parent POMs MUST be built for the repository to be
+        // complete, we can inject it there.
+        // PluginManagement pm = build.getPluginManagement();
+        // assertThat( pm, notNullValue() );
+        //
+        // Map<String, Plugin> pluginMap = pm.getPluginsAsMap();
+        // assertThat( pluginMap, notNullValue() );
+        //
+        // plugin = pluginMap.get( "org.apache.maven.plugins:maven-compiler-plugin" );
+        // assertThat( plugin.getVersion(), equalTo( "2.0" ) );
     }
 
     @Test
@@ -543,14 +570,17 @@ public class ToolchainManagementTest
         List<Plugin> plugins = build.getPlugins();
         assertThat( plugins == null || plugins.isEmpty(), is( true ) );
 
-        PluginManagement pm = build.getPluginManagement();
-        assertThat( pm, notNullValue() );
-
-        Map<String, Plugin> pluginMap = pm.getPluginsAsMap();
-        assertThat( pluginMap, notNullValue() );
-
-        Plugin plugin = pluginMap.get( "org.apache.maven.plugins:maven-compiler-plugin" );
-        assertThat( plugin.getVersion(), equalTo( "2.0" ) );
+        // NOTE: PluginManagement MUST be injected into the highest level possible!
+        // Since all non-toolchain parent POMs MUST be built for the repository to be
+        // complete, we can inject it there.
+        // PluginManagement pm = build.getPluginManagement();
+        // assertThat( pm, notNullValue() );
+        //
+        // Map<String, Plugin> pluginMap = pm.getPluginsAsMap();
+        // assertThat( pluginMap, notNullValue() );
+        //
+        // Plugin plugin = pluginMap.get( "org.apache.maven.plugins:maven-compiler-plugin" );
+        // assertThat( plugin.getVersion(), equalTo( "2.0" ) );
     }
 
     private Project adjustSingle( final String description, final String pomPath )
@@ -581,6 +611,9 @@ public class ToolchainManagementTest
 
             final VersionManagerSession session = new VersionManagerSession( workspace, reports, null, false );
 
+            File remoteRepo = getResourceFile( TOOLCHAIN_TEST_POMS + "repo" );
+            session.setRemoteRepository( remoteRepo.toURI().normalize().toURL().toExternalForm() );
+
             final Set<File> modified = vman.modifyVersions( pom, null, toolchain, removedPlugins, session );
             assertNoErrors( session );
 
@@ -591,6 +624,38 @@ public class ToolchainManagementTest
             dumpModel( model );
 
             return new Project( pom, model );
+        }
+        catch ( Throwable t )
+        {
+            t.printStackTrace();
+            throw t;
+        }
+    }
+
+    private void adjustNone( final String description, final String pomPath, final String toolchainPath,
+                             final List<String> removedPlugins )
+        throws Throwable
+    {
+        try
+        {
+            System.out.println( "ADJUSTING: " + description + "\nPOM: " + pomPath + "\nToolchain: " + toolchainPath );
+
+            final File srcPom = getResourceFile( TOOLCHAIN_TEST_POMS + pomPath );
+            final String toolchain = getResourceFile( toolchainPath ).getAbsolutePath();
+
+            final File pom = new File( repo, srcPom.getName() );
+            copyFile( srcPom, pom );
+
+            final VersionManagerSession session = new VersionManagerSession( workspace, reports, null, false );
+
+            File remoteRepo = getResourceFile( TOOLCHAIN_TEST_POMS + "repo" );
+            session.setRemoteRepository( remoteRepo.toURI().normalize().toURL().toExternalForm() );
+
+            final Set<File> modified = vman.modifyVersions( pom, null, toolchain, removedPlugins, session );
+            assertNoErrors( session );
+
+            Set<Model> changedModels = loadModels( modified );
+            assertThat( "POM: " + pomPath + " was modified!", changedModels.size(), equalTo( 0 ) );
         }
         catch ( Throwable t )
         {

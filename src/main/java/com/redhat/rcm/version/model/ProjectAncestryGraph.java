@@ -82,6 +82,10 @@ public class ProjectAncestryGraph
             {
                 currentKey = outEdges.iterator().next().getTo();
             }
+            else
+            {
+                break;
+            }
         }
 
         return false;

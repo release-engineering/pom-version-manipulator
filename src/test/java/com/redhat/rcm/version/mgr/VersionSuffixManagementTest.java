@@ -211,6 +211,9 @@ public class VersionSuffixManagementTest
 
             final VersionManagerSession session = new VersionManagerSession( workspace, reports, SUFFIX, false );
 
+            File remoteRepo = getResourceFile( TEST_POMS + "repo" );
+            session.setRemoteRepository( remoteRepo.toURI().normalize().toURL().toExternalForm() );
+
             final Set<File> modified = vman.modifyVersions( pom, null, toolchain, null, session );
             assertNoErrors( session );
 
@@ -242,13 +245,16 @@ public class VersionSuffixManagementTest
             File dir = srcPom.getParentFile();
             String fname = srcPom.getName();
 
-            final File outDir = new File( repo, dir.getName() );
+            final File outDir = new File( repo, dir.getName() ).getAbsoluteFile();
             outDir.mkdirs();
 
             copyDirectory( dir, outDir );
-            File pom = new File( outDir, fname );
+            File pom = new File( outDir, fname ).getAbsoluteFile();
 
             final VersionManagerSession session = new VersionManagerSession( workspace, reports, SUFFIX, false );
+
+            File remoteRepo = getResourceFile( TEST_POMS + "repo" );
+            session.setRemoteRepository( remoteRepo.toURI().normalize().toURL().toExternalForm() );
 
             final Set<File> modified = vman.modifyVersions( pom, null, toolchain, null, session );
             assertNoErrors( session );

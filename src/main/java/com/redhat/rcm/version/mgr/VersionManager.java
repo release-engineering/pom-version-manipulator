@@ -232,8 +232,7 @@ public class VersionManager
         List<Model> models;
         try
         {
-            models =
-                modelLoader.loadRawModels( session, processPomPlugins, new DefaultRequestTrace( "VMan ROOT" ), pomFiles );
+            models = modelLoader.loadRawModels( session, true, new DefaultRequestTrace( "VMan ROOT" ), pomFiles );
             // projects = modelLoader.buildModels( session, pomFiles );
         }
         catch ( ProjectToolsException e )

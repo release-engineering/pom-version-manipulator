@@ -66,7 +66,7 @@ public class ToolchainInjector
         changed = stripToolchainPluginInfo( project, session ) || changed;
         changed = stripRemovedPlugins( project, session ) || changed;
 
-        if ( !session.hasParentInGraph( project ) )
+        if ( !session.hasToolchainAncestor( project ) )
         {
             changed = injectPluginUsages( project, pluginRefs, session ) || changed;
             changed = injectPluginManagement( project, pluginRefs, session ) || changed;
@@ -124,7 +124,7 @@ public class ToolchainInjector
                 parent.setVersion( toolchainKey.getVersion() );
 
                 model.setParent( parent );
-                session.connectProject( project );
+                session.addProject( project );
 
                 changed = true;
             }
