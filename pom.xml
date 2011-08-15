@@ -18,6 +18,12 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+  
+  <parent>
+    <groupId>com.redhat.rcm.maven</groupId>
+    <artifactId>tooling-toolchain</artifactId>
+    <version>1</version>
+  </parent>
 
   <groupId>com.redhat.rcm</groupId>
   <artifactId>pom-version-manipulator</artifactId>
@@ -34,6 +40,13 @@
   
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>com.redhat.rcm.maven</groupId>
+        <artifactId>tooling-bom</artifactId>
+        <version>1</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
       <dependency>
         <groupId>org.apache.maven.mae</groupId>
         <artifactId>mae-app-bom</artifactId>
@@ -67,93 +80,53 @@
         <groupId>org.apache.maven</groupId>
         <artifactId>maven-model-builder</artifactId>
     </dependency>
-    <dependency>
-    	<groupId>org.jdom</groupId>
-    	<artifactId>jdom</artifactId>
-    	<version>1.1</version>
-    </dependency>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.8.1</version>
-      <scope>test</scope>
-    </dependency>
+    
     <dependency>
     	<groupId>args4j</groupId>
     	<artifactId>args4j</artifactId>
-    	<version>2.0.12</version>
     </dependency>
+    
     <dependency>
     	<groupId>org.commonjava.maven</groupId>
     	<artifactId>maven-model-jdom-support</artifactId>
-    	<version>${mavenVersion}</version>
     </dependency>
     <dependency>
-    	<groupId>commons-io</groupId>
-    	<artifactId>commons-io</artifactId>
-    	<version>2.0.1</version>
+    	<groupId>org.jdom</groupId>
+    	<artifactId>jdom</artifactId>
     </dependency>
+    
     <dependency>
     	<groupId>org.apache.httpcomponents</groupId>
     	<artifactId>httpclient</artifactId>
-    	<version>4.1.1</version>
+    </dependency>
+    
+    <dependency>
+    	<groupId>commons-io</groupId>
+    	<artifactId>commons-io</artifactId>
     </dependency>
     <dependency>
     	<groupId>commons-lang</groupId>
     	<artifactId>commons-lang</artifactId>
-    	<version>2.5</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
     </dependency>
     <dependency>
     	<groupId>org.hamcrest</groupId>
     	<artifactId>hamcrest-all</artifactId>
-    	<version>1.1</version>
-    	<scope>test</scope>
     </dependency>
   </dependencies>
   
   <build>
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <artifactId>maven-resources-plugin</artifactId>
-          <version>2.4.1</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-compiler-plugin</artifactId>
-          <version>2.3.1</version>
-          <configuration>
-            <source>1.6</source>
-            <target>1.6</target>
-          </configuration>
-        </plugin>
-        <plugin>
-          <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.9</version>
-          <configuration>
-            <excludes>
-              <exclude>**/testutil/*.java</exclude>
-            </excludes>
-          </configuration>
-        </plugin>
-      </plugins>
-    </pluginManagement>
     <plugins>
       <plugin>
         <groupId>org.codehaus.plexus</groupId>
         <artifactId>plexus-component-metadata</artifactId>
-        <version>1.5.4</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>generate-metadata</goal>
-              <goal>generate-test-metadata</goal>
-            </goals>
-          </execution>
-        </executions>
       </plugin>
       <plugin>
         <artifactId>maven-assembly-plugin</artifactId>
-        <version>2.2</version>
         <executions>
           <execution>
             <id>bin</id>
