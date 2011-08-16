@@ -152,19 +152,22 @@ public class VersionSuffixManagementTest
         assertThat( "Modified POM has wrong version!", project.getModel().getVersion(), equalTo( "1.0.1" + SUFFIX ) );
     }
 
-    @Test
-    public void dontAdjustVersion_InheritedVersion_ChildOfExternalParent_NoToolchainAncestor()
-        throws Throwable
-    {
-        String path = "external-withParent-inheritedVersion-1.0.pom";
-        Model original = loadModel( TEST_POMS + path );
-
-        assertParent( original, null, null, "1", true );
-
-        Project project = adjustSingle( "DO NOT adjust a POM that inherits its version from an external parent.", path );
-
-        assertParent( project.getModel(), null, null, "1", true );
-    }
+    // Everything in the system should have a toolchain ancestor...
+    // If the POM doesn't have a parent, it has the toolchain injected as its parent
+    // If it does have a parent, the above rule ensures that parent is descended from the toolchain.
+    // @Test
+    // public void dontAdjustVersion_InheritedVersion_ChildOfExternalParent_NoToolchainAncestor()
+    // throws Throwable
+    // {
+    // String path = "external-withParent-inheritedVersion-1.0.pom";
+    // Model original = loadModel( TEST_POMS + path );
+    //
+    // assertParent( original, null, null, "1", true );
+    //
+    // Project project = adjustSingle( "DO NOT adjust a POM that inherits its version from an external parent.", path );
+    //
+    // assertParent( project.getModel(), null, null, "1", true );
+    // }
 
     @Test
     public void adjustVersion_SeparateVersion_ChildOfExternalParent_NoToolchainAncestor()

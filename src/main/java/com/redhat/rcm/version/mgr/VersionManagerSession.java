@@ -428,15 +428,15 @@ public class VersionManagerSession
         return bomCoords.contains( key );
     }
 
-    public boolean hasToolchainAncestor( final Project project )
-    {
-        return toolchainKey == null ? false : getAncestryGraph().hasAncestor( toolchainKey, project );
-    }
-
-    public boolean hasParentInGraph( final Project project )
-    {
-        return getAncestryGraph().hasParentInGraph( project );
-    }
+    // public boolean hasToolchainAncestor( final Project project )
+    // {
+    // return toolchainKey == null ? false : getAncestryGraph().hasAncestor( toolchainKey, project );
+    // }
+    //
+    // public boolean hasParentInGraph( final Project project )
+    // {
+    // return getAncestryGraph().hasParentInGraph( project );
+    // }
 
     public VersionManagerSession addProject( final Project project )
     {

@@ -35,7 +35,7 @@ public class VersionSuffixInjector
                 ProjectKey tk = session.getToolchainKey();
                 VersionlessProjectKey vpk = new VersionlessProjectKey( parent );
 
-                if ( tk != null && !new VersionlessProjectKey( tk ).equals( vpk ) && session.hasParentInGraph( project )
+                if ( tk != null && !new VersionlessProjectKey( tk ).equals( vpk )
                     && !parent.getVersion().endsWith( suffix ) )
                 {
                     model.getParent().setVersion( model.getParent().getVersion() + suffix );

@@ -241,28 +241,33 @@ public class ToolchainManagementTest
         assertPluginManagementPlugins( project.getModel(), -1 );
     }
 
-    @Test
-    public void addPluginExecutionInChildNotInheritingFromToolchain()
-        throws Throwable
-    {
-        String toolchainPath = ADDITIONS_TOOLCHAIN_PATH;
-        String path = "external-withParent-noPlugins-1.0.pom";
-
-        Model original = loadModel( TOOLCHAIN_TEST_POMS + path );
-
-        assertBuildPlugins( original, -1 );
-        assertPluginManagementPlugins( original, -1 );
-
-        Project project =
-            adjustSingle( "Inject single plugin execution into POM not inheriting from "
-                + "toolchain that doesn't already have it", path, toolchainPath );
-
-        assertBuildPlugins( project.getModel(), 1, mavenPlugin( "maven-source-plugin" ).version( null ) );
-
-        assertPluginManagementPlugins( project.getModel(),
-                                       1,
-                                       mavenPlugin( "maven-source-plugin" ).version( "2.1.2" ).execution( "create-source-jar" ) );
-    }
+    // Everything in the system should have a toolchain ancestor...
+    // If the POM doesn't have a parent, it has the toolchain injected as its parent
+    // If it does have a parent, the above rule ensures that parent is descended from the toolchain.
+    //
+    // Because of this, any new plugin executions can be specified ONLY in the toolchain POM.
+    // @Test
+    // public void addPluginExecutionInChildNotInheritingFromToolchain()
+    // throws Throwable
+    // {
+    // String toolchainPath = ADDITIONS_TOOLCHAIN_PATH;
+    // String path = "external-withParent-noPlugins-1.0.pom";
+    //
+    // Model original = loadModel( TOOLCHAIN_TEST_POMS + path );
+    //
+    // assertBuildPlugins( original, -1 );
+    // assertPluginManagementPlugins( original, -1 );
+    //
+    // Project project =
+    // adjustSingle( "Inject single plugin execution into POM not inheriting from "
+    // + "toolchain that doesn't already have it", path, toolchainPath );
+    //
+    // assertBuildPlugins( project.getModel(), 1, mavenPlugin( "maven-source-plugin" ).version( null ) );
+    //
+    // assertPluginManagementPlugins( project.getModel(),
+    // 1,
+    // mavenPlugin( "maven-source-plugin" ).version( "2.1.2" ).execution( "create-source-jar" ) );
+    // }
 
     @Test
     public void addPluginExecutionToExistingExecutionsInChildNotInheritingFromToolchain()

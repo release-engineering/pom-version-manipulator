@@ -178,12 +178,12 @@ public class BomInjector
         return changed;
     }
 
-    private boolean introduceBoms( final Model model, Project project, final File pom,
+    private boolean introduceBoms( final Model model, final Project project, final File pom,
                                    final VersionManagerSession session )
     {
         boolean changed = false;
 
-        if ( session.hasParentInGraph( project ) )
+        if ( project.getParent() != null )
         {
             LOGGER.info( "Skipping BOM introduction for: '" + model.getId() + "'. Will modify parent POM instead..." );
             return changed;
@@ -234,7 +234,7 @@ public class BomInjector
     {
         DepModResult result = DepModResult.UNCHANGED;
 
-        if ( !session.hasParentInGraph( project ) && session.isBom( new FullProjectKey( dep ) ) )
+        if ( project.getParent() == null && session.isBom( new FullProjectKey( dep ) ) )
         {
             return result;
         }

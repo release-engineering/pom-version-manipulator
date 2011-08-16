@@ -66,7 +66,7 @@ public class ToolchainInjector
         changed = stripToolchainPluginInfo( project, session ) || changed;
         changed = stripRemovedPlugins( project, session ) || changed;
 
-        if ( !session.hasToolchainAncestor( project ) )
+        if ( project.getParent() == null )
         {
             changed = injectPluginUsages( project, pluginRefs, session ) || changed;
             changed = injectPluginManagement( project, pluginRefs, session ) || changed;
@@ -324,7 +324,7 @@ public class ToolchainInjector
                                        final VersionManagerSession session )
     {
         final VersionlessProjectKey parentKey =
-            session.hasParentInGraph( project ) ? new VersionlessProjectKey( project.getParent() ) : null;
+            project.getParent() != null ? new VersionlessProjectKey( project.getParent() ) : null;
 
         List<Plugin> plugins = project.getPlugins();
         if ( plugins != null )
