@@ -21,9 +21,9 @@ package com.redhat.rcm.version.mgr.inject;
 import com.redhat.rcm.version.mgr.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
-public interface PomInjector
+public interface ProjectInjector
 {
 
-    boolean injectChanges( final Project project, final VersionManagerSession session );
+    boolean inject( final Project project, final VersionManagerSession session );
 
 }

@@ -9,13 +9,13 @@ import org.codehaus.plexus.component.annotations.Component;
 import com.redhat.rcm.version.mgr.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
-@Component( role = PomInjector.class, hint = "version-suffix" )
+@Component( role = ProjectInjector.class, hint = "version-suffix" )
 public class VersionSuffixInjector
-    implements PomInjector
+    implements ProjectInjector
 {
 
     @Override
-    public boolean injectChanges( final Project project, final VersionManagerSession session )
+    public boolean inject( final Project project, final VersionManagerSession session )
     {
         boolean changed = false;
         if ( session.getVersionSuffix() != null )

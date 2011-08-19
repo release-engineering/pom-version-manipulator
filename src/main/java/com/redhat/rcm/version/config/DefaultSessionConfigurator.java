@@ -79,10 +79,12 @@ public class DefaultSessionConfigurator
             loadBOMs( boms, session );
         }
 
-        if ( toolchain != null )
+        if ( toolchain == null )
         {
-            loadToolchain( toolchain, session );
+            throw new VManException( "Toolchain POM must be specified!" );
         }
+
+        loadToolchain( toolchain, session );
 
         if ( removedPlugins != null )
         {

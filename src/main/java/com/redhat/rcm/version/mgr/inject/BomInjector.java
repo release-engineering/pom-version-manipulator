@@ -20,40 +20,31 @@ package com.redhat.rcm.version.mgr.inject;
 
 import java.io.File;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
 
 import org.apache.log4j.Logger;
-import org.apache.maven.artifact.Artifact;
 import org.apache.maven.mae.project.key.FullProjectKey;
-import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Dependency;
-import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Model;
-import org.apache.maven.model.Parent;
 import org.codehaus.plexus.component.annotations.Component;
 
 import com.redhat.rcm.version.mgr.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
-@Component( role = PomInjector.class, hint = "BOM-realignment" )
+@Component( role = ProjectInjector.class, hint = "BOM-realignment" )
 public class BomInjector
-    implements PomInjector
+    implements ProjectInjector
 {
 
     private static final Logger LOGGER = Logger.getLogger( BomInjector.class );
 
     @Override
-    public boolean injectChanges( final Project project, final VersionManagerSession session )
+    public boolean inject( final Project project, final VersionManagerSession session )
     {
         Model model = project.getModel();
         File pom = project.getPom();
 
-        boolean changed = modifyCoord( model, pom, session );
-        LOGGER.info( "Introducing BOMs to '" + project.getKey() + "'..." );
-        changed = introduceBoms( model, project, pom, session ) || changed;
+        boolean changed = false;
 
         if ( model.getDependencies() != null )
         {
@@ -96,139 +87,6 @@ public class BomInjector
         return changed;
     }
 
-    private boolean modifyCoord( final Model model, final File pom, final VersionManagerSession session )
-    {
-        boolean changed = false;
-        final Parent parent = model.getParent();
-
-        String groupId = model.getGroupId();
-        if ( groupId == null && parent != null )
-        {
-            groupId = parent.getGroupId();
-        }
-
-        if ( model.getVersion() != null )
-        {
-            final VersionlessProjectKey key = new VersionlessProjectKey( groupId, model.getArtifactId() );
-            // final FullProjectKey newKey = session.getRelocation( key );
-            //
-            // if ( newKey != null && !key.equals( newKey ) )
-            // {
-            // if ( groupId == model.getGroupId() )
-            // {
-            // model.setGroupId( newKey.getGroupId() );
-            // }
-            // model.setArtifactId( newKey.getArtifactId() );
-            // }
-
-            final String version = session.getArtifactVersion( key );
-            if ( version != null )
-            {
-                if ( !version.equals( model.getVersion() ) )
-                {
-                    session.getLog( pom ).add( "Changing POM version from: %s to: %s", model.getVersion(), version );
-                    model.setVersion( version );
-                    changed = true;
-                }
-                else
-                {
-                    session.getLog( pom ).add( "POM (%s) version is correct: %s", key, model.getVersion() );
-                }
-            }
-            else
-            {
-                session.addMissingVersion( pom, key );
-                session.getLog( pom ).add( "POM version is missing in BOM: %s", key );
-            }
-        }
-
-        if ( parent != null )
-        {
-            final VersionlessProjectKey key = new VersionlessProjectKey( parent.getGroupId(), parent.getArtifactId() );
-            final ProjectKey newKey = session.getRelocation( key );
-
-            if ( newKey != null && !key.equals( newKey ) )
-            {
-                parent.setGroupId( newKey.getGroupId() );
-                parent.setArtifactId( newKey.getArtifactId() );
-            }
-
-            final String version = session.getArtifactVersion( key );
-            if ( version == null )
-            {
-                session.addMissingVersion( pom, key );
-                session.getLog( pom ).add( "POM parent version is missing in BOM: %s", key );
-            }
-            else
-            {
-                if ( !version.equals( parent.getVersion() ) )
-                {
-                    session.getLog( pom ).add( "Changing POM parent (%s) version\n\tFrom: %s\n\tTo: %s", key,
-                                               parent.getVersion(), version );
-                    parent.setVersion( version );
-                    changed = true;
-                }
-                else
-                {
-                    session.getLog( pom ).add( "POM parent (%s) version is correct: %s", key, parent.getVersion() );
-                }
-            }
-        }
-
-        return changed;
-    }
-
-    private boolean introduceBoms( final Model model, final Project project, final File pom,
-                                   final VersionManagerSession session )
-    {
-        boolean changed = false;
-
-        if ( project.getParent() != null )
-        {
-            LOGGER.info( "Skipping BOM introduction for: '" + model.getId() + "'. Will modify parent POM instead..." );
-            return changed;
-        }
-
-        final Set<FullProjectKey> boms = new LinkedHashSet<FullProjectKey>( session.getBomCoords() );
-        DependencyManagement dm = model.getDependencyManagement();
-        if ( dm != null )
-        {
-            final List<Dependency> deps = dm.getDependencies();
-            if ( deps != null )
-            {
-                for ( final Dependency dep : deps )
-                {
-                    LOGGER.info( "Checking managed dependency: " + dep );
-
-                    if ( dep.getVersion() != null && Artifact.SCOPE_IMPORT.equals( dep.getScope() )
-                        && "pom".equals( dep.getType() ) )
-                    {
-                        LOGGER.info( "Removing: " + dep + " from: " + pom );
-                        final FullProjectKey k = new FullProjectKey( dep );
-                        boms.remove( k );
-                        changed = true;
-                    }
-                }
-            }
-        }
-        else
-        {
-            LOGGER.info( "Introducing clean dependencyManagement section to contain BOMs..." );
-            dm = new DependencyManagement();
-            model.setDependencyManagement( dm );
-            changed = true;
-        }
-
-        for ( final FullProjectKey bk : boms )
-        {
-            LOGGER.info( "Adding BOM: " + bk + " to: " + pom );
-            dm.addDependency( bk.getBomDependency() );
-            changed = true;
-        }
-
-        return changed;
-    }
-
     private DepModResult modifyDep( final Dependency dep, final Model model, final Project project, final File pom,
                                     final VersionManagerSession session, final boolean isManaged )
     {
@@ -239,7 +97,7 @@ public class BomInjector
             return result;
         }
 
-        final VersionlessProjectKey key = new VersionlessProjectKey( dep.getGroupId(), dep.getArtifactId() );
+        VersionlessProjectKey key = new VersionlessProjectKey( dep.getGroupId(), dep.getArtifactId() );
         final FullProjectKey newKey = session.getRelocation( key );
         if ( newKey != null && !key.equals( newKey ) )
         {
@@ -247,6 +105,8 @@ public class BomInjector
             dep.setGroupId( newKey.getGroupId() );
             dep.setArtifactId( newKey.getArtifactId() );
             dep.setVersion( newKey.getVersion() );
+
+            key = new VersionlessProjectKey( newKey );
         }
         else
         {

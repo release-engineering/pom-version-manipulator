@@ -24,6 +24,8 @@ import java.util.List;
 import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.model.Build;
+import org.apache.maven.model.Dependency;
+import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
 import org.apache.maven.model.Plugin;
@@ -188,6 +190,28 @@ public class Project
         }
 
         return reporting.getPlugins();
+    }
+
+    public Iterable<Dependency> getDependencies()
+    {
+        List<Dependency> deps = model.getDependencies();
+        if ( deps == null )
+        {
+            deps = Collections.emptyList();
+        }
+
+        return deps;
+    }
+
+    public Iterable<Dependency> getManagedDependencies()
+    {
+        DependencyManagement dm = model.getDependencyManagement();
+        if ( dm == null || dm.getDependencies() == null )
+        {
+            return Collections.emptyList();
+        }
+
+        return dm.getDependencies();
     }
 
 }

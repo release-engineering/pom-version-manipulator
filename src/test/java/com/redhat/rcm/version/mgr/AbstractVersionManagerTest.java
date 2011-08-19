@@ -53,6 +53,8 @@ import com.redhat.rcm.version.VManException;
 public abstract class AbstractVersionManagerTest
 {
 
+    protected static final String TOOLCHAIN = "toolchain/toolchain-1.0.pom";
+
     protected VersionManager vman;
 
     protected final Set<File> toDelete = new HashSet<File>();
@@ -199,11 +201,16 @@ public abstract class AbstractVersionManagerTest
         }
     }
 
+    protected String getToolchainPath()
+    {
+        return getResourceFile( TOOLCHAIN ).getAbsolutePath();
+    }
+
     protected VersionManagerSession modifyRepo( final String... boms )
     {
         final VersionManagerSession session = newVersionManagerSession();
 
-        vman.modifyVersions( repo, "**/*.pom", Arrays.asList( boms ), null, null, session );
+        vman.modifyVersions( repo, "**/*.pom", Arrays.asList( boms ), getToolchainPath(), null, session );
         assertNoErrors( session );
         vman.generateReports( reports, session );
 

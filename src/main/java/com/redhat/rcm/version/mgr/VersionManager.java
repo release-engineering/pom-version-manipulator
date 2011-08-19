@@ -58,7 +58,8 @@ import org.sonatype.aether.util.DefaultRequestTrace;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.config.SessionConfigurator;
-import com.redhat.rcm.version.mgr.inject.PomInjector;
+import com.redhat.rcm.version.mgr.inject.ProjectInjector;
+import com.redhat.rcm.version.mgr.verify.ProjectVerifier;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.report.Report;
 
@@ -75,8 +76,11 @@ public class VersionManager
     @Requirement( role = Report.class )
     private Map<String, Report> reports;
 
-    @Requirement( role = PomInjector.class )
-    private Map<String, PomInjector> injectors;
+    @Requirement( role = ProjectInjector.class )
+    private Map<String, ProjectInjector> injectors;
+
+    @Requirement( role = ProjectVerifier.class )
+    private Map<String, ProjectVerifier> verifiers;
 
     @Requirement
     private SessionConfigurator sessionConfigurator;
@@ -265,18 +269,24 @@ public class VersionManager
             boolean changed = false;
             if ( injectors != null )
             {
-                for ( Map.Entry<String, PomInjector> entry : injectors.entrySet() )
+                for ( Map.Entry<String, ProjectInjector> entry : injectors.entrySet() )
                 {
                     String key = entry.getKey();
-                    PomInjector injector = entry.getValue();
+                    ProjectInjector injector = entry.getValue();
 
-                    LOGGER.info( "Injecting POM changes from: '" + key + "'." );
-                    changed = injector.injectChanges( project, session ) || changed;
+                    LOGGER.info( "Injecting '" + key + "' into '" + project.getKey() + "'" );
+                    changed = injector.inject( project, session ) || changed;
                 }
             }
 
             if ( changed )
             {
+                for ( Map.Entry<String, ProjectVerifier> entry : verifiers.entrySet() )
+                {
+                    LOGGER.info( "Verifying '" + project.getKey() + "' (" + entry.getKey() + ")..." );
+                    entry.getValue().verify( project, session );
+                }
+
                 LOGGER.info( "Writing modified '" + project.getKey() + "'..." );
 
                 final Parent parent = model.getParent();

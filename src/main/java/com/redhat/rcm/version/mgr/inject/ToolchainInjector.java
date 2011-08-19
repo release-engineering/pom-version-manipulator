@@ -43,9 +43,9 @@ import org.codehaus.plexus.component.annotations.Component;
 import com.redhat.rcm.version.mgr.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
-@Component( role = PomInjector.class, hint = "toolchain-realignment" )
+@Component( role = ProjectInjector.class, hint = "toolchain-realignment" )
 public class ToolchainInjector
-    implements PomInjector
+    implements ProjectInjector
 {
 
     private static final Logger LOGGER = Logger.getLogger( ToolchainInjector.class );
@@ -53,7 +53,7 @@ public class ToolchainInjector
     private final InjectionMerger merger = new InjectionMerger();
 
     @Override
-    public boolean injectChanges( final Project project, final VersionManagerSession session )
+    public boolean inject( final Project project, final VersionManagerSession session )
     {
         boolean changed = false;
 
