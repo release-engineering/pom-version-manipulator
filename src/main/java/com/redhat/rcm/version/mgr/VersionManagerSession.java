@@ -505,7 +505,7 @@ public class VersionManagerSession
             repo.setAuthentication( auth );
         }
 
-        setRemoteRepositories( Collections.singletonList( repo ) );
+        setRemoteRepositoriesForResolution( Collections.singletonList( repo ) );
     }
 
     public boolean isToolchainReference( final Parent parent )
