@@ -19,6 +19,7 @@
 package com.redhat.rcm.version.mgr;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -336,7 +337,8 @@ public class BOMManagementTest
         vman.generateReports( reports, session );
 
         final String result = FileUtils.fileRead( out );
-        assertThat( result.contains( "<groupId>commons-codec</groupId>" ), equalTo( false ) );
+        assertFalse( result.contains( "<groupId>commons-codec</groupId>" ) );
+        assertFalse( result.contains( "<groupId>commons-lang</groupId>" ) );
 
         System.out.println( "\n\n" );
     }

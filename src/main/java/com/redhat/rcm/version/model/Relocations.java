@@ -29,6 +29,7 @@ import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 
 import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.mgr.VersionManagerSession;
 
 public class Relocations
 {
@@ -101,8 +102,8 @@ public class Relocations
         return relocations.get( new VersionlessProjectKey( key ) );
     }
 
-    public Relocations addBomRelocations( final File bom, final String relocationsStr )
-        throws VManException
+    public Relocations addBomRelocations( final File bom, final String relocationsStr,
+                                          final VersionManagerSession session )
     {
         final String[] lines = relocationsStr.split( "[\\s*,\\s*]+" );
         if ( lines != null && lines.length > 0 )
@@ -123,11 +124,19 @@ public class Relocations
                 idx = line.indexOf( '=' );
                 if ( idx > 0 )
                 {
-                    final VersionlessProjectKey key = toVersionlessCoord( line.substring( 0, idx ).trim() );
-                    final FullProjectKey val = toFullCoord( line.substring( idx + 1 ).trim() );
+                    try
+                    {
+                        final VersionlessProjectKey key = toVersionlessCoord( line.substring( 0, idx ).trim() );
+                        final FullProjectKey val = toFullCoord( line.substring( idx + 1 ).trim() );
 
-                    LOGGER.info( "Adding relocation from: " + key + " to: " + val + " in BOM: " + bom );
-                    relocations.put( key, val );
+                        LOGGER.info( "Adding relocation from: " + key + " to: " + val + " in BOM: " + bom );
+                        relocations.put( key, val );
+                    }
+                    catch ( VManException e )
+                    {
+                        LOGGER.warn( "NOT adding relocation from line: '" + line + "'. Error: " + e.getMessage() );
+                        session.addError( e );
+                    }
                 }
             }
 

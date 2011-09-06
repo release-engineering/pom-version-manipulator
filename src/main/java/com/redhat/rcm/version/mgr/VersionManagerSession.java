@@ -48,7 +48,6 @@ import org.apache.maven.project.MavenProject;
 import org.sonatype.aether.repository.Authentication;
 import org.sonatype.aether.repository.RemoteRepository;
 
-import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.model.ProjectAncestryGraph;
 import com.redhat.rcm.version.model.Relocations;
@@ -279,14 +278,7 @@ public class VersionManagerSession
 
     private void addRelocations( final File bom, final String relocationsStr )
     {
-        try
-        {
-            relocations.addBomRelocations( bom, relocationsStr );
-        }
-        catch ( final VManException e )
-        {
-            addError( e );
-        }
+        relocations.addBomRelocations( bom, relocationsStr, this );
     }
 
     public VersionManagerSession mapDependency( final File srcBom, final Dependency dep )

@@ -11,6 +11,10 @@
   <properties>
     <relocations>
       commons-codec:commons-codec=org.apache.commons.codec:commons-codec:1.4-redhat-1,
+      
+      commons-lang:commons-lang:2.0=org.apache.commons.lang:commons-lang:2.5.0.Final-redhat-1,
+      
+      
       commons-io:commons-io=org.apache.commons.io:commons-io:1.3.2-redhat-1,
     </relocations>
   </properties>
@@ -23,12 +27,12 @@
         <version>1.4-redhat-1</version>
       </dependency>
       <dependency>
-        <groupId>commons-io</groupId>
+        <groupId>org.apache.commons.io</groupId>
         <artifactId>commons-io</artifactId>
         <version>1.3.2-redhat-1</version>
       </dependency>
       <dependency>
-        <groupId>commons-lang</groupId>
+        <groupId>org.apache.commons.lang</groupId>
         <artifactId>commons-lang</artifactId>
         <version>2.5-redhat-1</version>
       </dependency>
