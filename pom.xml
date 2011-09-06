@@ -19,6 +19,12 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   
+  <parent>
+    <groupId>com.redhat.rcm.maven</groupId>
+    <artifactId>tooling-toolchain</artifactId>
+    <version>1</version>
+  </parent>
+
   <groupId>com.redhat.rcm</groupId>
   <artifactId>pom-version-manipulator</artifactId>
   <version>0.9.8-redhat</version>
@@ -28,12 +34,19 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <mavenVersion>3.0.3</mavenVersion>
-    <maeVersion>0.9.5-redhat</maeVersion>
+    <maeVersion>0.9.6-redhat</maeVersion>
     <embVersion>0.5.9-redhat</embVersion>
   </properties>
   
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>com.redhat.rcm.maven</groupId>
+        <artifactId>tooling-bom</artifactId>
+        <version>1</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
       <dependency>
         <groupId>org.apache.maven.mae</groupId>
         <artifactId>mae-app-bom</artifactId>
@@ -71,104 +84,49 @@
     <dependency>
     	<groupId>args4j</groupId>
     	<artifactId>args4j</artifactId>
-    	<version>2.0.12</version>
     </dependency>
     
     <dependency>
     	<groupId>org.commonjava.maven</groupId>
     	<artifactId>maven-model-jdom-support</artifactId>
-    	<version>${mavenVersion}</version>
     </dependency>
-    
     <dependency>
     	<groupId>org.jdom</groupId>
     	<artifactId>jdom</artifactId>
-    	<version>1.1</version>
     </dependency>
     
     <dependency>
     	<groupId>org.apache.httpcomponents</groupId>
     	<artifactId>httpclient</artifactId>
-    	<version>4.1.1</version>
-      <exclusions>
-        <exclusion>
-          <groupId>commons-logging</groupId>
-          <artifactId>commons-logging</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     
     <dependency>
     	<groupId>commons-io</groupId>
     	<artifactId>commons-io</artifactId>
     </dependency>
-    
     <dependency>
     	<groupId>commons-lang</groupId>
     	<artifactId>commons-lang</artifactId>
-    	<version>2.5</version>
     </dependency>
     
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>4.8.2</version>
-      <scope>test</scope>
     </dependency>
     <dependency>
     	<groupId>org.hamcrest</groupId>
     	<artifactId>hamcrest-all</artifactId>
-    	<version>1.1</version>
-    	<scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>1.6.2</version>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-log4j12</artifactId>
-      <version>1.6.2</version>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>jcl-over-slf4j</artifactId>
-      <version>1.6.2</version>
     </dependency>
   </dependencies>
   
   <build>
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <artifactId>maven-compiler-plugin</artifactId>
-          <version>2.3.2</version>
-          <configuration>
-            <source>1.6</source>
-            <target>1.6</target>
-          </configuration>
-        </plugin>
-      </plugins>
-    </pluginManagement>
     <plugins>
       <plugin>
         <groupId>org.codehaus.plexus</groupId>
         <artifactId>plexus-component-metadata</artifactId>
-        <version>1.5.5</version>
-        <executions>
-          <execution>
-          	<id>descriptors</id>
-          	<goals>
-              <goal>generate-metadata</goal>
-              <goal>generate-test-metadata</goal>
-            </goals>
-          </execution>
-        </executions>
       </plugin>
       <plugin>
         <artifactId>maven-assembly-plugin</artifactId>
-        <version>2.2.1</version>
         <executions>
           <execution>
             <id>bin</id>
