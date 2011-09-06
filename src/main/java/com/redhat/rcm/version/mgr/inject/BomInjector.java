@@ -105,6 +105,7 @@ public class BomInjector
             dep.setGroupId( newKey.getGroupId() );
             dep.setArtifactId( newKey.getArtifactId() );
             dep.setVersion( newKey.getVersion() );
+            result = DepModResult.MODIFIED;
 
             key = new VersionlessProjectKey( newKey );
         }

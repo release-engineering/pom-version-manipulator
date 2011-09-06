@@ -18,17 +18,17 @@
 
 package com.redhat.rcm.version.model;
 
+import java.io.File;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.apache.log4j.Logger;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 
 import com.redhat.rcm.version.VManException;
-
-import java.io.File;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 public class Relocations
 {
@@ -61,8 +61,8 @@ public class Relocations
 
         if ( parts.length > 2 )
         {
-            LOGGER.warn( "Ignoring relocation key parts: '" + src.substring( key.getId().length() ) + "' for: '"
-                + key + "'." );
+            LOGGER.warn( "Ignoring relocation key parts: '" + src.substring( key.getId().length() ) + "' for: '" + key
+                + "'." );
         }
 
         return key;
@@ -98,7 +98,7 @@ public class Relocations
 
     public FullProjectKey getRelocation( final ProjectKey key )
     {
-        return relocations.get( key );
+        return relocations.get( new VersionlessProjectKey( key ) );
     }
 
     public Relocations addBomRelocations( final File bom, final String relocationsStr )
