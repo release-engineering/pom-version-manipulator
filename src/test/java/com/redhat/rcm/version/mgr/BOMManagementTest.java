@@ -18,6 +18,9 @@
 
 package com.redhat.rcm.version.mgr;
 
+import static com.redhat.rcm.version.testutil.TestProjectUtils.getResourceFile;
+import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModel;
+import static com.redhat.rcm.version.testutil.TestProjectUtils.loadProjectKey;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -65,7 +68,6 @@ public class BOMManagementTest
     @After
     public void teardown()
     {
-        deleteDirs();
         flushLogging();
     }
 
@@ -84,7 +86,10 @@ public class BOMManagementTest
         final VersionManagerSession session = new VersionManagerSession( workspace, reports, null, false );
 
         final Set<File> modified =
-            vman.modifyVersions( pom, Collections.singletonList( bom.getAbsolutePath() ), getToolchainPath(), null,
+            vman.modifyVersions( pom,
+                                 Collections.singletonList( bom.getAbsolutePath() ),
+                                 getToolchainPath(),
+                                 null,
                                  session );
         assertNoErrors( session );
         assertNormalizedToBOMs( modified, Collections.singleton( bom ) );
@@ -106,8 +111,12 @@ public class BOMManagementTest
         final VersionManagerSession session = new VersionManagerSession( workspace, reports, null, false );
 
         final Set<File> modified =
-            vman.modifyVersions( repo, "pom.xml", Collections.singletonList( bom.getAbsolutePath() ),
-                                 getToolchainPath(), null, session );
+            vman.modifyVersions( repo,
+                                 "pom.xml",
+                                 Collections.singletonList( bom.getAbsolutePath() ),
+                                 getToolchainPath(),
+                                 null,
+                                 session );
         assertNoErrors( session );
         assertNormalizedToBOMs( modified, Collections.singleton( bom ) );
 
@@ -276,7 +285,10 @@ public class BOMManagementTest
 
         final VersionManagerSession session = newVersionManagerSession();
 
-        /* final File out = */vman.modifyVersions( pom, Collections.singletonList( bom ), getToolchainPath(), null,
+        /* final File out = */vman.modifyVersions( pom,
+                                                   Collections.singletonList( bom ),
+                                                   getToolchainPath(),
+                                                   null,
                                                    session );
         vman.generateReports( reports, session );
 

@@ -418,20 +418,6 @@ public class ToolchainInjector
     private boolean stripToolchainPluginInfo( final Project project, final List<Plugin> plugins,
                                               final VersionManagerSession session )
     {
-        final Model originalModel = project.getModel();
-        final Build build = originalModel.getBuild();
-
-        List<Plugin> originalPlugins = null;
-        if ( build != null )
-        {
-            originalPlugins = build.getPlugins();
-        }
-
-        if ( originalPlugins == null )
-        {
-            originalPlugins = Collections.emptyList();
-        }
-
         boolean changed = false;
         if ( plugins != null )
         {

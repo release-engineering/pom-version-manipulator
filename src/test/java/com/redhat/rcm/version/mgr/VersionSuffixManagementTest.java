@@ -17,6 +17,10 @@
 
 package com.redhat.rcm.version.mgr;
 
+import static com.redhat.rcm.version.testutil.TestProjectUtils.dumpModel;
+import static com.redhat.rcm.version.testutil.TestProjectUtils.getResourceFile;
+import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModel;
+import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModels;
 import static org.apache.commons.io.FileUtils.copyDirectory;
 import static org.apache.commons.io.FileUtils.copyFile;
 import static org.hamcrest.Matchers.equalTo;
@@ -66,7 +70,6 @@ public class VersionSuffixManagementTest
     @After
     public void teardown()
     {
-        deleteDirs();
         flushLogging();
     }
 
@@ -315,7 +318,8 @@ public class VersionSuffixManagementTest
 
             if ( artifactId != null )
             {
-                assertThat( "Parent has wrong artifactId.", model.getParent().getArtifactId(),
+                assertThat( "Parent has wrong artifactId.",
+                            model.getParent().getArtifactId(),
                             not( equalTo( artifactId ) ) );
             }
 

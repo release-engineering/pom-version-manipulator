@@ -18,11 +18,10 @@
 
 package com.redhat.rcm.version.mgr;
 
-import static java.io.File.separatorChar;
+import static com.redhat.rcm.version.util.PomUtils.writeModifiedPom;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -41,19 +40,11 @@ import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
-import org.apache.maven.model.io.jdom.MavenJDOMWriter;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.component.annotations.Requirement;
 import org.codehaus.plexus.util.DirectoryScanner;
 import org.codehaus.plexus.util.FileUtils;
-import org.codehaus.plexus.util.IOUtil;
 import org.codehaus.plexus.util.StringUtils;
-import org.codehaus.plexus.util.WriterFactory;
-import org.jdom.Document;
-import org.jdom.JDOMException;
-import org.jdom.input.SAXBuilder;
-import org.jdom.output.Format;
-import org.jdom.output.Format.TextMode;
 import org.sonatype.aether.util.DefaultRequestTrace;
 
 import com.redhat.rcm.version.VManException;
@@ -381,73 +372,7 @@ public class VersionManager
             relocatePom = true;
         }
 
-        File out = pom;
-        if ( relocatePom )
-        {
-            final StringBuilder pathBuilder = new StringBuilder();
-            pathBuilder.append( coord.getGroupId().replace( '.', separatorChar ) ).append( separatorChar ).append( coord.getArtifactId() ).append( separatorChar ).append( version ).append( separatorChar ).append( coord.getArtifactId() ).append( '-' ).append( version ).append( ".pom" );
-
-            out = new File( basedir, pathBuilder.toString() );
-            final File outDir = out.getParentFile();
-            outDir.mkdirs();
-        }
-
-        Writer writer = null;
-        try
-        {
-            final SAXBuilder builder = new SAXBuilder();
-            final Document doc = builder.build( pom );
-
-            String encoding = model.getModelEncoding();
-            if ( encoding == null )
-            {
-                encoding = "UTF-8";
-            }
-
-            final Format format =
-                Format.getRawFormat().setEncoding( encoding ).setTextMode( TextMode.PRESERVE ).setLineSeparator( System.getProperty( "line.separator" ) );
-
-            session.getLog( pom ).add( "Writing modified POM: %s", out );
-            writer = WriterFactory.newWriter( out, encoding );
-
-            new MavenJDOMWriter().write( model, doc, writer, format );
-
-            if ( relocatePom && !out.equals( pom ) )
-            {
-                session.getLog( pom ).add( "Deleting original POM: %s\nPurging unused directories...", pom );
-                pom.delete();
-                File dir = pom.getParentFile();
-                while ( dir != null && !basedir.equals( dir ) )
-                {
-                    final String[] listing = dir.list();
-                    if ( listing == null || listing.length < 1 )
-                    {
-                        dir.delete();
-                        dir = dir.getParentFile();
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-            }
-        }
-        catch ( final IOException e )
-        {
-            session.addError( new VManException( "Failed to write modified POM: %s to: %s\n\tReason: %s", e, pom, out,
-                                                 e.getMessage() ) );
-        }
-        catch ( final JDOMException e )
-        {
-            session.addError( new VManException( "Failed to read original POM for rewrite: %s\n\tReason: %s", e, pom,
-                                                 e.getMessage() ) );
-        }
-        finally
-        {
-            IOUtil.close( writer );
-        }
-
-        return out;
+        return writeModifiedPom( model, pom, coord, version, basedir, session, relocatePom );
     }
 
     @Override

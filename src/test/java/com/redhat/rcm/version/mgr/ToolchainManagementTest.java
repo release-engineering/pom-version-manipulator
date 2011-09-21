@@ -17,7 +17,12 @@
 
 package com.redhat.rcm.version.mgr;
 
-import static com.redhat.rcm.version.mgr.testutil.PluginMatcher.mavenPlugin;
+import static com.redhat.rcm.version.testutil.PluginMatcher.mavenPlugin;
+import static com.redhat.rcm.version.testutil.TestProjectUtils.dumpModel;
+import static com.redhat.rcm.version.testutil.TestProjectUtils.getResourceFile;
+import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModel;
+import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModels;
+import static com.redhat.rcm.version.testutil.TestProjectUtils.loadProjectKey;
 import static org.apache.commons.io.FileUtils.copyFile;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
@@ -54,8 +59,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.redhat.rcm.version.mgr.inject.ToolchainInjector;
-import com.redhat.rcm.version.mgr.testutil.PluginMatcher;
 import com.redhat.rcm.version.model.Project;
+import com.redhat.rcm.version.testutil.PluginMatcher;
 
 public class ToolchainManagementTest
     extends AbstractVersionManagerTest
@@ -89,7 +94,6 @@ public class ToolchainManagementTest
     @After
     public void teardown()
     {
-        deleteDirs();
         flushLogging();
     }
 
@@ -194,7 +198,9 @@ public class ToolchainManagementTest
         assertPluginManagementPlugins( original, -1 );
 
         Project project =
-            adjustSingle( "Remove banned plugin from the build section in a POM", path, toolchainPath,
+            adjustSingle( "Remove banned plugin from the build section in a POM",
+                          path,
+                          toolchainPath,
                           Collections.singletonList( "org.apache.maven.plugins:maven-checkstyle-plugin" ) );
 
         assertBuildPlugins( project.getModel(), -1 );
@@ -214,7 +220,9 @@ public class ToolchainManagementTest
         assertBuildPlugins( original, -1 );
 
         Project project =
-            adjustSingle( "Remove banned plugin from the pluginManagement section in a POM", path, toolchainPath,
+            adjustSingle( "Remove banned plugin from the pluginManagement section in a POM",
+                          path,
+                          toolchainPath,
                           Collections.singletonList( "org.apache.maven.plugins:maven-checkstyle-plugin" ) );
 
         assertBuildPlugins( project.getModel(), -1 );
@@ -234,7 +242,9 @@ public class ToolchainManagementTest
         assertPluginManagementPlugins( original, -1 );
 
         Project project =
-            adjustSingle( "Remove banned plugin from the reporting section in a POM", path, toolchainPath,
+            adjustSingle( "Remove banned plugin from the reporting section in a POM",
+                          path,
+                          toolchainPath,
                           Collections.singletonList( "org.apache.maven.plugins:maven-checkstyle-plugin" ) );
 
         assertReportPlugins( project.getModel(), -1 );
@@ -278,7 +288,8 @@ public class ToolchainManagementTest
 
         Model original = loadModel( TOOLCHAIN_TEST_POMS + path );
 
-        assertBuildPlugins( original, 1,
+        assertBuildPlugins( original,
+                            1,
                             mavenPlugin( "maven-source-plugin" ).version( "2.1.2" ).execution( "other-source-jar" ) );
 
         assertPluginManagementPlugins( original, -1 );
@@ -287,7 +298,8 @@ public class ToolchainManagementTest
             adjustSingle( "Inject plugin execution into POM not inheriting from "
                 + "toolchain that already has another execution of the plugin", path, toolchainPath );
 
-        assertBuildPlugins( project.getModel(), 1,
+        assertBuildPlugins( project.getModel(),
+                            1,
                             mavenPlugin( "maven-source-plugin" ).version( null ).execution( "other-source-jar" ) );
 
         assertPluginManagementPlugins( project.getModel(), -1 );
@@ -309,7 +321,8 @@ public class ToolchainManagementTest
 
         Model original = loadModel( TOOLCHAIN_TEST_POMS + path );
 
-        assertBuildPlugins( original, 1,
+        assertBuildPlugins( original,
+                            1,
                             mavenPlugin( "maven-source-plugin" ).version( "2.1.2" ).execution( "create-source-jar" ) );
 
         assertPluginManagementPlugins( original, -1 );
@@ -318,7 +331,8 @@ public class ToolchainManagementTest
             adjustSingle( "Leave existing plugin execution in POM not inheriting from "
                 + "toolchain when it collides with the injected one", path, toolchainPath );
 
-        assertBuildPlugins( project.getModel(), 1,
+        assertBuildPlugins( project.getModel(),
+                            1,
                             mavenPlugin( "maven-source-plugin" ).version( null ).execution( "create-source-jar" ) );
 
         assertPluginManagementPlugins( project.getModel(), -1 );
@@ -713,7 +727,8 @@ public class ToolchainManagementTest
 
             if ( artifactId != null )
             {
-                assertThat( "Parent has wrong artifactId.", model.getParent().getArtifactId(),
+                assertThat( "Parent has wrong artifactId.",
+                            model.getParent().getArtifactId(),
                             not( equalTo( artifactId ) ) );
             }
 
@@ -784,7 +799,8 @@ public class ToolchainManagementTest
 
                         for ( PluginExecution pe : executions )
                         {
-                            assertThat( "Plugin execution: " + pe.getId() + " not allowed!", checks.eids(),
+                            assertThat( "Plugin execution: " + pe.getId() + " not allowed!",
+                                        checks.eids(),
                                         hasItem( pe.getId() ) );
                             checks.eids().remove( pe.getId() );
                         }
@@ -843,7 +859,8 @@ public class ToolchainManagementTest
 
                         for ( ReportSet rs : reportSets )
                         {
-                            assertThat( "Plugin execution: " + rs.getId() + " not allowed!", checks.eids(),
+                            assertThat( "Plugin execution: " + rs.getId() + " not allowed!",
+                                        checks.eids(),
                                         hasItem( rs.getId() ) );
                             checks.eids().remove( rs.getId() );
                         }

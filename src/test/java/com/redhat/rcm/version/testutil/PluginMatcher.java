@@ -1,4 +1,4 @@
-package com.redhat.rcm.version.mgr.testutil;
+package com.redhat.rcm.version.testutil;
 
 import java.util.HashSet;
 import java.util.Set;
