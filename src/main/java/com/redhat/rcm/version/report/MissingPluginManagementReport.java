@@ -70,7 +70,7 @@ public class MissingPluginManagementReport
 
         Format fmt = Format.getPrettyFormat();
         fmt.setIndent( "  " );
-        fmt.setTextMode( TextMode.PRESERVE );
+        fmt.setTextMode( TextMode.NORMALIZE );
 
         XMLOutputter output = new XMLOutputter();
 
