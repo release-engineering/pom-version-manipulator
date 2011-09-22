@@ -104,7 +104,7 @@ public class MissingDependencyManagementReport
 
         Format fmt = Format.getPrettyFormat();
         fmt.setIndent( "  " );
-        fmt.setTextMode( TextMode.TRIM );
+        fmt.setTextMode( TextMode.PRESERVE );
 
         XMLOutputter output = new XMLOutputter( fmt );
 
