@@ -11,7 +11,6 @@ import java.util.Set;
 
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Dependency;
-import org.apache.maven.model.Exclusion;
 import org.codehaus.plexus.component.annotations.Component;
 import org.jdom.Comment;
 import org.jdom.Document;
@@ -76,22 +75,22 @@ public class MissingDependencyManagementReport
                     d.addContent( new Element( "classifier" ).setText( dep.getClassifier() ) );
                 }
 
-                if ( dep.isOptional() )
-                {
-                    d.addContent( new Element( "optional" ).setText( Boolean.toString( true ) ) );
-                }
-
-                if ( dep.getExclusions() != null && !dep.getExclusions().isEmpty() )
-                {
-                    Element ex = new Element( "exclusions" );
-                    d.addContent( ex );
-
-                    for ( Exclusion exclusion : dep.getExclusions() )
-                    {
-                        ex.addContent( new Element( "groupId" ).setText( exclusion.getGroupId() ) );
-                        ex.addContent( new Element( "artifactId" ).setText( exclusion.getArtifactId() ) );
-                    }
-                }
+                // if ( dep.isOptional() )
+                // {
+                // d.addContent( new Element( "optional" ).setText( Boolean.toString( true ) ) );
+                // }
+                //
+                // if ( dep.getExclusions() != null && !dep.getExclusions().isEmpty() )
+                // {
+                // Element ex = new Element( "exclusions" );
+                // d.addContent( ex );
+                //
+                // for ( Exclusion exclusion : dep.getExclusions() )
+                // {
+                // ex.addContent( new Element( "groupId" ).setText( exclusion.getGroupId() ) );
+                // ex.addContent( new Element( "artifactId" ).setText( exclusion.getArtifactId() ) );
+                // }
+                // }
             }
 
             deps.addContent( new Comment( "END: " + depsEntry.getKey() ) );
