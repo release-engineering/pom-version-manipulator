@@ -140,7 +140,7 @@ public class BomInjector
         }
         else
         {
-            session.addMissingVersion( project, key );
+            session.addMissingDependency( project, dep );
         }
 
         return result;

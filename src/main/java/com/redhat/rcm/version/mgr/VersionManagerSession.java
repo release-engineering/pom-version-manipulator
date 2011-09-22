@@ -48,6 +48,7 @@ import org.apache.maven.project.MavenProject;
 import org.sonatype.aether.repository.Authentication;
 import org.sonatype.aether.repository.RemoteRepository;
 
+import com.redhat.rcm.version.model.IdentifiableDependency;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.model.ProjectAncestryGraph;
 import com.redhat.rcm.version.model.Relocations;
@@ -71,8 +72,14 @@ public class VersionManagerSession
     private final Map<VersionlessProjectKey, Set<VersionlessProjectKey>> missingVersionsByProject =
         new HashMap<VersionlessProjectKey, Set<VersionlessProjectKey>>();
 
+    private final Map<VersionlessProjectKey, Set<Dependency>> missingDeps =
+        new HashMap<VersionlessProjectKey, Set<Dependency>>();
+
     private final Map<File, Set<VersionlessProjectKey>> unmanagedPlugins =
         new HashMap<File, Set<VersionlessProjectKey>>();
+
+    private final Map<VersionlessProjectKey, Set<Plugin>> unmanagedPluginRefs =
+        new HashMap<VersionlessProjectKey, Set<Plugin>>();
 
     private final List<Throwable> errors = new ArrayList<Throwable>();
 
@@ -159,8 +166,10 @@ public class VersionManagerSession
         return log;
     }
 
-    public synchronized VersionManagerSession addUnmanagedPlugin( final File pom, final VersionlessProjectKey pluginKey )
+    public synchronized VersionManagerSession addUnmanagedPlugin( final File pom, final Plugin plugin )
     {
+        VersionlessProjectKey pluginKey = new VersionlessProjectKey( plugin );
+
         Set<VersionlessProjectKey> pluginKeys = unmanagedPlugins.get( pom );
         if ( pluginKeys == null )
         {
@@ -170,6 +179,15 @@ public class VersionManagerSession
 
         pluginKeys.add( pluginKey );
 
+        Set<Plugin> plugins = unmanagedPluginRefs.get( pluginKey );
+        if ( plugins == null )
+        {
+            plugins = new HashSet<Plugin>();
+            unmanagedPluginRefs.put( pluginKey, plugins );
+        }
+
+        plugins.add( plugin );
+
         return this;
     }
 
@@ -178,9 +196,10 @@ public class VersionManagerSession
         missingParents.add( project );
     }
 
-    public synchronized VersionManagerSession addMissingVersion( final Project project,
-                                                                 final VersionlessProjectKey depKey )
+    public synchronized VersionManagerSession addMissingDependency( final Project project, final Dependency dep )
     {
+        VersionlessProjectKey depKey = new VersionlessProjectKey( dep );
+
         Set<File> poms = missingVersions.get( depKey );
         if ( poms == null )
         {
@@ -197,8 +216,16 @@ public class VersionManagerSession
             keys = new HashSet<VersionlessProjectKey>();
             missingVersionsByProject.put( vpk, keys );
         }
-
         keys.add( depKey );
+
+        Set<Dependency> deps = missingDeps.get( depKey );
+        if ( deps == null )
+        {
+            deps = new HashSet<Dependency>();
+            missingDeps.put( depKey, deps );
+        }
+
+        deps.add( new IdentifiableDependency( dep ) );
 
         return this;
     }
@@ -234,6 +261,11 @@ public class VersionManagerSession
         return preserveFiles;
     }
 
+    public Map<VersionlessProjectKey, Set<Plugin>> getUnmanagedPluginRefs()
+    {
+        return unmanagedPluginRefs;
+    }
+
     public Map<File, Set<VersionlessProjectKey>> getUnmanagedPlugins()
     {
         return unmanagedPlugins;
@@ -252,6 +284,16 @@ public class VersionManagerSession
     public boolean isMissingParent( final Project project )
     {
         return missingParents.contains( project );
+    }
+
+    public Map<VersionlessProjectKey, Set<Dependency>> getMissingDependencies()
+    {
+        return missingDeps;
+    }
+
+    public Set<Dependency> getMissingDependencies( final VersionlessProjectKey key )
+    {
+        return missingDeps.get( key );
     }
 
     public Map<VersionlessProjectKey, Set<File>> getMissingVersions()
