@@ -41,6 +41,11 @@ public class MissingDependencyManagementReport
         throws VManException
     {
         Map<VersionlessProjectKey, Set<Dependency>> missingDependencies = session.getMissingDependencies();
+        if ( missingDependencies.isEmpty() )
+        {
+            return;
+        }
+
         Element deps = new Element( "dependencies" );
 
         for ( Map.Entry<VersionlessProjectKey, Set<Dependency>> depsEntry : missingDependencies.entrySet() )
@@ -99,7 +104,7 @@ public class MissingDependencyManagementReport
 
         Format fmt = Format.getPrettyFormat();
         fmt.setIndent( "  " );
-        fmt.setTextMode( TextMode.NORMALIZE );
+        fmt.setTextMode( TextMode.TRIM );
 
         XMLOutputter output = new XMLOutputter( fmt );
 

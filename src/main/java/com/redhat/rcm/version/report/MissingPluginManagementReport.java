@@ -39,6 +39,10 @@ public class MissingPluginManagementReport
         throws VManException
     {
         Map<VersionlessProjectKey, Set<Plugin>> missingPlugins = session.getUnmanagedPluginRefs();
+        if ( missingPlugins.isEmpty() )
+        {
+            return;
+        }
         Element plugins = new Element( "plugins" );
 
         for ( Map.Entry<VersionlessProjectKey, Set<Plugin>> pluginsEntry : missingPlugins.entrySet() )
@@ -70,7 +74,7 @@ public class MissingPluginManagementReport
 
         Format fmt = Format.getPrettyFormat();
         fmt.setIndent( "  " );
-        fmt.setTextMode( TextMode.NORMALIZE );
+        fmt.setTextMode( TextMode.TRIM );
 
         XMLOutputter output = new XMLOutputter( fmt );
 

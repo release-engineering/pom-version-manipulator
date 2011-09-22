@@ -43,6 +43,11 @@ public class MissingParentsReport
         throws VManException
     {
         Set<Project> projectsWithMissingParent = session.getProjectsWithMissingParent();
+        if ( projectsWithMissingParent.isEmpty() )
+        {
+            return;
+        }
+
         Map<VersionlessProjectKey, Set<Project>> projectsByParent = new HashMap<VersionlessProjectKey, Set<Project>>();
         for ( Project project : projectsWithMissingParent )
         {
@@ -94,7 +99,7 @@ public class MissingParentsReport
 
         Format fmt = Format.getPrettyFormat();
         fmt.setIndent( "  " );
-        fmt.setTextMode( TextMode.NORMALIZE );
+        fmt.setTextMode( TextMode.TRIM );
 
         XMLOutputter output = new XMLOutputter( fmt );
 
