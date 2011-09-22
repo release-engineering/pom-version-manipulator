@@ -44,6 +44,7 @@ import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginManagement;
+import org.apache.maven.model.ReportPlugin;
 import org.apache.maven.project.MavenProject;
 import org.sonatype.aether.repository.Authentication;
 import org.sonatype.aether.repository.RemoteRepository;
@@ -164,6 +165,16 @@ public class VersionManagerSession
         }
 
         return log;
+    }
+
+    public void addUnmanagedPlugin( final File pom, final ReportPlugin plugin )
+    {
+        Plugin p = new Plugin();
+        p.setGroupId( plugin.getGroupId() );
+        p.setArtifactId( plugin.getArtifactId() );
+        p.setVersion( plugin.getVersion() );
+
+        addUnmanagedPlugin( pom, p );
     }
 
     public synchronized VersionManagerSession addUnmanagedPlugin( final File pom, final Plugin plugin )

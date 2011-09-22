@@ -113,7 +113,7 @@ public class ToolchainInjector
                 }
                 else
                 {
-                    session.addUnmanagedPlugin( project.getPom(), pluginKey );
+                    session.addUnmanagedPlugin( project.getPom(), plugin );
                 }
             }
         }
@@ -392,7 +392,7 @@ public class ToolchainInjector
                 }
                 else
                 {
-                    session.addUnmanagedPlugin( project.getPom(), pluginKey );
+                    session.addUnmanagedPlugin( project.getPom(), plugin );
                 }
             }
         }
