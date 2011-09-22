@@ -40,6 +40,14 @@ public class VersionSuffixInjector
                 {
                     // NOP.
                 }
+                else if ( session.inCurrentSession( parent ) )
+                {
+                    if ( !parent.getVersion().endsWith( suffix ) )
+                    {
+                        parent.setVersion( parent.getVersion() + suffix );
+                        changed = true;
+                    }
+                }
                 else if ( version == null )
                 {
                     session.addMissingParent( project );

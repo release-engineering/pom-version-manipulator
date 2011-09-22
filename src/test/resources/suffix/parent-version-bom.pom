@@ -11,11 +11,6 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
-        <groupId>test</groupId>
-        <artifactId>parent</artifactId>
-        <version>1-rebuild-1</version>
-      </dependency>
-      <dependency>
         <groupId>other.test</groupId>
         <artifactId>external-parent</artifactId>
         <version>1-rebuild-1</version>

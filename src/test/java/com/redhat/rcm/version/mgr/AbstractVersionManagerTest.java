@@ -22,6 +22,8 @@ import static junit.framework.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Enumeration;
@@ -165,13 +167,22 @@ public abstract class AbstractVersionManagerTest
         List<Throwable> errors = session.getErrors();
         if ( errors != null && !errors.isEmpty() )
         {
-            System.out.printf( "%d errors encountered\n\n", errors.size() );
+            StringBuilder sb = new StringBuilder();
+            sb.append( errors.size() ).append( "errors encountered\n\n" );
+
+            int idx = 1;
             for ( Throwable error : errors )
             {
-                error.printStackTrace();
+                StringWriter sw = new StringWriter();
+                error.printStackTrace( new PrintWriter( sw ) );
+
+                sb.append( "\n" ).append( idx ).append( ".  " ).append( sw.toString() );
+                idx++;
             }
 
-            fail( "See above errors." );
+            sb.append( "\n\nSee above errors." );
+
+            fail( sb.toString() );
         }
     }
 
