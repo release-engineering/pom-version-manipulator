@@ -96,7 +96,7 @@ public class MissingParentsReport
         fmt.setIndent( "  " );
         fmt.setTextMode( TextMode.NORMALIZE );
 
-        XMLOutputter output = new XMLOutputter();
+        XMLOutputter output = new XMLOutputter( fmt );
 
         File report = new File( reportsDir, ID + ".xml" );
         FileWriter writer = null;
