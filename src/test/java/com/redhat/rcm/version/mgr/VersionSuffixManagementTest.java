@@ -30,6 +30,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -53,6 +54,8 @@ public class VersionSuffixManagementTest
     private static final String TOOLCHAIN_PATH = TEST_POMS + "toolchain-1.0.pom";
 
     private static final String SUFFIX = "-rebuild-1";
+
+    private static final String PARENT_VERSION_BOM = TEST_POMS + "parent-version-bom.pom";
 
     @Before
     public void setup()
@@ -220,7 +223,12 @@ public class VersionSuffixManagementTest
             File remoteRepo = getResourceFile( TEST_POMS + "repo" );
             session.setRemoteRepository( remoteRepo.toURI().normalize().toURL().toExternalForm() );
 
-            final Set<File> modified = vman.modifyVersions( pom, null, toolchain, null, session );
+            final Set<File> modified =
+                vman.modifyVersions( pom,
+                                     Collections.singletonList( getResourceFile( PARENT_VERSION_BOM ).getAbsolutePath() ),
+                                     toolchain,
+                                     null,
+                                     session );
             assertNoErrors( session );
 
             Set<Model> changedModels = loadModels( modified );
@@ -262,7 +270,12 @@ public class VersionSuffixManagementTest
             File remoteRepo = getResourceFile( TEST_POMS + "repo" );
             session.setRemoteRepository( remoteRepo.toURI().normalize().toURL().toExternalForm() );
 
-            final Set<File> modified = vman.modifyVersions( pom, null, toolchain, null, session );
+            final Set<File> modified =
+                vman.modifyVersions( pom,
+                                     Collections.singletonList( getResourceFile( PARENT_VERSION_BOM ).getAbsolutePath() ),
+                                     toolchain,
+                                     null,
+                                     session );
             assertNoErrors( session );
 
             Set<Model> changedModels = loadModels( modified );

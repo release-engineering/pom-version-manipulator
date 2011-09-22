@@ -86,11 +86,7 @@ public class BOMManagementTest
         final VersionManagerSession session = new VersionManagerSession( workspace, reports, null, false );
 
         final Set<File> modified =
-            vman.modifyVersions( pom,
-                                 Collections.singletonList( bom.getAbsolutePath() ),
-                                 getToolchainPath(),
-                                 null,
-                                 session );
+            vman.modifyVersions( pom, Collections.singletonList( bom.getAbsolutePath() ), null, null, session );
         assertNoErrors( session );
         assertNormalizedToBOMs( modified, Collections.singleton( bom ) );
 
@@ -114,7 +110,7 @@ public class BOMManagementTest
             vman.modifyVersions( repo,
                                  "pom.xml",
                                  Collections.singletonList( bom.getAbsolutePath() ),
-                                 getToolchainPath(),
+                                 null,
                                  null,
                                  session );
         assertNoErrors( session );
@@ -185,7 +181,7 @@ public class BOMManagementTest
 
         FileUtils.copyDirectoryStructure( srcRepo, repo );
 
-        modifyRepo( bom );
+        modifyRepo( false, bom );
 
         System.out.println( "\n\n" );
     }
@@ -204,7 +200,7 @@ public class BOMManagementTest
         final VersionManagerSession session = newVersionManagerSession();
 
         final Set<File> results =
-            vman.modifyVersions( repo, "**/*.pom", Collections.singletonList( bom ), getToolchainPath(), null, session );
+            vman.modifyVersions( repo, "**/*.pom", Collections.singletonList( bom ), null, null, session );
         assertNoErrors( session );
         for ( final File file : results )
         {
@@ -232,7 +228,7 @@ public class BOMManagementTest
 
         FileUtils.copyDirectoryStructure( srcRepo, repo );
 
-        modifyRepo( bom );
+        modifyRepo( false, bom );
 
         System.out.println( "\n\n" );
     }
@@ -249,7 +245,7 @@ public class BOMManagementTest
 
         FileUtils.copyDirectoryStructure( srcRepo, repo );
 
-        modifyRepo( bom1, bom2 );
+        modifyRepo( false, bom1, bom2 );
 
         System.out.println( "\n\n" );
     }
@@ -266,7 +262,7 @@ public class BOMManagementTest
 
         FileUtils.copyDirectoryStructure( srcRepo, repo );
 
-        modifyRepo( bom1, bom2 );
+        modifyRepo( false, bom1, bom2 );
 
         System.out.println( "\n\n" );
     }
@@ -317,7 +313,7 @@ public class BOMManagementTest
 
         final VersionManagerSession session = newVersionManagerSession();
 
-        vman.modifyVersions( pom, Collections.singletonList( bom ), getToolchainPath(), null, session );
+        vman.modifyVersions( pom, Collections.singletonList( bom ), null, null, session );
         assertNoErrors( session );
         vman.generateReports( reports, session );
 
@@ -338,8 +334,7 @@ public class BOMManagementTest
 
         final VersionManagerSession session = newVersionManagerSession();
 
-        final Set<File> modified =
-            vman.modifyVersions( pom, Collections.singletonList( bom ), getToolchainPath(), null, session );
+        final Set<File> modified = vman.modifyVersions( pom, Collections.singletonList( bom ), null, null, session );
         assertNoErrors( session );
 
         assertNotNull( modified );

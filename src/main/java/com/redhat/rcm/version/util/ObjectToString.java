@@ -1,6 +1,6 @@
 package com.redhat.rcm.version.util;
 
-public class ObjectToStringProcessor<T>
+public class ObjectToString<T>
     implements ToStringProcessor<T>
 {
 

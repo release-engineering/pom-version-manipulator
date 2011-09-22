@@ -81,10 +81,12 @@ public class DefaultSessionConfigurator
 
         if ( toolchain == null )
         {
-            throw new VManException( "Toolchain POM must be specified!" );
+            // throw new VManException( "Toolchain POM must be specified!" );
         }
-
-        loadToolchain( toolchain, session );
+        else
+        {
+            loadToolchain( toolchain, session );
+        }
 
         if ( removedPlugins != null )
         {
@@ -207,7 +209,8 @@ public class DefaultSessionConfigurator
                     else
                     {
                         LOGGER.info( String.format( "Received status: '%s' while downloading: %s",
-                                                    response.getStatusLine(), location ) );
+                                                    response.getStatusLine(),
+                                                    location ) );
                         session.addError( new VManException( "Received status: '%s' while downloading: %s",
                                                              response.getStatusLine(), location ) );
                     }

@@ -12,7 +12,7 @@ public class CollectionToString<T>
     public CollectionToString( final Collection<T> coll )
     {
         this.coll = coll;
-        this.itemProc = new ObjectToStringProcessor<T>();
+        this.itemProc = new ObjectToString<T>();
     }
 
     public CollectionToString( final Collection<T> coll, final ToStringProcessor<T> itemProc )

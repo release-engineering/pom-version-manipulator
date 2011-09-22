@@ -63,8 +63,13 @@ public class VersionManagerSession
 
     private static final String RELOCATIONS_KEY = "relocations";
 
+    private final Set<Project> missingParents = new HashSet<Project>();
+
     private final Map<VersionlessProjectKey, Set<File>> missingVersions =
         new HashMap<VersionlessProjectKey, Set<File>>();
+
+    private final Map<VersionlessProjectKey, Set<VersionlessProjectKey>> missingVersionsByProject =
+        new HashMap<VersionlessProjectKey, Set<VersionlessProjectKey>>();
 
     private final Map<File, Set<VersionlessProjectKey>> unmanagedPlugins =
         new HashMap<File, Set<VersionlessProjectKey>>();
@@ -86,7 +91,7 @@ public class VersionManagerSession
 
     private final Set<VersionlessProjectKey> removedPlugins = new HashSet<VersionlessProjectKey>();
 
-    private final Map<VersionlessProjectKey, Set<VersionlessProjectKey>> accumulatedPluginRefs =
+    private final Map<VersionlessProjectKey, Set<VersionlessProjectKey>> childPluginRefs =
         new HashMap<VersionlessProjectKey, Set<VersionlessProjectKey>>();
 
     private final Set<FullProjectKey> bomCoords = new LinkedHashSet<FullProjectKey>();
@@ -168,16 +173,32 @@ public class VersionManagerSession
         return this;
     }
 
-    public synchronized VersionManagerSession addMissingVersion( final File pom, final VersionlessProjectKey key )
+    public void addMissingParent( final Project project )
     {
-        Set<File> poms = missingVersions.get( key );
+        missingParents.add( project );
+    }
+
+    public synchronized VersionManagerSession addMissingVersion( final Project project,
+                                                                 final VersionlessProjectKey depKey )
+    {
+        Set<File> poms = missingVersions.get( depKey );
         if ( poms == null )
         {
             poms = new HashSet<File>();
-            missingVersions.put( key, poms );
+            missingVersions.put( depKey, poms );
         }
 
-        poms.add( pom );
+        poms.add( project.getPom() );
+
+        VersionlessProjectKey vpk = new VersionlessProjectKey( project.getKey() );
+        Set<VersionlessProjectKey> keys = missingVersionsByProject.get( vpk );
+        if ( keys == null )
+        {
+            keys = new HashSet<VersionlessProjectKey>();
+            missingVersionsByProject.put( vpk, keys );
+        }
+
+        keys.add( depKey );
 
         return this;
     }
@@ -218,9 +239,29 @@ public class VersionManagerSession
         return unmanagedPlugins;
     }
 
+    public Set<VersionlessProjectKey> getUnmanagedPlugins( final File pom )
+    {
+        return unmanagedPlugins.get( pom );
+    }
+
+    public Set<Project> getProjectsWithMissingParent()
+    {
+        return missingParents;
+    }
+
+    public boolean isMissingParent( final Project project )
+    {
+        return missingParents.contains( project );
+    }
+
     public Map<VersionlessProjectKey, Set<File>> getMissingVersions()
     {
         return missingVersions;
+    }
+
+    public Set<VersionlessProjectKey> getMissingVersions( final ProjectKey key )
+    {
+        return missingVersionsByProject.get( new VersionlessProjectKey( key ) );
     }
 
     public List<Throwable> getErrors()
@@ -389,9 +430,9 @@ public class VersionManagerSession
         return injectedPlugins;
     }
 
-    public Set<VersionlessProjectKey> getPluginReferences( final VersionlessProjectKey owner )
+    public Set<VersionlessProjectKey> getChildPluginReferences( final VersionlessProjectKey owner )
     {
-        Set<VersionlessProjectKey> refs = accumulatedPluginRefs.get( owner );
+        Set<VersionlessProjectKey> refs = childPluginRefs.get( owner );
         if ( refs == null )
         {
             refs = Collections.emptySet();
@@ -400,14 +441,14 @@ public class VersionManagerSession
         return refs;
     }
 
-    public VersionManagerSession addPluginReference( final VersionlessProjectKey owner,
-                                                     final VersionlessProjectKey plugin )
+    public VersionManagerSession addChildPluginReference( final VersionlessProjectKey owner,
+                                                          final VersionlessProjectKey plugin )
     {
-        Set<VersionlessProjectKey> plugins = accumulatedPluginRefs.get( owner );
+        Set<VersionlessProjectKey> plugins = childPluginRefs.get( owner );
         if ( plugins == null )
         {
             plugins = new HashSet<VersionlessProjectKey>();
-            accumulatedPluginRefs.put( owner, plugins );
+            childPluginRefs.put( owner, plugins );
         }
 
         plugins.add( plugin );

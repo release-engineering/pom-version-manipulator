@@ -118,7 +118,8 @@ public class BomInjector
 
         if ( version == null )
         {
-            session.getLog( pom ).add( "NOT changing version for: %s%s. Version is inherited.", key,
+            session.getLog( pom ).add( "NOT changing version for: %s%s. Version is inherited.",
+                                       key,
                                        isManaged ? " [MANAGED]" : "" );
             return result;
         }
@@ -126,41 +127,20 @@ public class BomInjector
         version = session.getArtifactVersion( key );
         if ( version != null )
         {
-            if ( !version.equals( dep.getVersion() ) )
+            // wipe this out, and use the one in the BOM implicitly...DRY-style.
+            dep.setVersion( null );
+            if ( isManaged && ( dep.getScope() == null || dep.getExclusions() == null || dep.getExclusions().isEmpty() ) )
             {
-                session.getLog( pom ).add( "Changing version for: %s%s.\n\tFrom: %s\n\tTo: %s.", key,
-                                           isManaged ? " [MANAGED]" : "", dep.getVersion(), version );
-
-                // wipe this out, and use the one in the BOM implicitly...DRY-style.
-                dep.setVersion( null );
-                if ( isManaged
-                    && ( dep.getScope() == null || dep.getExclusions() == null || dep.getExclusions().isEmpty() ) )
-                {
-                    result = DepModResult.DELETED;
-                }
-                else
-                {
-                    result = DepModResult.MODIFIED;
-                }
+                result = DepModResult.DELETED;
             }
             else
             {
-                // wipe this out, and use the one in the BOM implicitly...DRY-style.
-                dep.setVersion( null );
-                if ( isManaged
-                    && ( dep.getScope() == null || dep.getExclusions() == null || dep.getExclusions().isEmpty() ) )
-                {
-                    result = DepModResult.DELETED;
-                }
-                else
-                {
-                    result = DepModResult.MODIFIED;
-                }
+                result = DepModResult.MODIFIED;
             }
         }
         else
         {
-            session.addMissingVersion( pom, key );
+            session.addMissingVersion( project, key );
         }
 
         return result;

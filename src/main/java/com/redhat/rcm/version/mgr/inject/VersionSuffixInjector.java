@@ -34,11 +34,19 @@ public class VersionSuffixInjector
             {
                 ProjectKey tk = session.getToolchainKey();
                 VersionlessProjectKey vpk = new VersionlessProjectKey( parent );
+                String version = session.getArtifactVersion( vpk );
 
-                if ( tk != null && !new VersionlessProjectKey( tk ).equals( vpk )
-                    && !parent.getVersion().endsWith( suffix ) )
+                if ( tk == null || new VersionlessProjectKey( tk ).equals( vpk ) )
                 {
-                    model.getParent().setVersion( model.getParent().getVersion() + suffix );
+                    // NOP.
+                }
+                else if ( version == null )
+                {
+                    session.addMissingParent( project );
+                }
+                else if ( !parent.getVersion().equals( version ) )
+                {
+                    model.getParent().setVersion( version );
                     changed = true;
                 }
             }

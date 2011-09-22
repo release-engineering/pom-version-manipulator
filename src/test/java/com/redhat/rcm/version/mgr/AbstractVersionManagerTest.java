@@ -180,11 +180,16 @@ public abstract class AbstractVersionManagerTest
         return getResourceFile( TOOLCHAIN ).getAbsolutePath();
     }
 
-    protected VersionManagerSession modifyRepo( final String... boms )
+    protected VersionManagerSession modifyRepo( final boolean useToolchain, final String... boms )
     {
         final VersionManagerSession session = newVersionManagerSession();
 
-        vman.modifyVersions( repo, "**/*.pom", Arrays.asList( boms ), getToolchainPath(), null, session );
+        vman.modifyVersions( repo,
+                             "**/*.pom",
+                             Arrays.asList( boms ),
+                             useToolchain ? getToolchainPath() : null,
+                             null,
+                             session );
         assertNoErrors( session );
         vman.generateReports( reports, session );
 

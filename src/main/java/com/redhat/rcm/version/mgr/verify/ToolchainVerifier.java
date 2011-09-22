@@ -11,23 +11,29 @@ import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.util.CollectionToString;
 import com.redhat.rcm.version.util.ObjectToString;
 
-@Component( role = ProjectVerifier.class, hint = "BOM-realignment" )
-public class BomVerifier
+@Component( role = ProjectVerifier.class, hint = "toolchain-realignment" )
+public class ToolchainVerifier
     implements ProjectVerifier
 {
 
     @Override
     public void verify( final Project project, final VersionManagerSession session )
     {
-        Set<VersionlessProjectKey> missing = session.getMissingVersions( project.getKey() );
-        if ( missing != null && !missing.isEmpty() )
+        if ( session.getToolchainKey() == null )
+        {
+            // nothing to verify.
+            return;
+        }
+
+        Set<VersionlessProjectKey> unmanaged = session.getUnmanagedPlugins( project.getPom() );
+        if ( unmanaged != null && !unmanaged.isEmpty() )
         {
             session.addError( new VManException(
-                                                 "The following dependencies were NOT found in a BOM.\nProject: %s\nFile: %s\nDependencies:\n\n%s\n",
+                                                 "The following plugins were NOT managed by the toolchain.\nProject: %s\nFile: %s\nPlugins:\n\n%s\n",
                                                  project.getKey(),
                                                  project.getPom(),
                                                  new CollectionToString<VersionlessProjectKey>(
-                                                                                                missing,
+                                                                                                unmanaged,
                                                                                                 new ObjectToString<VersionlessProjectKey>() ) ) );
         }
     }
