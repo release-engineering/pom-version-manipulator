@@ -87,6 +87,16 @@ public class Cli
 
     private static final Logger LOGGER = Logger.getLogger( Cli.class );
 
+    public static final String REMOTE_REPOSITORY_PROPERTY = "remote-repository";
+
+    public static final String VERSION_SUFFIX_PROPERTY = "version-suffix";
+
+    public static final String TOOLCHAIN_PROPERTY = "toolchain";
+
+    public static final String BOMS_LIST_PROPERTY = "boms";
+
+    public static final String REMOVED_PLUGINS_PROPERTY = "removed-plugins";
+
     private static VersionManager vman;
 
     private List<String> boms;
@@ -212,7 +222,7 @@ public class Cli
 
                 if ( removedPluginsList == null )
                 {
-                    removedPlugins = readListProperty( props, "removed-plugins" );
+                    removedPlugins = readListProperty( props, REMOVED_PLUGINS_PROPERTY );
                 }
 
                 if ( bomList == null )
@@ -222,7 +232,7 @@ public class Cli
                         boms = new ArrayList<String>();
                     }
 
-                    List<String> pBoms = readListProperty( props, "boms" );
+                    List<String> pBoms = readListProperty( props, BOMS_LIST_PROPERTY );
                     if ( pBoms != null )
                     {
                         boms.addAll( pBoms );
@@ -231,7 +241,7 @@ public class Cli
 
                 if ( toolchain == null )
                 {
-                    toolchain = props.getProperty( "toolchain" );
+                    toolchain = props.getProperty( TOOLCHAIN_PROPERTY );
                     if ( toolchain != null )
                     {
                         toolchain = toolchain.trim();
@@ -240,7 +250,7 @@ public class Cli
 
                 if ( versionSuffix == null )
                 {
-                    versionSuffix = props.getProperty( "version-suffix" );
+                    versionSuffix = props.getProperty( VERSION_SUFFIX_PROPERTY );
                     if ( versionSuffix != null )
                     {
                         versionSuffix = versionSuffix.trim();
@@ -249,7 +259,7 @@ public class Cli
 
                 if ( remoteRepository == null )
                 {
-                    remoteRepository = props.getProperty( "remote-repository" );
+                    remoteRepository = props.getProperty( REMOTE_REPOSITORY_PROPERTY );
                     if ( remoteRepository != null )
                     {
                         remoteRepository = remoteRepository.trim();

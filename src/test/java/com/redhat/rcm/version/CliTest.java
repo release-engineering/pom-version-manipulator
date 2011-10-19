@@ -18,6 +18,7 @@
 
 package com.redhat.rcm.version;
 
+import static com.redhat.rcm.version.testutil.VManAssertions.assertNormalizedToBOMs;
 import static junit.framework.Assert.fail;
 import static org.apache.commons.io.FileUtils.copyDirectory;
 import static org.apache.commons.io.FileUtils.copyFile;
@@ -30,6 +31,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -142,6 +144,45 @@ public class CliTest
         copyDirectory( srcRepo, repo );
 
         modifyRepo( bom1, bom2 );
+
+        System.out.println( "\n\n" );
+    }
+
+    // FIXME: Adapt this, to make sure the CLI will operate properly...
+    @Test
+    public void modifySinglePom_BOMofBOMs()
+        throws Exception
+    {
+        System.out.println( "BOM-of-BOMS test (normalize to BOM usage)..." );
+
+        final File srcRepo = getResourceFile( "bom-of-boms" );
+        copyDirectory( srcRepo, repo );
+
+        final File pom = new File( repo, "project/pom.xml" );
+        final File bom = new File( repo, "bom.xml" );
+        File remoteRepo = new File( repo, "repo" );
+
+        Properties props = new Properties();
+        props.setProperty( Cli.REMOTE_REPOSITORY_PROPERTY, remoteRepo.toURI().normalize().toURL().toExternalForm() );
+        props.setProperty( Cli.BOMS_LIST_PROPERTY, bom.getAbsolutePath() );
+
+        File config = new File( repo, "vman.properties" );
+        FileOutputStream out = null;
+        try
+        {
+            out = new FileOutputStream( config );
+            props.store( out, "bom-of-boms test" );
+        }
+        finally
+        {
+            closeQuietly( out );
+        }
+
+        final String[] args = { "-C", config.getPath(), pom.getPath() };
+
+        Cli.main( args );
+
+        assertNormalizedToBOMs( Collections.singleton( pom ), Collections.singleton( bom ) );
 
         System.out.println( "\n\n" );
     }

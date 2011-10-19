@@ -19,25 +19,19 @@
 package com.redhat.rcm.version.mgr;
 
 import static com.redhat.rcm.version.testutil.TestProjectUtils.getResourceFile;
-import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModel;
-import static com.redhat.rcm.version.testutil.TestProjectUtils.loadProjectKey;
+import static com.redhat.rcm.version.testutil.VManAssertions.assertNormalizedToBOMs;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.maven.artifact.Artifact;
-import org.apache.maven.mae.project.key.FullProjectKey;
-import org.apache.maven.model.Dependency;
-import org.apache.maven.model.Model;
+import org.apache.maven.model.Repository;
 import org.codehaus.plexus.util.FileUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -68,6 +62,35 @@ public class BOMManagementTest
     public void teardown()
     {
         LoggingFixture.flushLogging();
+    }
+
+    @Test
+    public void modifySinglePom_BOMofBOMs()
+        throws Exception
+    {
+        System.out.println( "BOM-of-BOMS test (normalize to BOM usage)..." );
+
+        final File srcRepo = getResourceFile( "bom-of-boms" );
+        FileUtils.copyDirectoryStructure( srcRepo, repo );
+
+        final File pom = new File( repo, "project/pom.xml" );
+        final File bom = new File( repo, "bom.xml" );
+        File remoteRepo = new File( repo, "repo" );
+
+        Repository resolve = new Repository();
+
+        resolve.setId( "central" );
+        resolve.setUrl( remoteRepo.toURI().normalize().toURL().toExternalForm() );
+
+        final VersionManagerSession session = new VersionManagerSession( workspace, reports, null, false );
+        session.setResolveRepositories( resolve );
+
+        final Set<File> modified =
+            vman.modifyVersions( pom, Collections.singletonList( bom.getAbsolutePath() ), null, null, session );
+        assertNoErrors( session );
+        assertNormalizedToBOMs( modified, Collections.singleton( bom ) );
+
+        System.out.println( "\n\n" );
     }
 
     @Test
@@ -116,57 +139,6 @@ public class BOMManagementTest
         assertNormalizedToBOMs( modified, Collections.singleton( bom ) );
 
         System.out.println( "\n\n" );
-    }
-
-    private void assertNormalizedToBOMs( final Set<File> modified, final Set<File> boms )
-        throws Exception
-    {
-        assertNotNull( modified );
-
-        Set<FullProjectKey> bomKeys = new HashSet<FullProjectKey>();
-        for ( File bom : boms )
-        {
-            bomKeys.add( loadProjectKey( bom ) );
-        }
-
-        for ( final File out : modified )
-        {
-            System.out.println( "Examining: " + out );
-
-            Model model = loadModel( out );
-
-            // NOTE: Assuming injection of BOMs will happen in toolchain ancestor now...
-            //
-            // final DependencyManagement dm = model.getDependencyManagement();
-            // if ( dm != null )
-            // {
-            // Set<FullProjectKey> foundBoms = new HashSet<FullProjectKey>();
-            //
-            // for ( final Dependency dep : dm.getDependencies() )
-            // {
-            // if ( ( "pom".equals( dep.getType() ) && Artifact.SCOPE_IMPORT.equals( dep.getScope() ) ) )
-            // {
-            // foundBoms.add( new FullProjectKey( dep ) );
-            // }
-            // else
-            // {
-            // assertNull( "Managed Dependency version was NOT nullified: " + dep.getManagementKey()
-            // + "\nPOM: " + out, dep.getVersion() );
-            // }
-            // }
-            //
-            // assertThat( foundBoms, equalTo( bomKeys ) );
-            // }
-
-            for ( final Dependency dep : model.getDependencies() )
-            {
-                if ( !( "pom".equals( dep.getType() ) && Artifact.SCOPE_IMPORT.equals( dep.getScope() ) ) )
-                {
-                    assertNull( "Dependency version was NOT nullified: " + dep.getManagementKey() + "\nPOM: " + out,
-                                dep.getVersion() );
-                }
-            }
-        }
     }
 
     @Test
