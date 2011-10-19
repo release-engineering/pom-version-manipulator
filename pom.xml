@@ -56,9 +56,9 @@
         <version>${maeVersion}</version>
     </dependency>
     <dependency>
-        <groupId>org.commonjava.emb.components</groupId>
-        <artifactId>emb-graph-support</artifactId>
-        <version>${embVersion}</version>
+        <groupId>org.apache.maven.mae.components</groupId>
+        <artifactId>mae-graph-support</artifactId>
+        <version>${maeVersion}</version>
     </dependency>
     <dependency>
         <groupId>org.apache.maven</groupId>

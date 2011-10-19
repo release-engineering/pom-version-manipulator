@@ -19,10 +19,10 @@ package com.redhat.rcm.version.model;
 
 import java.util.Collection;
 
+import org.apache.maven.mae.graph.DirectionalEdge;
+import org.apache.maven.mae.graph.SimpleDirectedGraph;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.model.Parent;
-import org.commonjava.emb.graph.DirectionalEdge;
-import org.commonjava.emb.graph.SimpleDirectedGraph;
 
 public class ProjectAncestryGraph
     extends SimpleDirectedGraph<FullProjectKey>
