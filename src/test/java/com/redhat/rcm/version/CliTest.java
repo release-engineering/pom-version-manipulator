@@ -30,24 +30,18 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.log4j.Appender;
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-import org.apache.log4j.SimpleLayout;
-import org.apache.log4j.spi.Configurator;
-import org.apache.log4j.spi.LoggerRepository;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.redhat.rcm.version.fixture.LoggingFixture;
+import com.redhat.rcm.version.mgr.VersionManager;
 
 public class CliTest
 {
@@ -235,53 +229,16 @@ public class CliTest
     private File repo;
 
     @BeforeClass
+    public static void enableClasspathScanning()
+    {
+        System.out.println( "Enabling classpath scanning..." );
+        VersionManager.setClasspathScanning( true );
+    }
+
+    @BeforeClass
     public static void setupLogging()
     {
-        final Configurator log4jConfigurator = new Configurator()
-        {
-            @Override
-            @SuppressWarnings( "unchecked" )
-            public void doConfigure( final URL notUsed, final LoggerRepository repo )
-            {
-                final ConsoleAppender appender = new ConsoleAppender( new SimpleLayout() );
-                appender.setImmediateFlush( true );
-                appender.setThreshold( Level.ALL );
-
-                if ( !hasConsoleAppender( repo.getRootLogger() ) )
-                {
-                    repo.getRootLogger().addAppender( appender );
-                }
-
-                final Enumeration<Logger> loggers = repo.getCurrentLoggers();
-                while ( loggers.hasMoreElements() )
-                {
-                    final Logger logger = loggers.nextElement();
-                    if ( !hasConsoleAppender( logger ) )
-                    {
-                        logger.addAppender( appender );
-                    }
-                    logger.setLevel( Level.INFO );
-                }
-            }
-
-            private boolean hasConsoleAppender( final Logger logger )
-            {
-                @SuppressWarnings( "unchecked" )
-                final Enumeration<Appender> e = logger.getAllAppenders();
-
-                while ( e.hasMoreElements() )
-                {
-                    if ( e.nextElement() instanceof ConsoleAppender )
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-        };
-
-        log4jConfigurator.doConfigure( null, LogManager.getLoggerRepository() );
+        LoggingFixture.setupLogging();
     }
 
     @AfterClass

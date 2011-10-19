@@ -31,12 +31,9 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
-import org.apache.log4j.Level;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.model.Dependency;
@@ -44,23 +41,25 @@ import org.apache.maven.model.Model;
 import org.codehaus.plexus.util.FileUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.redhat.rcm.version.mgr.inject.BomInjector;
+import com.redhat.rcm.version.fixture.LoggingFixture;
 
 public class BOMManagementTest
     extends AbstractVersionManagerTest
 {
 
+    @BeforeClass
+    public static void enableLogging()
+    {
+        LoggingFixture.setupLogging();
+    }
+
     @Before
     public void setup()
         throws Throwable
     {
-        Map<Class<?>, Level> levels = new HashMap<Class<?>, Level>();
-        levels.put( BomInjector.class, Level.INFO );
-
-        setupLogging( levels );
-
         setupDirs();
         setupVersionManager();
     }
@@ -68,7 +67,7 @@ public class BOMManagementTest
     @After
     public void teardown()
     {
-        flushLogging();
+        LoggingFixture.flushLogging();
     }
 
     @Test

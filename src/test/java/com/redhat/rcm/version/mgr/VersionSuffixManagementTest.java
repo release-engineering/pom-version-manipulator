@@ -35,14 +35,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.log4j.Level;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.model.Model;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.redhat.rcm.version.mgr.inject.ToolchainInjector;
+import com.redhat.rcm.version.fixture.LoggingFixture;
 import com.redhat.rcm.version.model.Project;
 
 public class VersionSuffixManagementTest
@@ -57,15 +57,16 @@ public class VersionSuffixManagementTest
 
     private static final String PARENT_VERSION_BOM = TEST_POMS + "parent-version-bom.pom";
 
+    @BeforeClass
+    public static void enableLogging()
+    {
+        LoggingFixture.setupLogging();
+    }
+
     @Before
     public void setup()
         throws Throwable
     {
-        Map<Class<?>, Level> levels = new HashMap<Class<?>, Level>();
-        levels.put( ToolchainInjector.class, Level.INFO );
-
-        setupLogging( levels );
-
         setupDirs();
         setupVersionManager();
     }
@@ -73,7 +74,7 @@ public class VersionSuffixManagementTest
     @After
     public void teardown()
     {
-        flushLogging();
+        LoggingFixture.flushLogging();
     }
 
     public void adjustMultiple_ParentVersions_ChildHasInheritedVersion()

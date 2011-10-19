@@ -34,6 +34,7 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 import org.apache.maven.mae.MAEException;
 import org.apache.maven.mae.app.AbstractMAEApplication;
+import org.apache.maven.mae.boot.embed.MAEEmbedderBuilder;
 import org.apache.maven.mae.project.ModelLoader;
 import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.ProjectKey;
@@ -75,6 +76,8 @@ public class VersionManager
 
     @Requirement
     private SessionConfigurator sessionConfigurator;
+
+    private static boolean useClasspathScanning = false;
 
     private static Object lock = new Object();
 
@@ -387,4 +390,22 @@ public class VersionManager
         return "RedHat POM Version Modifier";
     }
 
+    @Override
+    protected void configureBuilder( final MAEEmbedderBuilder builder )
+        throws MAEException
+    {
+        super.configureBuilder( builder );
+        if ( useClasspathScanning )
+        {
+            builder.withClassScanningEnabled( true );
+        }
+    }
+
+    public static void setClasspathScanning( final boolean scanning )
+    {
+        if ( instance == null )
+        {
+            useClasspathScanning = scanning;
+        }
+    }
 }

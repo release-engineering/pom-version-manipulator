@@ -24,22 +24,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.net.URL;
 import java.util.Arrays;
-import java.util.Enumeration;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-import org.apache.log4j.SimpleLayout;
-import org.apache.log4j.spi.Configurator;
-import org.apache.log4j.spi.LoggerRepository;
 import org.apache.maven.mae.MAEException;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
@@ -49,8 +38,6 @@ public abstract class AbstractVersionManagerTest
     protected static final String TOOLCHAIN = "toolchain/toolchain-1.0.pom";
 
     protected VersionManager vman;
-
-    protected ConsoleAppender appender = new ConsoleAppender( new SimpleLayout() );
 
     protected File repo;
 
@@ -63,6 +50,13 @@ public abstract class AbstractVersionManagerTest
 
     protected AbstractVersionManagerTest()
     {
+    }
+
+    @BeforeClass
+    public static void enableClasspathScanning()
+    {
+        System.out.println( "Enabling classpath scanning..." );
+        VersionManager.setClasspathScanning( true );
     }
 
     public void setupVersionManager()
@@ -91,75 +85,6 @@ public abstract class AbstractVersionManagerTest
         {
             reports = tempFolder.newFolder( "reports" );
         }
-    }
-
-    protected synchronized void flushLogging()
-    {
-        System.out.flush();
-        System.err.flush();
-        if ( appender != null )
-        {
-            appender.close();
-            appender = null;
-        }
-    }
-
-    protected void setupLogging( final Map<Class<?>, Level> levels )
-    {
-        System.out.println( "Setting up logging..." );
-        final Configurator log4jConfigurator = new Configurator()
-        {
-            @Override
-            @SuppressWarnings( "unchecked" )
-            public void doConfigure( final URL notUsed, final LoggerRepository repo )
-            {
-                Level defaultLevel = Level.ERROR;
-
-                // appender.setImmediateFlush( true );
-                appender.setThreshold( Level.TRACE );
-
-                repo.getRootLogger().removeAllAppenders();
-                repo.getRootLogger().addAppender( appender );
-                repo.getRootLogger().setLevel( defaultLevel );
-
-                Set<String> processed = new HashSet<String>();
-                if ( levels != null )
-                {
-                    for ( Map.Entry<Class<?>, Level> entry : levels.entrySet() )
-                    {
-                        String name = entry.getKey().getName();
-
-                        Logger logger = repo.getLogger( name );
-                        if ( logger != null )
-                        {
-                            logger.removeAllAppenders();
-                            logger.addAppender( appender );
-                            logger.setLevel( entry.getValue() );
-                        }
-
-                        processed.add( name );
-                    }
-                }
-
-                final Enumeration<Logger> loggers = repo.getCurrentLoggers();
-                while ( loggers.hasMoreElements() )
-                {
-                    final Logger logger = loggers.nextElement();
-                    String name = logger.getName();
-
-                    if ( !processed.contains( name ) )
-                    {
-                        logger.removeAllAppenders();
-                        logger.addAppender( appender );
-
-                        logger.setLevel( defaultLevel );
-                        processed.add( name );
-                    }
-                }
-            }
-        };
-
-        log4jConfigurator.doConfigure( null, LogManager.getLoggerRepository() );
     }
 
     protected void assertNoErrors( final VersionManagerSession session )

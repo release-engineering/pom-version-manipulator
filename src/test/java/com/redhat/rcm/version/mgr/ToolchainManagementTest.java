@@ -36,12 +36,10 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.log4j.Level;
 import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.model.Build;
@@ -56,9 +54,10 @@ import org.apache.maven.model.ReportSet;
 import org.apache.maven.model.Reporting;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.redhat.rcm.version.mgr.inject.ToolchainInjector;
+import com.redhat.rcm.version.fixture.LoggingFixture;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.testutil.PluginMatcher;
 
@@ -78,15 +77,16 @@ public class ToolchainManagementTest
 
     private static FullProjectKey toolchainKey;
 
+    @BeforeClass
+    public static void enableLogging()
+    {
+        LoggingFixture.setupLogging();
+    }
+
     @Before
     public void setup()
         throws Throwable
     {
-        Map<Class<?>, Level> levels = new HashMap<Class<?>, Level>();
-        levels.put( ToolchainInjector.class, Level.INFO );
-
-        setupLogging( levels );
-
         setupDirs();
         setupVersionManager();
     }
@@ -94,7 +94,7 @@ public class ToolchainManagementTest
     @After
     public void teardown()
     {
-        flushLogging();
+        LoggingFixture.flushLogging();
     }
 
     @Test
@@ -456,7 +456,7 @@ public class ToolchainManagementTest
 
         Model changed = project.getModel();
         System.out.println( "Verifying POM: " + project.getPom() );
-        flushLogging();
+        LoggingFixture.flushLogging();
 
         Build build = changed.getBuild();
         assertThat( build, notNullValue() );
