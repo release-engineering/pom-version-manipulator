@@ -50,7 +50,9 @@ import org.sonatype.aether.util.DefaultRequestTrace;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.config.SessionConfigurator;
+import com.redhat.rcm.version.mgr.capture.MissingInfoCapture;
 import com.redhat.rcm.version.mgr.inject.ProjectInjector;
+import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.mgr.verify.ProjectVerifier;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.report.Report;
@@ -73,6 +75,9 @@ public class VersionManager
 
     @Requirement( role = ProjectVerifier.class )
     private Map<String, ProjectVerifier> verifiers;
+
+    @Requirement
+    private MissingInfoCapture capturer;
 
     @Requirement
     private SessionConfigurator sessionConfigurator;
@@ -313,6 +318,14 @@ public class VersionManager
             {
                 LOGGER.info( project.getKey() + " NOT modified." );
             }
+        }
+
+        if ( session.getCapturePom() != null )
+        {
+            capturer.captureMissing( session );
+
+            LOGGER.warn( "\n\n\n\nMissing version information has been logged to:\n\n\t"
+                + session.getCapturePom().getAbsolutePath() + "\n\n\n\n" );
         }
 
         return result;

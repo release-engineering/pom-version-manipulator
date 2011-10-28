@@ -32,6 +32,8 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
+import com.redhat.rcm.version.mgr.session.VersionManagerSession;
+
 public abstract class AbstractVersionManagerTest
 {
 

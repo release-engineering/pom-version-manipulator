@@ -6,7 +6,7 @@ import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.codehaus.plexus.component.annotations.Component;
 
 import com.redhat.rcm.version.VManException;
-import com.redhat.rcm.version.mgr.VersionManagerSession;
+import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.util.CollectionToString;
 import com.redhat.rcm.version.util.ObjectToString;

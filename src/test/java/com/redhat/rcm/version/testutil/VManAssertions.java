@@ -13,6 +13,7 @@ import org.apache.maven.artifact.Artifact;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
+import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 
 public final class VManAssertions
 {
@@ -37,6 +38,7 @@ public final class VManAssertions
             System.out.println( "Examining: " + out );
 
             Model model = loadModel( out );
+            new MavenXpp3Writer().write( System.out, model );
 
             // NOTE: Assuming injection of BOMs will happen in toolchain ancestor now...
             //

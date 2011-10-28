@@ -39,6 +39,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.redhat.rcm.version.fixture.LoggingFixture;
+import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
 public class BOMManagementTest
     extends AbstractVersionManagerTest
@@ -65,6 +66,35 @@ public class BOMManagementTest
     }
 
     @Test
+    public void modifySinglePom_BOMWithParentInRepo()
+        throws Exception
+    {
+        System.out.println( "BOM-parent-in-repo test (normalize to BOM usage)..." );
+
+        final File srcRepo = getResourceFile( "bom-parent-in-repo" );
+        FileUtils.copyDirectoryStructure( srcRepo, repo );
+
+        final File pom = new File( repo, "project/pom.xml" );
+        final File bom = new File( repo, "bom.xml" );
+        File remoteRepo = new File( repo, "repo" );
+
+        Repository resolve = new Repository();
+
+        resolve.setId( "vman" );
+        resolve.setUrl( remoteRepo.toURI().normalize().toURL().toExternalForm() );
+
+        final VersionManagerSession session = new VersionManagerSession( workspace, reports, null, false );
+        session.setResolveRepositories( resolve );
+
+        final Set<File> modified =
+            vman.modifyVersions( pom, Collections.singletonList( bom.getAbsolutePath() ), null, null, session );
+        assertNoErrors( session );
+        assertNormalizedToBOMs( modified, Collections.singleton( bom ) );
+
+        System.out.println( "\n\n" );
+    }
+
+    @Test
     public void modifySinglePom_BOMofBOMs()
         throws Exception
     {
@@ -79,7 +109,7 @@ public class BOMManagementTest
 
         Repository resolve = new Repository();
 
-        resolve.setId( "central" );
+        resolve.setId( "vman" );
         resolve.setUrl( remoteRepo.toURI().normalize().toURL().toExternalForm() );
 
         final VersionManagerSession session = new VersionManagerSession( workspace, reports, null, false );

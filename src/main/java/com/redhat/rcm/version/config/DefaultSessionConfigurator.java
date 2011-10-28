@@ -42,14 +42,23 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.log4j.Logger;
+import org.apache.maven.execution.DefaultMavenExecutionRequest;
+import org.apache.maven.execution.MavenExecutionRequest;
+import org.apache.maven.execution.MavenExecutionRequestPopulationException;
+import org.apache.maven.execution.MavenExecutionRequestPopulator;
 import org.apache.maven.mae.project.ProjectLoader;
 import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.project.MavenProject;
+import org.apache.maven.settings.Settings;
+import org.apache.maven.settings.building.DefaultSettingsBuildingRequest;
+import org.apache.maven.settings.building.SettingsBuilder;
+import org.apache.maven.settings.building.SettingsBuildingException;
+import org.apache.maven.settings.building.SettingsBuildingResult;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.component.annotations.Requirement;
 
 import com.redhat.rcm.version.VManException;
-import com.redhat.rcm.version.mgr.VersionManagerSession;
+import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
 @Component( role = SessionConfigurator.class )
 public class DefaultSessionConfigurator
@@ -60,6 +69,12 @@ public class DefaultSessionConfigurator
 
     @Requirement
     private ProjectLoader projectLoader;
+
+    @Requirement
+    private SettingsBuilder settingsBuilder;
+
+    @Requirement
+    private MavenExecutionRequestPopulator requestPopulator;
 
     private final DefaultHttpClient client;
 
@@ -74,6 +89,11 @@ public class DefaultSessionConfigurator
                                   final Collection<String> removedPlugins, final VersionManagerSession session )
         throws VManException
     {
+        if ( session.getSettingsXml() != null )
+        {
+            loadSettings( session );
+        }
+
         if ( boms != null )
         {
             loadBOMs( boms, session );
@@ -91,6 +111,40 @@ public class DefaultSessionConfigurator
         if ( removedPlugins != null )
         {
             session.setRemovedPlugins( removedPlugins );
+        }
+    }
+
+    private void loadSettings( final VersionManagerSession session )
+        throws VManException
+    {
+        MavenExecutionRequest executionRequest = session.getExecutionRequest();
+        if ( executionRequest == null )
+        {
+            executionRequest = new DefaultMavenExecutionRequest();
+        }
+
+        File settingsXml = session.getSettingsXml();
+
+        DefaultSettingsBuildingRequest req = new DefaultSettingsBuildingRequest();
+        req.setUserSettingsFile( settingsXml );
+        req.setSystemProperties( System.getProperties() );
+
+        try
+        {
+            SettingsBuildingResult result = settingsBuilder.build( req );
+            Settings settings = result.getEffectiveSettings();
+
+            executionRequest = requestPopulator.populateFromSettings( executionRequest, settings );
+            session.setExecutionRequest( executionRequest );
+        }
+        catch ( SettingsBuildingException e )
+        {
+            throw new VManException( "Failed to build settings from: %s. Reason: %s", e, settingsXml, e.getMessage() );
+        }
+        catch ( MavenExecutionRequestPopulationException e )
+        {
+            throw new VManException( "Failed to initialize system using settings from: %s. Reason: %s", e, settingsXml,
+                                     e.getMessage() );
         }
     }
 

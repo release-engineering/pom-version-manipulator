@@ -18,13 +18,15 @@
 
 package com.redhat.rcm.version;
 
+import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModel;
 import static com.redhat.rcm.version.testutil.VManAssertions.assertNormalizedToBOMs;
-import static junit.framework.Assert.fail;
 import static org.apache.commons.io.FileUtils.copyDirectory;
 import static org.apache.commons.io.FileUtils.copyFile;
-import static org.apache.commons.io.FileUtils.forceDelete;
 import static org.apache.commons.io.FileUtils.writeLines;
 import static org.apache.commons.io.IOUtils.closeQuietly;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -32,21 +34,25 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
-import java.util.Set;
 
-import org.junit.AfterClass;
+import org.apache.maven.model.Model;
+import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import com.redhat.rcm.version.fixture.LoggingFixture;
 import com.redhat.rcm.version.mgr.VersionManager;
 
 public class CliTest
 {
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
 
     public void help()
         throws Exception
@@ -113,7 +119,7 @@ public class CliTest
         final File bom1 = getResourceFile( "bom.part1.xml" );
         final File bom2 = getResourceFile( "bom.part2.xml" );
 
-        File config = File.createTempFile( "config.", ".properties" );
+        File config = folder.newFile( "config.properties" );
         config.deleteOnExit();
 
         List<String> lines = new ArrayList<String>();
@@ -124,11 +130,17 @@ public class CliTest
 
         copyDirectory( srcRepo, repo );
 
-        final String[] args = { "-C", config.getPath(), repo.getPath() };
+        final String[] args = { "-Z", "-C", config.getPath(), repo.getPath() };
 
         Cli.main( args );
+        assertExitValue();
 
         System.out.println( "\n\n" );
+    }
+
+    private void assertExitValue()
+    {
+        assertThat( new Integer( Cli.exitValue() ), equalTo( 0 ) );
     }
 
     @Test
@@ -148,7 +160,6 @@ public class CliTest
         System.out.println( "\n\n" );
     }
 
-    // FIXME: Adapt this, to make sure the CLI will operate properly...
     @Test
     public void modifySinglePom_BOMofBOMs()
         throws Exception
@@ -178,9 +189,10 @@ public class CliTest
             closeQuietly( out );
         }
 
-        final String[] args = { "-C", config.getPath(), pom.getPath() };
+        final String[] args = { "-Z", "-C", config.getPath(), pom.getPath() };
 
         Cli.main( args );
+        assertExitValue();
 
         assertNormalizedToBOMs( Collections.singleton( pom ), Collections.singleton( bom ) );
 
@@ -201,11 +213,47 @@ public class CliTest
         final File pom = new File( repo, srcPom.getName() );
         copyFile( srcPom, pom );
 
-        final String[] args = { "-b", bomListing.getPath(), pom.getPath() };
+        File config = writeConfig( new Properties() );
+
+        final String[] args = { "-Z", "-C", config.getPath(), "-b", bomListing.getPath(), pom.getPath() };
+
+        Cli.main( args );
+        assertExitValue();
+
+        System.out.println( "\n\n" );
+    }
+
+    @Test
+    public void modifySinglePom_CaptureMissing()
+        throws Exception
+    {
+        System.out.println( "Single POM test with capture..." );
+
+        final File srcPom = getResourceFile( "rwx-parent-0.2.1.missing.pom" );
+        final File bom = getResourceFile( "bom.xml" );
+        final File toolchain = getResourceFile( "empty-toolchain.pom" );
+
+        final File pom = new File( repo, srcPom.getName() );
+        copyFile( srcPom, pom );
+
+        File capturePom = folder.newFile( "capture.pom" );
+
+        Properties props = new Properties();
+        props.setProperty( Cli.TOOLCHAIN_PROPERTY, toolchain.getAbsolutePath() );
+        props.setProperty( Cli.BOMS_LIST_PROPERTY, bom.getAbsolutePath() );
+        props.setProperty( Cli.CAPTURE_POM_PROPERTY, capturePom.getAbsolutePath() );
+
+        File config = writeConfig( props );
+
+        final String[] args = { "-Z", "-C", config.getPath(), pom.getPath() };
 
         Cli.main( args );
 
         System.out.println( "\n\n" );
+
+        assertThat( capturePom.exists(), equalTo( true ) );
+        Model model = loadModel( capturePom );
+        new MavenXpp3Writer().write( System.out, model );
     }
 
     @Test
@@ -220,7 +268,23 @@ public class CliTest
         Properties props = new Properties();
         props.setProperty( "boms", bom.getAbsolutePath() );
 
-        File config = File.createTempFile( "config.", ".properties" );
+        File config = writeConfig( props );
+
+        final File pom = new File( repo, srcPom.getName() );
+        copyFile( srcPom, pom );
+
+        final String[] args = { "-Z", "-C", config.getPath(), pom.getPath() };
+
+        Cli.main( args );
+        assertExitValue();
+
+        System.out.println( "\n\n" );
+    }
+
+    private File writeConfig( final Properties props )
+        throws IOException
+    {
+        File config = folder.newFile( "config.properties" );
         config.deleteOnExit();
 
         FileOutputStream out = null;
@@ -234,14 +298,7 @@ public class CliTest
             closeQuietly( out );
         }
 
-        final File pom = new File( repo, srcPom.getName() );
-        copyFile( srcPom, pom );
-
-        final String[] args = { "-C", config.getPath(), pom.getPath() };
-
-        Cli.main( args );
-
-        System.out.println( "\n\n" );
+        return config;
     }
 
     @Test
@@ -258,14 +315,15 @@ public class CliTest
         final File pom = new File( repo, srcPom.getName() );
         copyFile( srcPom, pom );
 
-        final String[] args = { "-b", bomListing.getPath(), pom.getPath() };
+        File config = writeConfig( new Properties() );
+
+        final String[] args = { "-Z", "-C", config.getPath(), "-b", bomListing.getPath(), pom.getPath() };
 
         Cli.main( args );
+        assertExitValue();
 
         System.out.println( "\n\n" );
     }
-
-    private static final Set<File> toDelete = new HashSet<File>();
 
     private File repo;
 
@@ -282,30 +340,11 @@ public class CliTest
         LoggingFixture.setupLogging();
     }
 
-    @AfterClass
-    public static void deleteDirs()
-    {
-        for ( final File f : toDelete )
-        {
-            if ( f.exists() )
-            {
-                try
-                {
-                    forceDelete( f );
-                }
-                catch ( final IOException e )
-                {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-
     @Before
     public void setupDirs()
         throws IOException
     {
-        repo = createTempDir( "repository" );
+        repo = folder.newFolder( "repository" );
     }
 
     private void modifyRepo( final File... boms )
@@ -313,9 +352,12 @@ public class CliTest
     {
         File bomListing = writeBomList( boms );
 
-        final String[] baseArgs = { "-b", bomListing.getPath(), repo.getPath() };
+        File config = writeConfig( new Properties() );
+
+        final String[] baseArgs = { "-Z", "-C", config.getPath(), "-b", bomListing.getPath(), repo.getPath() };
 
         Cli.main( baseArgs );
+        assertExitValue();
     }
 
     private File writeBomList( final File... boms )
@@ -327,25 +369,12 @@ public class CliTest
             bomList.add( bom.getAbsolutePath() );
         }
 
-        File bomListing = File.createTempFile( "boms.", ".lst" );
+        File bomListing = folder.newFile( "boms.lst" );
         bomListing.deleteOnExit();
 
         writeLines( bomListing, bomList );
 
         return bomListing;
-    }
-
-    private File createTempDir( final String basename )
-        throws IOException
-    {
-        final File temp = File.createTempFile( basename, ".dir" );
-        temp.delete();
-
-        temp.mkdirs();
-
-        toDelete.add( temp );
-
-        return temp;
     }
 
     private File getResourceFile( final String path )

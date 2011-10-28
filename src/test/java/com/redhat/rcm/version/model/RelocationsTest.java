@@ -30,7 +30,8 @@ import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.junit.Test;
 
 import com.redhat.rcm.version.mgr.AbstractVersionManagerTest;
-import com.redhat.rcm.version.mgr.VersionManagerSession;
+import com.redhat.rcm.version.mgr.session.Relocations;
+import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
 public class RelocationsTest
     extends AbstractVersionManagerTest

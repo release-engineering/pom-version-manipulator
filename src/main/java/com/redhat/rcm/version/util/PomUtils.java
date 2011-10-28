@@ -20,7 +20,7 @@ import org.jdom.output.Format.TextMode;
 import org.jdom.output.XMLOutputter;
 
 import com.redhat.rcm.version.VManException;
-import com.redhat.rcm.version.mgr.VersionManagerSession;
+import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
 public final class PomUtils
 {

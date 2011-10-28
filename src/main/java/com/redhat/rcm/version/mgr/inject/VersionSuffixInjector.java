@@ -6,7 +6,7 @@ import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
 import org.codehaus.plexus.component.annotations.Component;
 
-import com.redhat.rcm.version.mgr.VersionManagerSession;
+import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
 @Component( role = ProjectInjector.class, hint = "version-suffix" )

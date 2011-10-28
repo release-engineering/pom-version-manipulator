@@ -18,6 +18,8 @@
 
 package com.redhat.rcm.version.mgr.inject;
 
+import static com.redhat.rcm.version.mgr.inject.Interpolations.interpolate;
+
 import java.io.File;
 import java.util.Iterator;
 
@@ -25,10 +27,11 @@ import org.apache.log4j.Logger;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Dependency;
+import org.apache.maven.model.Exclusion;
 import org.apache.maven.model.Model;
 import org.codehaus.plexus.component.annotations.Component;
 
-import com.redhat.rcm.version.mgr.VersionManagerSession;
+import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
 @Component( role = ProjectInjector.class, hint = "BOM-realignment" )
@@ -65,32 +68,57 @@ public class BomInjector
             }
         }
 
-        if ( model.getDependencyManagement() != null && model.getDependencyManagement().getDependencies() != null )
+        // NOTE: dependencyManagement BLOCKS the imported deps from the BOM. Nullify it!
+        if ( model.getDependencyManagement() != null )
         {
-            LOGGER.info( "Processing dependencyManagement for '" + project.getKey() + "'..." );
-            for ( final Iterator<Dependency> it = model.getDependencyManagement().getDependencies().iterator(); it.hasNext(); )
-            {
-                final Dependency dep = it.next();
-                final DepModResult depResult = modifyDep( dep, model, project, pom, session, true );
-                if ( depResult == DepModResult.DELETED )
-                {
-                    it.remove();
-                    changed = true;
-                }
-                else
-                {
-                    changed = DepModResult.MODIFIED == depResult || changed;
-                }
-            }
+            model.setDependencyManagement( null );
+            changed = true;
         }
+
+        // if ( model.getDependencyManagement() != null && model.getDependencyManagement().getDependencies() != null )
+        // {
+        // LOGGER.info( "Processing dependencyManagement for '" + project.getKey() + "'..." );
+        // for ( final Iterator<Dependency> it = model.getDependencyManagement().getDependencies().iterator();
+        // it.hasNext(); )
+        // {
+        // final Dependency dep = it.next();
+        // final DepModResult depResult = modifyDep( dep, model, project, pom, session, true );
+        // if ( depResult == DepModResult.DELETED )
+        // {
+        // it.remove();
+        // changed = true;
+        // }
+        // else
+        // {
+        // changed = DepModResult.MODIFIED == depResult || changed;
+        // }
+        // }
+        // }
 
         return changed;
     }
 
-    private DepModResult modifyDep( final Dependency dep, final Model model, final Project project, final File pom,
+    private DepModResult modifyDep( final Dependency d, final Model model, final Project project, final File pom,
                                     final VersionManagerSession session, final boolean isManaged )
     {
         DepModResult result = DepModResult.UNCHANGED;
+
+        Dependency dep = d.clone();
+        dep.setGroupId( interpolate( d.getGroupId(), project ) );
+        dep.setArtifactId( interpolate( d.getArtifactId(), project ) );
+        if ( dep.getVersion() != null )
+        {
+            dep.setVersion( interpolate( d.getVersion(), project ) );
+        }
+
+        if ( dep.getExclusions() != null && !dep.getExclusions().isEmpty() )
+        {
+            for ( Exclusion ex : dep.getExclusions() )
+            {
+                ex.setGroupId( interpolate( ex.getGroupId(), project ) );
+                ex.setArtifactId( interpolate( ex.getArtifactId(), project ) );
+            }
+        }
 
         if ( project.getParent() == null && session.isBom( new FullProjectKey( dep ) ) )
         {
@@ -128,7 +156,7 @@ public class BomInjector
         if ( version != null )
         {
             // wipe this out, and use the one in the BOM implicitly...DRY-style.
-            dep.setVersion( null );
+            d.setVersion( null );
             if ( isManaged && ( dep.getScope() == null || dep.getExclusions() == null || dep.getExclusions().isEmpty() ) )
             {
                 result = DepModResult.DELETED;

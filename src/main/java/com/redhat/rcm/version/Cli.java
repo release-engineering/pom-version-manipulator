@@ -44,7 +44,7 @@ import org.kohsuke.args4j.ExampleMode;
 import org.kohsuke.args4j.Option;
 
 import com.redhat.rcm.version.mgr.VersionManager;
-import com.redhat.rcm.version.mgr.VersionManagerSession;
+import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
 public class Cli
 {
@@ -85,6 +85,18 @@ public class Cli
     @Option( name = "-h", aliases = { "--help" }, usage = "Print this message and quit" )
     private boolean help = false;
 
+    @Option( name = "-S", aliases = { "--settings" }, usage = "Maven settings.xml file." )
+    private File settings;
+
+    @Option( name = "-L", aliases = { "--local-repo" }, usage = "Local repository directory." )
+    private File localRepository;
+
+    @Option( name = "-Z", aliases = { "--no-system-exit" }, usage = "Don't call System.exit(..) with the return value (for embedding/testing)." )
+    private boolean noSystemExit;
+
+    @Option( name = "-O", aliases = "--capture-output", usage = "Write captured (missing) definitions to this POM location." )
+    private File capturePom;
+
     private static final Logger LOGGER = Logger.getLogger( Cli.class );
 
     public static final String REMOTE_REPOSITORY_PROPERTY = "remote-repository";
@@ -97,11 +109,24 @@ public class Cli
 
     public static final String REMOVED_PLUGINS_PROPERTY = "removed-plugins";
 
+    public static final String LOCAL_REPOSITORY_PROPERTY = "local-repository";
+
+    public static final String SETTINGS_PROPERTY = "settings";
+
+    public static final String CAPTURE_POM_PROPERTY = "capture-pom";
+
     private static VersionManager vman;
 
     private List<String> boms;
 
     private List<String> removedPlugins;
+
+    private static int exitValue = Integer.MIN_VALUE;
+
+    public static int exitValue()
+    {
+        return exitValue;
+    }
 
     public static void main( final String[] args )
     {
@@ -111,13 +136,19 @@ public class Cli
         {
             parser.parseArgument( args );
 
+            exitValue = 0;
             if ( cli.help )
             {
                 printUsage( parser, null );
             }
             else
             {
-                cli.run();
+                exitValue = cli.run();
+            }
+
+            if ( !cli.noSystemExit )
+            {
+                System.exit( exitValue );
             }
         }
         catch ( final CmdLineException error )
@@ -144,7 +175,7 @@ public class Cli
     {
     }
 
-    public void run()
+    public int run()
         throws MAEException, VManException, MalformedURLException
     {
         vman = VersionManager.getInstance();
@@ -169,9 +200,27 @@ public class Cli
             session.setRemoteRepository( remoteRepository );
         }
 
+        if ( settings != null )
+        {
+            session.setSettingsXml( settings );
+        }
+
+        if ( localRepository == null )
+        {
+            localRepository = new File( workspace, "local-repository" );
+        }
+
+        session.setLocalRepositoryDirectory( localRepository );
+
+        if ( capturePom != null )
+        {
+            session.setCapturePom( capturePom );
+        }
+
         if ( boms == null || boms.isEmpty() )
         {
-            throw new VManException( "You must specify at least one BOM." );
+            LOGGER.error( "You must specify at least one BOM." );
+            return -2;
         }
 
         if ( session.getErrors().isEmpty() )
@@ -192,6 +241,33 @@ public class Cli
 
         reports.mkdirs();
         vman.generateReports( reports, session );
+
+        if ( capturePom != null && capturePom.exists() )
+        {
+            LOGGER.warn( "\n\n\n\n\nMissing dependency/plugin information has been captured in:\n\n\t"
+                + capturePom.getAbsolutePath() + "\n\n\n\n" );
+
+            return -1;
+        }
+        else
+        {
+            List<Throwable> errors = session.getErrors();
+            if ( errors != null && !errors.isEmpty() )
+            {
+                LOGGER.error( errors.size() + " errors detected!\n\n" );
+
+                int i = 1;
+                for ( Throwable error : errors )
+                {
+                    LOGGER.error( "\n\n" + i, error );
+                    i++;
+                }
+
+                return -1;
+            }
+        }
+
+        return 0;
     }
 
     private void loadRemovedPlugins()
@@ -263,6 +339,33 @@ public class Cli
                     if ( remoteRepository != null )
                     {
                         remoteRepository = remoteRepository.trim();
+                    }
+                }
+
+                if ( settings == null )
+                {
+                    String s = props.getProperty( SETTINGS_PROPERTY );
+                    if ( s != null )
+                    {
+                        settings = new File( s );
+                    }
+                }
+
+                if ( localRepository == null )
+                {
+                    String l = props.getProperty( LOCAL_REPOSITORY_PROPERTY );
+                    if ( l != null )
+                    {
+                        localRepository = new File( l );
+                    }
+                }
+
+                if ( capturePom == null )
+                {
+                    String p = props.getProperty( CAPTURE_POM_PROPERTY );
+                    if ( p != null )
+                    {
+                        capturePom = new File( p );
                     }
                 }
             }

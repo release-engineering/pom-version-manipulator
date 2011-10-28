@@ -40,7 +40,7 @@ import org.apache.maven.model.Reporting;
 import org.apache.maven.model.merge.MavenModelMerger;
 import org.codehaus.plexus.component.annotations.Component;
 
-import com.redhat.rcm.version.mgr.VersionManagerSession;
+import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
 @Component( role = ProjectInjector.class, hint = "toolchain-realignment" )
@@ -56,6 +56,11 @@ public class ToolchainInjector
     public boolean inject( final Project project, final VersionManagerSession session )
     {
         boolean changed = false;
+
+        if ( session.getToolchainKey() == null )
+        {
+            return changed;
+        }
 
         changed = attemptToolchainParentInjection( project, session ) || changed;
 
@@ -365,11 +370,15 @@ public class ToolchainInjector
                 final VersionlessProjectKey pluginKey = new VersionlessProjectKey( plugin );
                 final Plugin managedPlugin = session.getManagedPlugin( pluginKey );
 
+                // No matter what, remove the plugin version. It should ALWAYS come from the toolchain.
+                // The capture-POM will assist with adding missing plugins to the toolchain.
+
+                Plugin p = plugin.clone();
+                plugin.setVersion( null );
+
                 if ( managedPlugin != null )
                 {
                     LOGGER.info( "Stripping plugin version from: " + pluginKey );
-
-                    plugin.setVersion( null );
 
                     if ( isEmpty( plugin.getDependencies() ) && isEmpty( plugin.getExecutions() )
                         && plugin.getConfiguration() == null )
@@ -392,7 +401,7 @@ public class ToolchainInjector
                 }
                 else
                 {
-                    session.addUnmanagedPlugin( project.getPom(), plugin );
+                    session.addUnmanagedPlugin( project.getPom(), p );
                 }
             }
         }

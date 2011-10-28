@@ -22,7 +22,7 @@ import java.util.Collection;
 import java.util.List;
 
 import com.redhat.rcm.version.VManException;
-import com.redhat.rcm.version.mgr.VersionManagerSession;
+import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
 public interface SessionConfigurator
 {

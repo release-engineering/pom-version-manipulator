@@ -16,7 +16,7 @@
  * <http://www.gnu.org/licenses>.
  */
 
-package com.redhat.rcm.version.model;
+package com.redhat.rcm.version.mgr.session;
 
 import java.io.File;
 import java.util.HashMap;
@@ -29,7 +29,6 @@ import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 
 import com.redhat.rcm.version.VManException;
-import com.redhat.rcm.version.mgr.VersionManagerSession;
 
 public class Relocations
 {

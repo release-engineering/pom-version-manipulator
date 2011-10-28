@@ -18,7 +18,7 @@
 
 package com.redhat.rcm.version.mgr.inject;
 
-import com.redhat.rcm.version.mgr.VersionManagerSession;
+import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
 public interface ProjectInjector

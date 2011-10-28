@@ -29,7 +29,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <mavenVersion>3.0.3</mavenVersion>
     <slf4jVersion>1.6.1</slf4jVersion>
-    <maeVersion>1.0-alpha-1-SNAPSHOT</maeVersion>
+    <maeVersion>1.0-alpha-1</maeVersion>
     <embVersion>0.6-SNAPSHOT</embVersion>
   </properties>
   
