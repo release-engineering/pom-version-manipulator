@@ -20,9 +20,6 @@ package com.redhat.rcm.version.mgr.inject;
 
 import static com.redhat.rcm.version.mgr.inject.Interpolations.interpolate;
 
-import java.io.File;
-import java.util.Iterator;
-
 import org.apache.log4j.Logger;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
@@ -33,6 +30,10 @@ import org.codehaus.plexus.component.annotations.Component;
 
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
+import com.redhat.rcm.version.model.ReadOnlyDependency;
+
+import java.io.File;
+import java.util.Iterator;
 
 @Component( role = ProjectInjector.class, hint = "BOM-realignment" )
 public class BomInjector
@@ -44,8 +45,8 @@ public class BomInjector
     @Override
     public boolean inject( final Project project, final VersionManagerSession session )
     {
-        Model model = project.getModel();
-        File pom = project.getPom();
+        final Model model = project.getModel();
+        final File pom = project.getPom();
 
         boolean changed = false;
 
@@ -98,11 +99,8 @@ public class BomInjector
         return changed;
     }
 
-    private DepModResult modifyDep( final Dependency d, final Model model, final Project project, final File pom,
-                                    final VersionManagerSession session, final boolean isManaged )
+    private Dependency interpolateDep( final Dependency d, final Project project )
     {
-        DepModResult result = DepModResult.UNCHANGED;
-
         Dependency dep = d.clone();
         dep.setGroupId( interpolate( d.getGroupId(), project ) );
         dep.setArtifactId( interpolate( d.getArtifactId(), project ) );
@@ -113,12 +111,25 @@ public class BomInjector
 
         if ( dep.getExclusions() != null && !dep.getExclusions().isEmpty() )
         {
-            for ( Exclusion ex : dep.getExclusions() )
+            for ( final Exclusion ex : dep.getExclusions() )
             {
                 ex.setGroupId( interpolate( ex.getGroupId(), project ) );
                 ex.setArtifactId( interpolate( ex.getArtifactId(), project ) );
             }
         }
+
+        // Interpolation is done, now LOCK IT DOWN!
+        dep = new ReadOnlyDependency( dep );
+
+        return dep;
+    }
+
+    private DepModResult modifyDep( final Dependency d, final Model model, final Project project, final File pom,
+                                    final VersionManagerSession session, final boolean isManaged )
+    {
+        DepModResult result = DepModResult.UNCHANGED;
+
+        final Dependency dep = interpolateDep( d, project );
 
         if ( project.getParent() == null && session.isBom( new FullProjectKey( dep ) ) )
         {
@@ -130,9 +141,9 @@ public class BomInjector
         if ( newKey != null && !key.equals( newKey ) )
         {
             LOGGER.info( "Relocating dependency: " + key + " to: " + newKey );
-            dep.setGroupId( newKey.getGroupId() );
-            dep.setArtifactId( newKey.getArtifactId() );
-            dep.setVersion( newKey.getVersion() );
+            d.setGroupId( newKey.getGroupId() );
+            d.setArtifactId( newKey.getArtifactId() );
+            d.setVersion( newKey.getVersion() );
             result = DepModResult.MODIFIED;
 
             key = new VersionlessProjectKey( newKey );

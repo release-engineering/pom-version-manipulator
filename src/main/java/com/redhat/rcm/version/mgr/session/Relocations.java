@@ -18,17 +18,17 @@
 
 package com.redhat.rcm.version.mgr.session;
 
-import java.io.File;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 import org.apache.log4j.Logger;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 
 import com.redhat.rcm.version.VManException;
+
+import java.io.File;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class Relocations
 {
@@ -57,7 +57,7 @@ public class Relocations
             throw new VManException( "Invalid coordinate: '" + src + "'." );
         }
 
-        VersionlessProjectKey key = new VersionlessProjectKey( parts[0], parts[1] );
+        final VersionlessProjectKey key = new VersionlessProjectKey( parts[0], parts[1] );
 
         if ( parts.length > 2 )
         {
@@ -85,7 +85,7 @@ public class Relocations
             throw new VManException( "Invalid coordinate: '" + src + "'." );
         }
 
-        FullProjectKey key = new FullProjectKey( parts[0], parts[1], parts[2] );
+        final FullProjectKey key = new FullProjectKey( parts[0], parts[1], parts[2] );
 
         if ( parts.length > 3 )
         {
@@ -98,7 +98,8 @@ public class Relocations
 
     public FullProjectKey getRelocation( final ProjectKey key )
     {
-        return relocations.get( new VersionlessProjectKey( key ) );
+        final FullProjectKey result = relocations.get( new VersionlessProjectKey( key ) );
+        return result;
     }
 
     public Relocations addBomRelocations( final File bom, final String relocationsStr,
@@ -131,7 +132,7 @@ public class Relocations
                         LOGGER.info( "Adding relocation from: " + key + " to: " + val + " in BOM: " + bom );
                         relocations.put( key, val );
                     }
-                    catch ( VManException e )
+                    catch ( final VManException e )
                     {
                         LOGGER.warn( "NOT adding relocation from line: '" + line + "'. Error: " + e.getMessage() );
                         session.addError( e );

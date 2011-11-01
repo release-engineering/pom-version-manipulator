@@ -11,7 +11,7 @@ import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Plugin;
 
-import com.redhat.rcm.version.model.IdentifiableDependency;
+import com.redhat.rcm.version.model.ReadOnlyDependency;
 import com.redhat.rcm.version.model.Project;
 
 class MissingInfo
@@ -90,7 +90,7 @@ class MissingInfo
             missingDeps.put( depKey, deps );
         }
 
-        deps.add( new IdentifiableDependency( dep ) );
+        deps.add( new ReadOnlyDependency( dep ) );
     }
 
     Map<VersionlessProjectKey, Set<Plugin>> getUnmanagedPluginRefs()

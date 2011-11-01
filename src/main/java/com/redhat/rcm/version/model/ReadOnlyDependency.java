@@ -6,14 +6,14 @@ import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Exclusion;
 import org.apache.maven.model.InputLocation;
 
-public final class IdentifiableDependency
+public final class ReadOnlyDependency
     extends Dependency
 {
     private static final long serialVersionUID = 1L;
 
     private final Dependency dep;
 
-    public IdentifiableDependency( final Dependency dep )
+    public ReadOnlyDependency( final Dependency dep )
     {
         this.dep = dep;
     }
@@ -99,7 +99,7 @@ public final class IdentifiableDependency
     @Override
     public Dependency clone()
     {
-        return new IdentifiableDependency( dep.clone() );
+        return new ReadOnlyDependency( dep.clone() );
     }
 
     @Override
@@ -208,7 +208,7 @@ public final class IdentifiableDependency
         {
             return false;
         }
-        IdentifiableDependency other = (IdentifiableDependency) obj;
+        ReadOnlyDependency other = (ReadOnlyDependency) obj;
         String[] values =
             { dep.getGroupId(), dep.getArtifactId(), dep.getVersion(), dep.getType(), dep.getClassifier() };
 
