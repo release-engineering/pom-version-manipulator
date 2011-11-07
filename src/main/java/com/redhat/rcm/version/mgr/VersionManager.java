@@ -20,17 +20,6 @@ package com.redhat.rcm.version.mgr;
 
 import static com.redhat.rcm.version.util.PomUtils.writeModifiedPom;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.log4j.Logger;
 import org.apache.maven.mae.MAEException;
 import org.apache.maven.mae.app.AbstractMAEApplication;
@@ -56,6 +45,17 @@ import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.mgr.verify.ProjectVerifier;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.report.Report;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Component( role = VersionManager.class )
 public class VersionManager
@@ -152,7 +152,7 @@ public class VersionManager
         {
             sessionConfigurator.configureSession( boms, toolchain, removedPlugins, session );
         }
-        catch ( VManException e )
+        catch ( final VManException e )
         {
             session.addError( e );
             return Collections.emptySet();
@@ -205,7 +205,7 @@ public class VersionManager
         {
             sessionConfigurator.configureSession( boms, toolchain, removedPlugins, session );
         }
-        catch ( VManException e )
+        catch ( final VManException e )
         {
             session.addError( e );
             return Collections.emptySet();
@@ -229,7 +229,7 @@ public class VersionManager
     {
         final Set<File> result = new LinkedHashSet<File>();
 
-        boolean processPomPlugins = session.isProcessPomPlugins();
+        final boolean processPomPlugins = session.isProcessPomPlugins();
         session.setProcessPomPlugins( true );
 
         List<Model> models;
@@ -238,7 +238,7 @@ public class VersionManager
             models = modelLoader.loadRawModels( session, true, new DefaultRequestTrace( "VMan ROOT" ), pomFiles );
             // projects = modelLoader.buildModels( session, pomFiles );
         }
-        catch ( ProjectToolsException e )
+        catch ( final ProjectToolsException e )
         {
             session.addError( e );
             return result;
@@ -248,30 +248,29 @@ public class VersionManager
             session.setProcessPomPlugins( processPomPlugins );
         }
 
-        LOGGER.info( "Modifying " + models.size() + " project(s)..." );
-        for ( final Model model : models )
+        try
         {
-            Project project;
-            try
-            {
-                project = new Project( model );
-            }
-            catch ( ProjectToolsException e )
-            {
-                LOGGER.info( "Cannot construct key for: " + model + ". Error: " + e.getMessage() );
-                session.addError( e );
-                continue;
-            }
+            session.setCurrentProjects( models );
+        }
+        catch ( final ProjectToolsException e )
+        {
+            LOGGER.info( "Cannot construct project key. Error: " + e.getMessage() );
+            session.addError( e );
+            return result;
+        }
 
+        LOGGER.info( "Modifying " + models.size() + " project(s)..." );
+        for ( final Project project : session.getCurrentProjects() )
+        {
             LOGGER.info( "Modifying '" + project.getKey() + "'..." );
 
             boolean changed = false;
             if ( injectors != null )
             {
-                for ( Map.Entry<String, ProjectInjector> entry : injectors.entrySet() )
+                for ( final Map.Entry<String, ProjectInjector> entry : injectors.entrySet() )
                 {
-                    String key = entry.getKey();
-                    ProjectInjector injector = entry.getValue();
+                    final String key = entry.getKey();
+                    final ProjectInjector injector = entry.getValue();
 
                     LOGGER.info( "Injecting '" + key + "' into '" + project.getKey() + "'" );
                     changed = injector.inject( project, session ) || changed;
@@ -280,7 +279,7 @@ public class VersionManager
 
             if ( changed )
             {
-                for ( Map.Entry<String, ProjectVerifier> entry : verifiers.entrySet() )
+                for ( final Map.Entry<String, ProjectVerifier> entry : verifiers.entrySet() )
                 {
                     LOGGER.info( "Verifying '" + project.getKey() + "' (" + entry.getKey() + ")..." );
                     entry.getValue().verify( project, session );
@@ -288,6 +287,7 @@ public class VersionManager
 
                 LOGGER.info( "Writing modified '" + project.getKey() + "'..." );
 
+                final Model model = project.getModel();
                 final Parent parent = model.getParent();
 
                 String groupId = model.getGroupId();
@@ -358,8 +358,11 @@ public class VersionManager
             }
             catch ( final IOException e )
             {
-                session.addError( new VManException( "Error making backup of POM: %s.\n\tTarget: %s\n\tReason: %s", e,
-                                                     pom, backup, e.getMessage() ) );
+                session.addError( new VManException( "Error making backup of POM: %s.\n\tTarget: %s\n\tReason: %s",
+                                                     e,
+                                                     pom,
+                                                     backup,
+                                                     e.getMessage() ) );
                 return null;
             }
         }

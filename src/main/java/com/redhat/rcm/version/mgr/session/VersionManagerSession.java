@@ -18,6 +18,23 @@
 
 package com.redhat.rcm.version.mgr.session;
 
+import org.apache.maven.mae.project.ProjectToolsException;
+import org.apache.maven.mae.project.key.FullProjectKey;
+import org.apache.maven.mae.project.key.ProjectKey;
+import org.apache.maven.mae.project.key.VersionlessProjectKey;
+import org.apache.maven.mae.project.session.SimpleProjectToolsSession;
+import org.apache.maven.model.Dependency;
+import org.apache.maven.model.Model;
+import org.apache.maven.model.Parent;
+import org.apache.maven.model.Plugin;
+import org.apache.maven.model.ReportPlugin;
+import org.apache.maven.model.Repository;
+import org.apache.maven.project.MavenProject;
+
+import com.redhat.rcm.version.model.Project;
+import com.redhat.rcm.version.model.ProjectAncestryGraph;
+import com.redhat.rcm.version.util.ActivityLog;
+
 import java.io.File;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
@@ -29,21 +46,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.maven.mae.project.key.FullProjectKey;
-import org.apache.maven.mae.project.key.ProjectKey;
-import org.apache.maven.mae.project.key.VersionlessProjectKey;
-import org.apache.maven.mae.project.session.SimpleProjectToolsSession;
-import org.apache.maven.model.Dependency;
-import org.apache.maven.model.Parent;
-import org.apache.maven.model.Plugin;
-import org.apache.maven.model.ReportPlugin;
-import org.apache.maven.model.Repository;
-import org.apache.maven.project.MavenProject;
-
-import com.redhat.rcm.version.model.Project;
-import com.redhat.rcm.version.model.ProjectAncestryGraph;
-import com.redhat.rcm.version.util.ActivityLog;
 
 public class VersionManagerSession
     extends SimpleProjectToolsSession
@@ -97,8 +99,8 @@ public class VersionManagerSession
 
         this.preserveFiles = preserveFiles;
 
-        this.managedInfo = new ManagedInfo( this );
-        this.missingInfo = new MissingInfo();
+        managedInfo = new ManagedInfo( this );
+        missingInfo = new MissingInfo();
     }
 
     public String getVersionSuffix()
@@ -130,7 +132,7 @@ public class VersionManagerSession
 
     public void addUnmanagedPlugin( final File pom, final ReportPlugin plugin )
     {
-        Plugin p = new Plugin();
+        final Plugin p = new Plugin();
         p.setGroupId( plugin.getGroupId() );
         p.setArtifactId( plugin.getArtifactId() );
         p.setVersion( plugin.getVersion() );
@@ -381,7 +383,7 @@ public class VersionManagerSession
         String id = "vman";
 
         String u = remoteRepository;
-        int idx = u.indexOf( '|' );
+        final int idx = u.indexOf( '|' );
         if ( idx > 0 )
         {
             id = u.substring( 0, idx );
@@ -419,7 +421,7 @@ public class VersionManagerSession
         // repo.setAuthentication( auth );
         // }
 
-        Repository resolveRepo = new Repository();
+        final Repository resolveRepo = new Repository();
         resolveRepo.setId( id );
         resolveRepo.setUrl( u );
 
@@ -455,6 +457,22 @@ public class VersionManagerSession
     public File getCapturePom()
     {
         return capturePom;
+    }
+
+    public void setCurrentProjects( final Collection<Model> models )
+        throws ProjectToolsException
+    {
+        managedInfo.setCurrentProjects( models );
+    }
+
+    public Set<Project> getCurrentProjects()
+    {
+        return managedInfo.getCurrentProjects();
+    }
+
+    public boolean isCurrentProject( final ProjectKey key )
+    {
+        return managedInfo.isCurrentProject( key );
     }
 
 }

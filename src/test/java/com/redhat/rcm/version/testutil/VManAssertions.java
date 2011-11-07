@@ -5,15 +5,17 @@ import static com.redhat.rcm.version.testutil.TestProjectUtils.loadProjectKey;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-import java.io.File;
-import java.util.HashSet;
-import java.util.Set;
-
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.mae.project.key.FullProjectKey;
+import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
+
+import java.io.File;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 public final class VManAssertions
 {
@@ -22,22 +24,25 @@ public final class VManAssertions
     {
     }
 
-    public static void assertNormalizedToBOMs( final Set<File> modified, final Set<File> boms )
+    public static Set<Dependency> assertNormalizedToBOMs( final Set<File> modified, final Set<File> boms,
+                                                          final VersionlessProjectKey... interdepKeys )
         throws Exception
     {
         assertNotNull( modified );
 
-        Set<FullProjectKey> bomKeys = new HashSet<FullProjectKey>();
-        for ( File bom : boms )
+        final Set<FullProjectKey> bomKeys = new HashSet<FullProjectKey>();
+        for ( final File bom : boms )
         {
             bomKeys.add( loadProjectKey( bom ) );
         }
 
+        final Set<VersionlessProjectKey> skipKeys = new HashSet<VersionlessProjectKey>( Arrays.asList( interdepKeys ) );
+        final Set<Dependency> skippedDeps = new HashSet<Dependency>();
         for ( final File out : modified )
         {
+            final Model model = loadModel( out );
             System.out.println( "Examining: " + out );
 
-            Model model = loadModel( out );
             new MavenXpp3Writer().write( System.out, model );
 
             // NOTE: Assuming injection of BOMs will happen in toolchain ancestor now...
@@ -67,10 +72,20 @@ public final class VManAssertions
             {
                 if ( !( "pom".equals( dep.getType() ) && Artifact.SCOPE_IMPORT.equals( dep.getScope() ) ) )
                 {
-                    assertNull( "Dependency version was NOT nullified: " + dep.getManagementKey() + "\nPOM: " + out,
-                                dep.getVersion() );
+                    final VersionlessProjectKey key = new VersionlessProjectKey( dep.getGroupId(), dep.getArtifactId() );
+                    if ( !skipKeys.contains( key ) )
+                    {
+                        assertNull( "Dependency version was NOT nullified: " + dep.getManagementKey() + "\nPOM: " + out,
+                                    dep.getVersion() );
+                    }
+                    else
+                    {
+                        skippedDeps.add( dep );
+                    }
                 }
             }
         }
+
+        return skippedDeps;
     }
 }

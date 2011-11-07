@@ -21,16 +21,14 @@ package com.redhat.rcm.version.mgr;
 import static com.redhat.rcm.version.testutil.TestProjectUtils.getResourceFile;
 import static com.redhat.rcm.version.testutil.VManAssertions.assertNormalizedToBOMs;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Set;
-
+import org.apache.maven.mae.project.key.VersionlessProjectKey;
+import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Repository;
 import org.codehaus.plexus.util.FileUtils;
 import org.junit.After;
@@ -40,6 +38,11 @@ import org.junit.Test;
 
 import com.redhat.rcm.version.fixture.LoggingFixture;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Set;
 
 public class BOMManagementTest
     extends AbstractVersionManagerTest
@@ -76,9 +79,9 @@ public class BOMManagementTest
 
         final File pom = new File( repo, "project/pom.xml" );
         final File bom = new File( repo, "bom.xml" );
-        File remoteRepo = new File( repo, "repo" );
+        final File remoteRepo = new File( repo, "repo" );
 
-        Repository resolve = new Repository();
+        final Repository resolve = new Repository();
 
         resolve.setId( "vman" );
         resolve.setUrl( remoteRepo.toURI().normalize().toURL().toExternalForm() );
@@ -105,9 +108,9 @@ public class BOMManagementTest
 
         final File pom = new File( repo, "project/pom.xml" );
         final File bom = new File( repo, "bom.xml" );
-        File remoteRepo = new File( repo, "repo" );
+        final File remoteRepo = new File( repo, "repo" );
 
-        Repository resolve = new Repository();
+        final Repository resolve = new Repository();
 
         resolve.setId( "vman" );
         resolve.setUrl( remoteRepo.toURI().normalize().toURL().toExternalForm() );
@@ -146,10 +149,10 @@ public class BOMManagementTest
     }
 
     @Test
-    public void modifyCompleteRepository_NormalizeToBOMUsage()
+    public void modifyMultimodule_NormalizeToBOMUsage()
         throws Exception
     {
-        System.out.println( "Repository test (normalize to BOM usage)..." );
+        System.out.println( "Mult-module project tree test (normalize to BOM usage)..." );
 
         final File srcRepo = getResourceFile( "project-dir" );
         final File bom = getResourceFile( "bom.xml" );
@@ -165,8 +168,51 @@ public class BOMManagementTest
                                  null,
                                  null,
                                  session );
+
         assertNoErrors( session );
+
         assertNormalizedToBOMs( modified, Collections.singleton( bom ) );
+
+        System.out.println( "\n\n" );
+    }
+
+    @Test
+    public void modifyMultimodule_IgnoreProjectInterdependency()
+        throws Exception
+    {
+        System.out.println( "Multi-module tree with interdependencies test (normalize to BOM usage)..." );
+
+        final File srcRepo = getResourceFile( "project-dir-with-interdep" );
+        final File bom = getResourceFile( "bom.xml" );
+
+        FileUtils.copyDirectoryStructure( srcRepo, repo );
+
+        final VersionManagerSession session = new VersionManagerSession( workspace, reports, null, false );
+
+        final Set<File> modified =
+            vman.modifyVersions( repo,
+                                 "pom.xml",
+                                 Collections.singletonList( bom.getAbsolutePath() ),
+                                 null,
+                                 null,
+                                 session );
+
+        assertNoErrors( session );
+
+        final String g = "org.commonjava.rwx";
+
+        final Set<Dependency> skipped =
+            assertNormalizedToBOMs( modified,
+                                    Collections.singleton( bom ),
+                                    new VersionlessProjectKey( g, "rwx-parent" ),
+                                    new VersionlessProjectKey( g, "rwx-core" ),
+                                    new VersionlessProjectKey( g, "rwx-bindings" ),
+                                    new VersionlessProjectKey( g, "rwx-http" ) );
+
+        for ( final Dependency dep : skipped )
+        {
+            assertThat( "Dependency: " + dep + " should NOT be modified!", dep.getVersion(), notNullValue() );
+        }
 
         System.out.println( "\n\n" );
     }

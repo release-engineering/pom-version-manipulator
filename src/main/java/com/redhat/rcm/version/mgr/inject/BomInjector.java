@@ -137,6 +137,18 @@ public class BomInjector
         }
 
         VersionlessProjectKey key = new VersionlessProjectKey( dep.getGroupId(), dep.getArtifactId() );
+        if ( session.isCurrentProject( key ) )
+        {
+            LOGGER.info( "NOT CHANGING version for interdependency from current project set: " + key );
+
+            session.getLog( pom )
+                   .add( "NOT changing version for: %s%s. This is an interdependency in the current project set.",
+                         key,
+                         isManaged ? " [MANAGED]" : "" );
+
+            return result;
+        }
+
         final FullProjectKey newKey = session.getRelocation( key );
         if ( newKey != null && !key.equals( newKey ) )
         {

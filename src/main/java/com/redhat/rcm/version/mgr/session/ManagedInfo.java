@@ -1,17 +1,7 @@
 package com.redhat.rcm.version.mgr.session;
 
-import java.io.File;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-
 import org.apache.log4j.Logger;
+import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
@@ -22,6 +12,19 @@ import org.apache.maven.model.Parent;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginManagement;
 import org.apache.maven.project.MavenProject;
+
+import com.redhat.rcm.version.model.Project;
+
+import java.io.File;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 
 class ManagedInfo
 {
@@ -50,6 +53,10 @@ class ManagedInfo
     private final Set<VersionlessProjectKey> removedPlugins = new HashSet<VersionlessProjectKey>();
 
     private final VersionManagerSession session;
+
+    private final Set<Project> currentProjects = new LinkedHashSet<Project>();
+
+    private final Set<VersionlessProjectKey> currentProjectKeys = new LinkedHashSet<VersionlessProjectKey>();
 
     ManagedInfo( final VersionManagerSession session )
     {
@@ -188,7 +195,7 @@ class ManagedInfo
 
     void setRemovedPlugins( final Collection<String> removedPlugins )
     {
-        for ( String rm : removedPlugins )
+        for ( final String rm : removedPlugins )
         {
             this.removedPlugins.add( new VersionlessProjectKey( rm ) );
         }
@@ -223,6 +230,34 @@ class ManagedInfo
     {
         return toolchainKey == null ? false
                         : new VersionlessProjectKey( toolchainKey ).equals( new VersionlessProjectKey( parent ) );
+    }
+
+    public synchronized void setCurrentProjects( final Collection<Model> models )
+        throws ProjectToolsException
+    {
+        if ( models == null || models.isEmpty() )
+        {
+            return;
+        }
+
+        currentProjects.clear();
+        currentProjectKeys.clear();
+        for ( final Model model : new LinkedHashSet<Model>( models ) )
+        {
+            final Project project = new Project( model );
+            currentProjects.add( project );
+            currentProjectKeys.add( new VersionlessProjectKey( project.getKey() ) );
+        }
+    }
+
+    public Set<Project> getCurrentProjects()
+    {
+        return currentProjects;
+    }
+
+    public boolean isCurrentProject( final ProjectKey key )
+    {
+        return currentProjectKeys.contains( new VersionlessProjectKey( key ) );
     }
 
 }
