@@ -24,7 +24,7 @@
     <version>7</version>
   </parent>
   
-  <groupId>org.commonjava.rcm</groupId>
+  <groupId>org.commonjava.redhat</groupId>
   <artifactId>pom-version-manipulator</artifactId>
   <version>1.0.1-SNAPSHOT</version>
 
