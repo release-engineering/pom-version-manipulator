@@ -16,7 +16,7 @@
  * <http://www.gnu.org/licenses>.
  */
 
-package com.redhat.rcm.version.mgr.inject;
+package com.redhat.rcm.version.mgr.mod;
 
 import java.util.HashSet;
 import java.util.Properties;

@@ -16,12 +16,12 @@
  * <http://www.gnu.org/licenses>.
  */
 
-package com.redhat.rcm.version.mgr.inject;
+package com.redhat.rcm.version.mgr.mod;
 
-import static com.redhat.rcm.version.mgr.inject.Interpolations.ARTIFACT_ID;
-import static com.redhat.rcm.version.mgr.inject.Interpolations.GROUP_ID;
-import static com.redhat.rcm.version.mgr.inject.Interpolations.PROPERTIES;
-import static com.redhat.rcm.version.mgr.inject.Interpolations.VERSION;
+import static com.redhat.rcm.version.mgr.mod.Interpolations.ARTIFACT_ID;
+import static com.redhat.rcm.version.mgr.mod.Interpolations.GROUP_ID;
+import static com.redhat.rcm.version.mgr.mod.Interpolations.PROPERTIES;
+import static com.redhat.rcm.version.mgr.mod.Interpolations.VERSION;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 

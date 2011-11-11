@@ -40,7 +40,7 @@ import org.sonatype.aether.util.DefaultRequestTrace;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.config.SessionConfigurator;
 import com.redhat.rcm.version.mgr.capture.MissingInfoCapture;
-import com.redhat.rcm.version.mgr.inject.ProjectInjector;
+import com.redhat.rcm.version.mgr.mod.ProjectModder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.mgr.verify.ProjectVerifier;
 import com.redhat.rcm.version.model.Project;
@@ -70,8 +70,8 @@ public class VersionManager
     @Requirement( role = Report.class )
     private Map<String, Report> reports;
 
-    @Requirement( role = ProjectInjector.class )
-    private Map<String, ProjectInjector> injectors;
+    @Requirement( role = ProjectModder.class )
+    private Map<String, ProjectModder> modders;
 
     @Requirement( role = ProjectVerifier.class )
     private Map<String, ProjectVerifier> verifiers;
@@ -265,12 +265,12 @@ public class VersionManager
             LOGGER.info( "Modifying '" + project.getKey() + "'..." );
 
             boolean changed = false;
-            if ( injectors != null )
+            if ( modders != null )
             {
-                for ( final Map.Entry<String, ProjectInjector> entry : injectors.entrySet() )
+                for ( final Map.Entry<String, ProjectModder> entry : modders.entrySet() )
                 {
                     final String key = entry.getKey();
-                    final ProjectInjector injector = entry.getValue();
+                    final ProjectModder injector = entry.getValue();
 
                     LOGGER.info( "Injecting '" + key + "' into '" + project.getKey() + "'" );
                     changed = injector.inject( project, session ) || changed;

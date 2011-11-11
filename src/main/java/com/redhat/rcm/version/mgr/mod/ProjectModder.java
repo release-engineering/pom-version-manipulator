@@ -16,12 +16,12 @@
  * <http://www.gnu.org/licenses>.
  */
 
-package com.redhat.rcm.version.mgr.inject;
+package com.redhat.rcm.version.mgr.mod;
 
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
-public interface ProjectInjector
+public interface ProjectModder
 {
 
     boolean inject( final Project project, final VersionManagerSession session );

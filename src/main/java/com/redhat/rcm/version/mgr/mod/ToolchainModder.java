@@ -16,7 +16,7 @@
  * <http://www.gnu.org/licenses>.
  */
 
-package com.redhat.rcm.version.mgr.inject;
+package com.redhat.rcm.version.mgr.mod;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -43,12 +43,12 @@ import org.codehaus.plexus.component.annotations.Component;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
-@Component( role = ProjectInjector.class, hint = "toolchain-realignment" )
-public class ToolchainInjector
-    implements ProjectInjector
+@Component( role = ProjectModder.class, hint = "toolchain-realignment" )
+public class ToolchainModder
+    implements ProjectModder
 {
 
-    private static final Logger LOGGER = Logger.getLogger( ToolchainInjector.class );
+    private static final Logger LOGGER = Logger.getLogger( ToolchainModder.class );
 
     private final InjectionMerger merger = new InjectionMerger();
 

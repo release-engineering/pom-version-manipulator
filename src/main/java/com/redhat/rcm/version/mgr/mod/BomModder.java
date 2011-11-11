@@ -16,9 +16,9 @@
  * <http://www.gnu.org/licenses>.
  */
 
-package com.redhat.rcm.version.mgr.inject;
+package com.redhat.rcm.version.mgr.mod;
 
-import static com.redhat.rcm.version.mgr.inject.Interpolations.interpolate;
+import static com.redhat.rcm.version.mgr.mod.Interpolations.interpolate;
 
 import org.apache.log4j.Logger;
 import org.apache.maven.mae.project.key.FullProjectKey;
@@ -35,12 +35,12 @@ import com.redhat.rcm.version.model.ReadOnlyDependency;
 import java.io.File;
 import java.util.Iterator;
 
-@Component( role = ProjectInjector.class, hint = "BOM-realignment" )
-public class BomInjector
-    implements ProjectInjector
+@Component( role = ProjectModder.class, hint = "BOM-realignment" )
+public class BomModder
+    implements ProjectModder
 {
 
-    private static final Logger LOGGER = Logger.getLogger( BomInjector.class );
+    private static final Logger LOGGER = Logger.getLogger( BomModder.class );
 
     @Override
     public boolean inject( final Project project, final VersionManagerSession session )
