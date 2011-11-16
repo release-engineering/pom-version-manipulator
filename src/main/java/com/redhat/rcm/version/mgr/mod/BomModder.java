@@ -175,21 +175,19 @@ public class BomModder
             return result;
         }
 
-        version = session.getArtifactVersion( key );
-        if ( version != null )
+        // wipe this out, and use the one in the BOM implicitly...DRY-style.
+        d.setVersion( null );
+        if ( isManaged && ( dep.getScope() == null || dep.getExclusions() == null || dep.getExclusions().isEmpty() ) )
         {
-            // wipe this out, and use the one in the BOM implicitly...DRY-style.
-            d.setVersion( null );
-            if ( isManaged && ( dep.getScope() == null || dep.getExclusions() == null || dep.getExclusions().isEmpty() ) )
-            {
-                result = DepModResult.DELETED;
-            }
-            else
-            {
-                result = DepModResult.MODIFIED;
-            }
+            result = DepModResult.DELETED;
         }
         else
+        {
+            result = DepModResult.MODIFIED;
+        }
+
+        version = session.getArtifactVersion( key );
+        if ( version == null )
         {
             session.addMissingDependency( project, dep );
         }
