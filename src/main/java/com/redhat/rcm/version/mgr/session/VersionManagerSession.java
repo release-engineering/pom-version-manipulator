@@ -60,8 +60,6 @@ public class VersionManagerSession
     private final Map<VersionlessProjectKey, Set<VersionlessProjectKey>> childPluginRefs =
         new HashMap<VersionlessProjectKey, Set<VersionlessProjectKey>>();
 
-    private final Set<VersionlessProjectKey> currentProjects = new HashSet<VersionlessProjectKey>();
-
     private final File backups;
 
     private final File downloads;
@@ -354,14 +352,14 @@ public class VersionManagerSession
     // return getAncestryGraph().hasParentInGraph( project );
     // }
 
-    public VersionManagerSession addProject( final Project project )
-    {
-        getAncestryGraph().connect( project );
-        currentProjects.add( new VersionlessProjectKey( project.getKey() ) );
-
-        return this;
-    }
-
+    // public VersionManagerSession addProject( final Project project )
+    // {
+    // getAncestryGraph().connect( project );
+    // managedInfo.getCurrentProjects().add( project );
+    //
+    // return this;
+    // }
+    //
     private synchronized ProjectAncestryGraph getAncestryGraph()
     {
         if ( ancestryGraph == null )
@@ -436,7 +434,7 @@ public class VersionManagerSession
 
     public boolean inCurrentSession( final Parent parent )
     {
-        return currentProjects.contains( new VersionlessProjectKey( parent ) );
+        return managedInfo.getCurrentProjects().contains( new VersionlessProjectKey( parent ) );
     }
 
     public void setSettingsXml( final File settingsXml )

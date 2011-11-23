@@ -11,6 +11,11 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
+	    <groupId>test</groupId>
+	    <version>1-rebuild-1</version>
+	    <artifactId>parent</artifactId>
+      </dependency>
+      <dependency>
         <groupId>other.test</groupId>
         <artifactId>external-parent</artifactId>
         <version>1-rebuild-1</version>

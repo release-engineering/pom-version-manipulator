@@ -38,9 +38,9 @@ public class VersionSuffixModder
         boolean changed = false;
         if ( session.getVersionSuffix() != null )
         {
-            String suffix = session.getVersionSuffix();
-            Model model = project.getModel();
-            Parent parent = project.getParent();
+            final String suffix = session.getVersionSuffix();
+            final Model model = project.getModel();
+            final Parent parent = project.getParent();
 
             if ( model.getVersion() != null && !model.getVersion().endsWith( suffix ) )
             {
@@ -50,9 +50,9 @@ public class VersionSuffixModder
 
             if ( parent != null )
             {
-                ProjectKey tk = session.getToolchainKey();
-                VersionlessProjectKey vpk = new VersionlessProjectKey( parent );
-                String version = session.getArtifactVersion( vpk );
+                final ProjectKey tk = session.getToolchainKey();
+                final VersionlessProjectKey vpk = new VersionlessProjectKey( parent );
+                final String version = session.getArtifactVersion( vpk );
 
                 if ( tk == null || new VersionlessProjectKey( tk ).equals( vpk ) )
                 {
@@ -69,10 +69,14 @@ public class VersionSuffixModder
                 else if ( version == null )
                 {
                     session.addMissingParent( project );
+                    if ( !parent.getVersion().endsWith( suffix ) )
+                    {
+                        parent.setVersion( parent.getVersion() + suffix );
+                    }
                 }
                 else if ( !parent.getVersion().equals( version ) )
                 {
-                    model.getParent().setVersion( version );
+                    parent.setVersion( version );
                     changed = true;
                 }
             }

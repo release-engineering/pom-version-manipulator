@@ -18,15 +18,6 @@
 
 package com.redhat.rcm.version.mgr.mod;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.log4j.Logger;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
@@ -42,6 +33,15 @@ import org.codehaus.plexus.component.annotations.Component;
 
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Component( role = ProjectModder.class, hint = "toolchain-realignment" )
 public class ToolchainModder
@@ -95,10 +95,10 @@ public class ToolchainModder
 
         boolean changed = false;
 
-        List<ReportPlugin> reportPlugins = project.getReportPlugins();
+        final List<ReportPlugin> reportPlugins = project.getReportPlugins();
         if ( reportPlugins != null )
         {
-            for ( ReportPlugin plugin : reportPlugins )
+            for ( final ReportPlugin plugin : reportPlugins )
             {
                 final VersionlessProjectKey pluginKey = new VersionlessProjectKey( plugin );
                 final Plugin managedPlugin = session.getManagedPlugin( pluginKey );
@@ -145,16 +145,16 @@ public class ToolchainModder
                 parent.setVersion( toolchainKey.getVersion() );
 
                 model.setParent( parent );
-                session.addProject( project );
+                // session.addProject( project );
 
                 changed = true;
             }
             else
             {
-                VersionlessProjectKey vtk =
+                final VersionlessProjectKey vtk =
                     new VersionlessProjectKey( toolchainKey.getGroupId(), toolchainKey.getArtifactId() );
 
-                VersionlessProjectKey vpk = new VersionlessProjectKey( parent );
+                final VersionlessProjectKey vpk = new VersionlessProjectKey( parent );
 
                 if ( vtk.equals( vpk ) )
                 {
@@ -281,7 +281,7 @@ public class ToolchainModder
         }
 
         final Model original = project.getModel();
-        Build build = original.getBuild();
+        final Build build = original.getBuild();
 
         if ( build != null )
         {
@@ -300,7 +300,7 @@ public class ToolchainModder
                 }
             }
 
-            PluginManagement pm = build.getPluginManagement();
+            final PluginManagement pm = build.getPluginManagement();
             if ( pm != null )
             {
                 pluginMap = pm.getPluginsAsMap();
@@ -321,13 +321,14 @@ public class ToolchainModder
             }
         }
 
-        Reporting reporting = original.getReporting();
+        final Reporting reporting = original.getReporting();
         if ( reporting != null )
         {
-            Map<String, ReportPlugin> pluginMap = new HashMap<String, ReportPlugin>( reporting.getReportPluginsAsMap() );
-            for ( VersionlessProjectKey key : removedPlugins )
+            final Map<String, ReportPlugin> pluginMap =
+                new HashMap<String, ReportPlugin>( reporting.getReportPluginsAsMap() );
+            for ( final VersionlessProjectKey key : removedPlugins )
             {
-                ReportPlugin existing = pluginMap.get( key.getId() );
+                final ReportPlugin existing = pluginMap.get( key.getId() );
                 if ( existing != null )
                 {
                     LOGGER.info( "Removing report plugin: " + key );
@@ -373,7 +374,7 @@ public class ToolchainModder
                 // No matter what, remove the plugin version. It should ALWAYS come from the toolchain.
                 // The capture-POM will assist with adding missing plugins to the toolchain.
 
-                Plugin p = plugin.clone();
+                final Plugin p = plugin.clone();
                 plugin.setVersion( null );
 
                 if ( managedPlugin != null )

@@ -22,25 +22,13 @@ import static org.apache.commons.io.IOUtils.closeQuietly;
 import static org.apache.commons.lang.StringUtils.isEmpty;
 import static org.apache.commons.lang.StringUtils.isNotEmpty;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.Writer;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Build;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Model;
+import org.apache.maven.model.Parent;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginManagement;
 import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
@@ -54,6 +42,22 @@ import org.sonatype.aether.version.VersionScheme;
 import com.redhat.rcm.version.Cli;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
+import com.redhat.rcm.version.model.Project;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.Writer;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Component( role = MissingInfoCapture.class )
 public class MissingInfoCapture
@@ -63,15 +67,17 @@ public class MissingInfoCapture
 
     public void captureMissing( final VersionManagerSession session )
     {
-        Map<VersionlessProjectKey, Set<Dependency>> missingDeps = session.getMissingDependencies();
-        Map<VersionlessProjectKey, Set<Plugin>> missingPlugins = session.getUnmanagedPluginRefs();
+        final Map<VersionlessProjectKey, Set<Dependency>> missingDeps = session.getMissingDependencies();
+        final Map<VersionlessProjectKey, Set<Plugin>> missingPlugins = session.getUnmanagedPluginRefs();
+        final Set<Project> missingParents = session.getProjectsWithMissingParent();
 
-        boolean procDeps = notEmpty( missingDeps );
-        boolean procPlugs = notEmpty( missingPlugins );
+        final boolean procDeps = notEmpty( missingDeps );
+        final boolean procPlugs = notEmpty( missingPlugins );
+        final boolean procParents = notEmpty( missingParents );
         if ( procDeps || procPlugs )
         {
-            SimpleDateFormat format = new SimpleDateFormat( VERSION_DATE_PATTERN );
-            Model model = new Model();
+            final SimpleDateFormat format = new SimpleDateFormat( VERSION_DATE_PATTERN );
+            final Model model = new Model();
             model.setModelVersion( "4.0.0" );
 
             model.setGroupId( Cli.class.getPackage().getName() );
@@ -91,13 +97,18 @@ public class MissingInfoCapture
                 write = processPlugins( missingPlugins, model ) || write;
             }
 
+            if ( procParents )
+            {
+                write = processParents( missingParents, model ) || write;
+            }
+
             if ( write )
             {
-                File capturePom = session.getCapturePom();
+                final File capturePom = session.getCapturePom();
                 Writer writer = null;
                 try
                 {
-                    File dir = capturePom.getAbsoluteFile().getParentFile();
+                    final File dir = capturePom.getAbsoluteFile().getParentFile();
                     if ( dir != null && !dir.exists() )
                     {
                         dir.mkdirs();
@@ -106,9 +117,11 @@ public class MissingInfoCapture
                     writer = WriterFactory.newXmlWriter( capturePom );
                     new MavenXpp3Writer().write( writer, model );
                 }
-                catch ( IOException e )
+                catch ( final IOException e )
                 {
-                    session.addError( new VManException( "Failed to write capture POM: %s. Reason: %s", e, capturePom,
+                    session.addError( new VManException( "Failed to write capture POM: %s. Reason: %s",
+                                                         e,
+                                                         capturePom,
                                                          e.getMessage() ) );
                 }
                 finally
@@ -119,18 +132,63 @@ public class MissingInfoCapture
         }
     }
 
+    private boolean processParents( final Set<Project> missingParents, final Model model )
+    {
+        DependencyManagement dm = model.getDependencyManagement();
+        if ( dm == null )
+        {
+            dm = new DependencyManagement();
+            model.setDependencyManagement( dm );
+        }
+
+        final Map<FullProjectKey, Dependency> parents = new HashMap<FullProjectKey, Dependency>();
+        for ( final Project project : missingParents )
+        {
+            final Parent parent = project.getParent();
+
+            final FullProjectKey key = new FullProjectKey( parent );
+            if ( !parents.containsKey( key ) )
+            {
+                final Dependency dep = new Dependency();
+                dep.setGroupId( parent.getGroupId() );
+                dep.setArtifactId( parent.getArtifactId() );
+                dep.setVersion( parent.getVersion() );
+
+                parents.put( key, dep );
+            }
+        }
+
+        final Set<FullProjectKey> depKeys = new HashSet<FullProjectKey>();
+        for ( final Dependency dep : dm.getDependencies() )
+        {
+            depKeys.add( new FullProjectKey( dep ) );
+        }
+
+        boolean result = false;
+        for ( final Map.Entry<FullProjectKey, Dependency> entry : parents.entrySet() )
+        {
+            if ( !depKeys.contains( entry.getKey() ) )
+            {
+                dm.addDependency( entry.getValue() );
+                result = true;
+            }
+        }
+
+        return result;
+    }
+
     private boolean processPlugins( final Map<VersionlessProjectKey, Set<Plugin>> missingPlugins, final Model model )
     {
-        Build build = new Build();
-        PluginManagement pm = new PluginManagement();
+        final Build build = new Build();
+        final PluginManagement pm = new PluginManagement();
         build.setPluginManagement( pm );
 
-        for ( Map.Entry<VersionlessProjectKey, Set<Plugin>> entry : missingPlugins.entrySet() )
+        for ( final Map.Entry<VersionlessProjectKey, Set<Plugin>> entry : missingPlugins.entrySet() )
         {
-            Map<String, Set<Plugin>> mks = new HashMap<String, Set<Plugin>>();
-            for ( Plugin plugin : entry.getValue() )
+            final Map<String, Set<Plugin>> mks = new HashMap<String, Set<Plugin>>();
+            for ( final Plugin plugin : entry.getValue() )
             {
-                String key = plugin.getKey();
+                final String key = plugin.getKey();
                 Set<Plugin> ds = mks.get( key );
                 if ( ds == null )
                 {
@@ -141,14 +199,14 @@ public class MissingInfoCapture
                 ds.add( plugin );
             }
 
-            for ( Set<Plugin> ds : mks.values() )
+            for ( final Set<Plugin> ds : mks.values() )
             {
                 if ( ds == null || ds.isEmpty() )
                 {
                     continue;
                 }
 
-                List<Plugin> pluginList = new ArrayList<Plugin>( ds );
+                final List<Plugin> pluginList = new ArrayList<Plugin>( ds );
                 Collections.sort( pluginList, new PluginVersionComparator() );
 
                 pm.addPlugin( pluginList.get( 0 ) );
@@ -169,13 +227,13 @@ public class MissingInfoCapture
     private boolean processDependencies( final Map<VersionlessProjectKey, Set<Dependency>> missingDeps,
                                          final Model model )
     {
-        DependencyManagement dm = new DependencyManagement();
-        for ( Map.Entry<VersionlessProjectKey, Set<Dependency>> entry : missingDeps.entrySet() )
+        final DependencyManagement dm = new DependencyManagement();
+        for ( final Map.Entry<VersionlessProjectKey, Set<Dependency>> entry : missingDeps.entrySet() )
         {
-            Map<String, Set<Dependency>> mks = new HashMap<String, Set<Dependency>>();
-            for ( Dependency dep : entry.getValue() )
+            final Map<String, Set<Dependency>> mks = new HashMap<String, Set<Dependency>>();
+            for ( final Dependency dep : entry.getValue() )
             {
-                String key = dep.getManagementKey();
+                final String key = dep.getManagementKey();
                 Set<Dependency> ds = mks.get( key );
                 if ( ds == null )
                 {
@@ -186,14 +244,14 @@ public class MissingInfoCapture
                 ds.add( dep );
             }
 
-            for ( Set<Dependency> ds : mks.values() )
+            for ( final Set<Dependency> ds : mks.values() )
             {
                 if ( ds == null || ds.isEmpty() )
                 {
                     continue;
                 }
 
-                List<Dependency> depList = new ArrayList<Dependency>( ds );
+                final List<Dependency> depList = new ArrayList<Dependency>( ds );
                 Collections.sort( depList, new DependencyVersionComparator() );
 
                 dm.addDependency( depList.get( 0 ) );
@@ -214,6 +272,11 @@ public class MissingInfoCapture
     private boolean notEmpty( final Map<?, ?> map )
     {
         return map != null && !map.isEmpty();
+    }
+
+    private boolean notEmpty( final Collection<?> coll )
+    {
+        return coll != null && !coll.isEmpty();
     }
 
     public static final class DependencyVersionComparator
@@ -242,7 +305,7 @@ public class MissingInfoCapture
                 {
                     v1 = versionScheme.parseVersion( o1.getVersion() );
                 }
-                catch ( InvalidVersionSpecificationException e )
+                catch ( final InvalidVersionSpecificationException e )
                 {
                     result = -1;
                 }
@@ -251,11 +314,11 @@ public class MissingInfoCapture
                 {
                     try
                     {
-                        Version v2 = versionScheme.parseVersion( o2.getVersion() );
+                        final Version v2 = versionScheme.parseVersion( o2.getVersion() );
 
                         result = v1.compareTo( v2 );
                     }
-                    catch ( InvalidVersionSpecificationException e )
+                    catch ( final InvalidVersionSpecificationException e )
                     {
                         result = 1;
                     }
@@ -294,7 +357,7 @@ public class MissingInfoCapture
                 {
                     v1 = versionScheme.parseVersion( o1.getVersion() );
                 }
-                catch ( InvalidVersionSpecificationException e )
+                catch ( final InvalidVersionSpecificationException e )
                 {
                     result = -1;
                 }
@@ -303,11 +366,11 @@ public class MissingInfoCapture
                 {
                     try
                     {
-                        Version v2 = versionScheme.parseVersion( o2.getVersion() );
+                        final Version v2 = versionScheme.parseVersion( o2.getVersion() );
 
                         result = v1.compareTo( v2 );
                     }
-                    catch ( InvalidVersionSpecificationException e )
+                    catch ( final InvalidVersionSpecificationException e )
                     {
                         result = 1;
                     }
