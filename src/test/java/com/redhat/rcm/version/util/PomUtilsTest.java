@@ -20,6 +20,7 @@ package com.redhat.rcm.version.util;
 
 import static com.redhat.rcm.version.testutil.TestProjectUtils.getResourceFile;
 import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModel;
+import static com.redhat.rcm.version.testutil.TestProjectUtils.newVersionManagerSession;
 import static com.redhat.rcm.version.util.PomUtils.writeModifiedPom;
 import static org.apache.commons.io.FileUtils.copyFile;
 import static org.apache.commons.io.FileUtils.readFileToString;
@@ -27,9 +28,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
-
-import java.io.File;
-import java.util.List;
 
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Dependency;
@@ -42,6 +40,9 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
+
+import java.io.File;
+import java.util.List;
 
 public class PomUtilsTest
 {
@@ -73,7 +74,7 @@ public class PomUtilsTest
         // Model toolchainModel = loadModel( toolchainPom );
         // MavenProject toolchainProject = new MavenProject( toolchainModel );
 
-        session = new VersionManagerSession( workspace, reports, null, false );
+        session = newVersionManagerSession( workspace, reports, null );
         // session.setToolchain( toolchainPom, toolchainProject );
     }
 
@@ -82,15 +83,15 @@ public class PomUtilsTest
         throws Exception
     {
         File pom = getResourceFile( BASE + "plugin-config-attributes.pom" );
-        File temp = tempFolder.newFile( pom.getName() );
+        final File temp = tempFolder.newFile( pom.getName() );
         copyFile( pom, temp );
         pom = temp;
 
-        Model model = loadModel( pom );
+        final Model model = loadModel( pom );
 
         assertThat( model.getDependencies(), notNullValue() );
         assertThat( model.getDependencies().size(), equalTo( 1 ) );
-        for ( Dependency dep : model.getDependencies() )
+        for ( final Dependency dep : model.getDependencies() )
         {
             System.out.println( "Verifying starting condition for dep: " + dep );
             assertThat( dep.getVersion(), notNullValue() );
@@ -111,19 +112,19 @@ public class PomUtilsTest
         model.getDependencies().get( 0 ).setVersion( null );
         plugin.setVersion( null );
 
-        VersionlessProjectKey coord = new VersionlessProjectKey( model.getGroupId(), model.getArtifactId() );
+        final VersionlessProjectKey coord = new VersionlessProjectKey( model.getGroupId(), model.getArtifactId() );
 
-        File basedir = tempFolder.newFolder( testName.getMethodName() + ".out.dir" );
-        File out = writeModifiedPom( model, pom, coord, model.getVersion(), basedir, session, false );
+        final File basedir = tempFolder.newFolder( testName.getMethodName() + ".out.dir" );
+        final File out = writeModifiedPom( model, pom, coord, model.getVersion(), basedir, session, false );
 
-        String pomStr = readFileToString( out );
+        final String pomStr = readFileToString( out );
         System.out.println( "Modified POM for " + testName.getMethodName() + ":\n\n" + pomStr + "\n\n" );
 
-        Model changed = loadModel( out );
+        final Model changed = loadModel( out );
 
         assertThat( changed.getDependencies(), notNullValue() );
         assertThat( changed.getDependencies().size(), equalTo( 1 ) );
-        for ( Dependency dep : changed.getDependencies() )
+        for ( final Dependency dep : changed.getDependencies() )
         {
             assertThat( dep.getVersion(), nullValue() );
         }

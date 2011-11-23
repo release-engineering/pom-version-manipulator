@@ -19,6 +19,7 @@
 package com.redhat.rcm.version.mgr;
 
 import static com.redhat.rcm.version.testutil.TestProjectUtils.getResourceFile;
+import static com.redhat.rcm.version.testutil.TestProjectUtils.newVersionManagerSession;
 import static com.redhat.rcm.version.testutil.VManAssertions.assertNormalizedToBOMs;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -86,7 +87,7 @@ public class BOMManagementTest
         resolve.setId( "vman" );
         resolve.setUrl( remoteRepo.toURI().normalize().toURL().toExternalForm() );
 
-        final VersionManagerSession session = new VersionManagerSession( workspace, reports, null, false );
+        final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
         session.setResolveRepositories( resolve );
 
         final Set<File> modified =
@@ -115,7 +116,7 @@ public class BOMManagementTest
         resolve.setId( "vman" );
         resolve.setUrl( remoteRepo.toURI().normalize().toURL().toExternalForm() );
 
-        final VersionManagerSession session = new VersionManagerSession( workspace, reports, null, false );
+        final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
         session.setResolveRepositories( resolve );
 
         final Set<File> modified =
@@ -138,7 +139,7 @@ public class BOMManagementTest
         final File pom = new File( repo, srcPom.getName() );
         FileUtils.copyFile( srcPom, pom );
 
-        final VersionManagerSession session = new VersionManagerSession( workspace, reports, null, false );
+        final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
 
         final Set<File> modified =
             vman.modifyVersions( pom, Collections.singletonList( bom.getAbsolutePath() ), null, null, session );
@@ -159,7 +160,7 @@ public class BOMManagementTest
 
         FileUtils.copyDirectoryStructure( srcRepo, repo );
 
-        final VersionManagerSession session = new VersionManagerSession( workspace, reports, null, false );
+        final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
 
         final Set<File> modified =
             vman.modifyVersions( repo,
@@ -187,7 +188,7 @@ public class BOMManagementTest
 
         FileUtils.copyDirectoryStructure( srcRepo, repo );
 
-        final VersionManagerSession session = new VersionManagerSession( workspace, reports, null, false );
+        final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
 
         final Set<File> modified =
             vman.modifyVersions( repo,
@@ -244,7 +245,7 @@ public class BOMManagementTest
 
         FileUtils.copyDirectoryStructure( srcRepo, repo );
 
-        final VersionManagerSession session = newVersionManagerSession();
+        final VersionManagerSession session = createVersionManagerSession();
 
         final Set<File> results =
             vman.modifyVersions( repo, "**/*.pom", Collections.singletonList( bom ), null, null, session );
@@ -326,7 +327,7 @@ public class BOMManagementTest
         final File pom = new File( repo, srcPom.getName() );
         FileUtils.copyFile( srcPom, pom );
 
-        final VersionManagerSession session = newVersionManagerSession();
+        final VersionManagerSession session = createVersionManagerSession();
 
         /* final File out = */vman.modifyVersions( pom,
                                                    Collections.singletonList( bom ),
@@ -358,7 +359,7 @@ public class BOMManagementTest
         final File pom = new File( repo, srcPom.getName() );
         FileUtils.copyFile( srcPom, pom );
 
-        final VersionManagerSession session = newVersionManagerSession();
+        final VersionManagerSession session = createVersionManagerSession();
 
         vman.modifyVersions( pom, Collections.singletonList( bom ), null, null, session );
         assertNoErrors( session );
@@ -379,7 +380,7 @@ public class BOMManagementTest
         final File pom = new File( repo, srcPom.getName() );
         FileUtils.copyFile( srcPom, pom );
 
-        final VersionManagerSession session = newVersionManagerSession();
+        final VersionManagerSession session = createVersionManagerSession();
 
         final Set<File> modified = vman.modifyVersions( pom, Collections.singletonList( bom ), null, null, session );
         assertNoErrors( session );

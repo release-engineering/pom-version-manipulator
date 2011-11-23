@@ -18,10 +18,6 @@
 
 package com.redhat.rcm.version.model;
 
-import java.io.File;
-import java.util.Collections;
-import java.util.List;
-
 import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.model.Build;
@@ -34,6 +30,10 @@ import org.apache.maven.model.PluginManagement;
 import org.apache.maven.model.ReportPlugin;
 import org.apache.maven.model.Reporting;
 
+import java.io.File;
+import java.util.Collections;
+import java.util.List;
+
 public class Project
 {
 
@@ -41,7 +41,7 @@ public class Project
 
     private final Model model;
 
-    private final FullProjectKey key;
+    private FullProjectKey key;
 
     public Project( final FullProjectKey key, final File pom, final Model model )
     {
@@ -101,7 +101,7 @@ public class Project
         {
             return false;
         }
-        Project other = (Project) obj;
+        final Project other = (Project) obj;
         if ( key == null )
         {
             if ( other.key != null )
@@ -144,13 +144,13 @@ public class Project
 
     public List<Plugin> getPlugins()
     {
-        Build build = model.getBuild();
+        final Build build = model.getBuild();
         if ( build == null )
         {
             return Collections.emptyList();
         }
 
-        List<Plugin> result = build.getPlugins();
+        final List<Plugin> result = build.getPlugins();
         if ( result == null )
         {
             return Collections.emptyList();
@@ -161,19 +161,19 @@ public class Project
 
     public List<Plugin> getManagedPlugins()
     {
-        Build build = model.getBuild();
+        final Build build = model.getBuild();
         if ( build == null )
         {
             return Collections.emptyList();
         }
 
-        PluginManagement pm = build.getPluginManagement();
+        final PluginManagement pm = build.getPluginManagement();
         if ( pm == null )
         {
             return Collections.emptyList();
         }
 
-        List<Plugin> result = pm.getPlugins();
+        final List<Plugin> result = pm.getPlugins();
         if ( result == null )
         {
             return Collections.emptyList();
@@ -184,7 +184,7 @@ public class Project
 
     public List<ReportPlugin> getReportPlugins()
     {
-        Reporting reporting = model.getReporting();
+        final Reporting reporting = model.getReporting();
         if ( reporting == null )
         {
             return Collections.emptyList();
@@ -206,13 +206,26 @@ public class Project
 
     public Iterable<Dependency> getManagedDependencies()
     {
-        DependencyManagement dm = model.getDependencyManagement();
+        final DependencyManagement dm = model.getDependencyManagement();
         if ( dm == null || dm.getDependencies() == null )
         {
             return Collections.emptyList();
         }
 
         return dm.getDependencies();
+    }
+
+    public void updateCoord()
+        throws ProjectToolsException
+    {
+        try
+        {
+            key = new FullProjectKey( model );
+        }
+        catch ( final ProjectToolsException e )
+        {
+            throw new ProjectToolsException( "Failed to update project coordinate: %s", e, e.getMessage() );
+        }
     }
 
 }

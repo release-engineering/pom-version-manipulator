@@ -18,6 +18,7 @@
 
 package com.redhat.rcm.version.mgr.mod;
 
+import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Model;
@@ -69,7 +70,7 @@ public class VersionSuffixModder
                 else if ( version == null )
                 {
                     session.addMissingParent( project );
-                    if ( !parent.getVersion().endsWith( suffix ) )
+                    if ( !session.isStrict() && !parent.getVersion().endsWith( suffix ) )
                     {
                         parent.setVersion( parent.getVersion() + suffix );
                     }
@@ -80,6 +81,15 @@ public class VersionSuffixModder
                     changed = true;
                 }
             }
+        }
+
+        try
+        {
+            project.updateCoord();
+        }
+        catch ( final ProjectToolsException e )
+        {
+            session.addError( e );
         }
 
         return changed;

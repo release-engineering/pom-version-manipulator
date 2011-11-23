@@ -20,6 +20,18 @@ package com.redhat.rcm.version;
 
 import static org.apache.commons.io.IOUtils.closeQuietly;
 
+import org.apache.log4j.Logger;
+import org.apache.maven.mae.MAEException;
+import org.codehaus.plexus.util.StringUtils;
+import org.kohsuke.args4j.Argument;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.ExampleMode;
+import org.kohsuke.args4j.Option;
+
+import com.redhat.rcm.version.mgr.VersionManager;
+import com.redhat.rcm.version.mgr.session.VersionManagerSession;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -34,24 +46,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
-import org.apache.log4j.Logger;
-import org.apache.maven.mae.MAEException;
-import org.codehaus.plexus.util.StringUtils;
-import org.kohsuke.args4j.Argument;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
-import org.kohsuke.args4j.ExampleMode;
-import org.kohsuke.args4j.Option;
-
-import com.redhat.rcm.version.mgr.VersionManager;
-import com.redhat.rcm.version.mgr.session.VersionManagerSession;
-
 public class Cli
 {
     @Argument( index = 0, metaVar = "target", usage = "POM file (or directory containing POM files) to modify." )
     private File target = new File( System.getProperty( "user.dir" ), "pom.xml" );
 
-    @Option( name = "-r", aliases = "--rm-plugins", usage = "List of plugins (format: <groupId:artifactId>[,<groupId:artifactId>]) to REMOVE if found" )
+    @Option( name = "-r", aliases = { "--rm-plugins", "--removed-plugins" }, usage = "List of plugins (format: <groupId:artifactId>[,<groupId:artifactId>]) to REMOVE if found" )
     private String removedPluginsList;
 
     @Option( name = "-b", aliases = "--boms", usage = "File containing a list of BOM URLs to use for standardizing dependencies" )
@@ -61,7 +61,7 @@ public class Cli
         + "and plugin injections in the regular build/plugins section." )
     private String toolchain;
 
-    @Option( name = "-m", aliases = "--maven-repository", usage = "Maven remote repository from which load missing parent POMs." )
+    @Option( name = "-m", aliases = "--remote-repository", usage = "Maven remote repository from which load missing parent POMs." )
     private String remoteRepository;
 
     @Option( name = "-p", usage = "POM path pattern (glob)" )
@@ -69,6 +69,9 @@ public class Cli
 
     @Option( name = "-s", aliases = "--version-suffix", usage = "A suffix to append to each POM's version" )
     private String versionSuffix;
+
+    @Option( name = "--strict", usage = "Change ONLY the dependencies, plugins, and parents that are listed in BOMs and toolchain POM" )
+    private boolean strict = false;
 
     @Option( name = "-P", aliases = { "--preserve" }, usage = "Write changed POMs back to original input files" )
     private boolean preserveFiles = false;
@@ -88,13 +91,13 @@ public class Cli
     @Option( name = "-S", aliases = { "--settings" }, usage = "Maven settings.xml file." )
     private File settings;
 
-    @Option( name = "-L", aliases = { "--local-repo" }, usage = "Local repository directory." )
+    @Option( name = "-L", aliases = { "--local-repo", "--local-repository" }, usage = "Local repository directory." )
     private File localRepository;
 
     @Option( name = "-Z", aliases = { "--no-system-exit" }, usage = "Don't call System.exit(..) with the return value (for embedding/testing)." )
     private boolean noSystemExit;
 
-    @Option( name = "-O", aliases = "--capture-output", usage = "Write captured (missing) definitions to this POM location." )
+    @Option( name = "-O", aliases = { "--capture-output", "--capture-pom" }, usage = "Write captured (missing) definitions to this POM location." )
     private File capturePom;
 
     private static final Logger LOGGER = Logger.getLogger( Cli.class );
@@ -114,6 +117,8 @@ public class Cli
     public static final String SETTINGS_PROPERTY = "settings";
 
     public static final String CAPTURE_POM_PROPERTY = "capture-pom";
+
+    public static final String STRICT_MODE_PROPERTY = "strict";
 
     private static VersionManager vman;
 
@@ -155,11 +160,11 @@ public class Cli
         {
             printUsage( parser, error );
         }
-        catch ( MAEException e )
+        catch ( final MAEException e )
         {
             printUsage( parser, e );
         }
-        catch ( MalformedURLException e )
+        catch ( final MalformedURLException e )
         {
             printUsage( parser, e );
         }
@@ -193,7 +198,7 @@ public class Cli
         }
 
         final VersionManagerSession session =
-            new VersionManagerSession( workspace, reports, versionSuffix, preserveFiles );
+            new VersionManagerSession( workspace, reports, versionSuffix, preserveFiles, strict );
 
         if ( remoteRepository != null )
         {
@@ -251,13 +256,13 @@ public class Cli
         }
         else
         {
-            List<Throwable> errors = session.getErrors();
+            final List<Throwable> errors = session.getErrors();
             if ( errors != null && !errors.isEmpty() )
             {
                 LOGGER.error( errors.size() + " errors detected!\n\n" );
 
                 int i = 1;
-                for ( Throwable error : errors )
+                for ( final Throwable error : errors )
                 {
                     LOGGER.error( "\n\n" + i, error );
                     i++;
@@ -274,7 +279,7 @@ public class Cli
     {
         if ( removedPluginsList != null )
         {
-            String[] ls = removedPluginsList.split( "\\s*,\\s*" );
+            final String[] ls = removedPluginsList.split( "\\s*,\\s*" );
             removedPlugins = Arrays.asList( ls );
         }
     }
@@ -288,10 +293,10 @@ public class Cli
             try
             {
                 is = new FileInputStream( config );
-                Properties props = new Properties();
+                final Properties props = new Properties();
                 props.load( is );
 
-                StringWriter sWriter = new StringWriter();
+                final StringWriter sWriter = new StringWriter();
                 props.list( new PrintWriter( sWriter ) );
 
                 LOGGER.info( "Loading configuration from: " + config + ":\n\n" + sWriter );
@@ -308,7 +313,7 @@ public class Cli
                         boms = new ArrayList<String>();
                     }
 
-                    List<String> pBoms = readListProperty( props, BOMS_LIST_PROPERTY );
+                    final List<String> pBoms = readListProperty( props, BOMS_LIST_PROPERTY );
                     if ( pBoms != null )
                     {
                         boms.addAll( pBoms );
@@ -344,7 +349,7 @@ public class Cli
 
                 if ( settings == null )
                 {
-                    String s = props.getProperty( SETTINGS_PROPERTY );
+                    final String s = props.getProperty( SETTINGS_PROPERTY );
                     if ( s != null )
                     {
                         settings = new File( s );
@@ -353,7 +358,7 @@ public class Cli
 
                 if ( localRepository == null )
                 {
-                    String l = props.getProperty( LOCAL_REPOSITORY_PROPERTY );
+                    final String l = props.getProperty( LOCAL_REPOSITORY_PROPERTY );
                     if ( l != null )
                     {
                         localRepository = new File( l );
@@ -362,14 +367,20 @@ public class Cli
 
                 if ( capturePom == null )
                 {
-                    String p = props.getProperty( CAPTURE_POM_PROPERTY );
+                    final String p = props.getProperty( CAPTURE_POM_PROPERTY );
                     if ( p != null )
                     {
                         capturePom = new File( p );
                     }
                 }
+
+                if ( !strict )
+                {
+                    strict =
+                        Boolean.valueOf( props.getProperty( STRICT_MODE_PROPERTY, Boolean.toString( Boolean.FALSE ) ) );
+                }
             }
-            catch ( IOException e )
+            catch ( final IOException e )
             {
                 throw new VManException( "Failed to load configuration from: " + config, e );
             }
@@ -382,10 +393,10 @@ public class Cli
 
     private List<String> readListProperty( final Properties props, final String property )
     {
-        String val = props.getProperty( property );
+        final String val = props.getProperty( property );
         if ( val != null )
         {
-            String[] rm = val.split( "(\\s)*,(\\s)*" );
+            final String[] rm = val.split( "(\\s)*,(\\s)*" );
             return Arrays.asList( rm );
         }
 

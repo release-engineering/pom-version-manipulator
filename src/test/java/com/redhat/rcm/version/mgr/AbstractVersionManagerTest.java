@@ -19,14 +19,8 @@
 package com.redhat.rcm.version.mgr;
 
 import static com.redhat.rcm.version.testutil.TestProjectUtils.getResourceFile;
+import static com.redhat.rcm.version.testutil.TestProjectUtils.newVersionManagerSession;
 import static junit.framework.Assert.fail;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.Arrays;
-import java.util.List;
 
 import org.apache.maven.mae.MAEException;
 import org.junit.BeforeClass;
@@ -34,6 +28,13 @@ import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.Arrays;
+import java.util.List;
 
 public abstract class AbstractVersionManagerTest
 {
@@ -92,16 +93,16 @@ public abstract class AbstractVersionManagerTest
 
     protected void assertNoErrors( final VersionManagerSession session )
     {
-        List<Throwable> errors = session.getErrors();
+        final List<Throwable> errors = session.getErrors();
         if ( errors != null && !errors.isEmpty() )
         {
-            StringBuilder sb = new StringBuilder();
+            final StringBuilder sb = new StringBuilder();
             sb.append( errors.size() ).append( "errors encountered\n\n" );
 
             int idx = 1;
-            for ( Throwable error : errors )
+            for ( final Throwable error : errors )
             {
-                StringWriter sw = new StringWriter();
+                final StringWriter sw = new StringWriter();
                 error.printStackTrace( new PrintWriter( sw ) );
 
                 sb.append( "\n" ).append( idx ).append( ".  " ).append( sw.toString() );
@@ -121,7 +122,7 @@ public abstract class AbstractVersionManagerTest
 
     protected VersionManagerSession modifyRepo( final boolean useToolchain, final String... boms )
     {
-        final VersionManagerSession session = newVersionManagerSession();
+        final VersionManagerSession session = createVersionManagerSession();
 
         vman.modifyVersions( repo,
                              "**/*.pom",
@@ -135,9 +136,9 @@ public abstract class AbstractVersionManagerTest
         return session;
     }
 
-    protected VersionManagerSession newVersionManagerSession()
+    protected VersionManagerSession createVersionManagerSession()
     {
-        return new VersionManagerSession( workspace, reports, null, false );
+        return newVersionManagerSession( workspace, reports, null );
     }
 
 }

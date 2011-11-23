@@ -87,6 +87,9 @@ public class MissingInfoCapture
             model.setPackaging( "pom" );
 
             boolean write = false;
+
+            write = processCurrentProjects( session, model ) || write;
+
             if ( procDeps )
             {
                 write = processDependencies( missingDeps, model ) || write;
@@ -132,14 +135,31 @@ public class MissingInfoCapture
         }
     }
 
+    private boolean processCurrentProjects( final VersionManagerSession session, final Model model )
+    {
+        final DependencyManagement dm = getDependencyManagement( model );
+        boolean changed = false;
+        for ( final Project project : session.getCurrentProjects() )
+        {
+            final String version = session.getArtifactVersion( project.getKey() );
+            if ( version == null )
+            {
+                final Dependency dep = new Dependency();
+                dep.setGroupId( project.getGroupId() );
+                dep.setArtifactId( project.getArtifactId() );
+                dep.setVersion( project.getVersion() );
+
+                dm.addDependency( dep );
+                changed = true;
+            }
+        }
+
+        return changed;
+    }
+
     private boolean processParents( final Set<Project> missingParents, final Model model )
     {
-        DependencyManagement dm = model.getDependencyManagement();
-        if ( dm == null )
-        {
-            dm = new DependencyManagement();
-            model.setDependencyManagement( dm );
-        }
+        final DependencyManagement dm = getDependencyManagement( model );
 
         final Map<FullProjectKey, Dependency> parents = new HashMap<FullProjectKey, Dependency>();
         for ( final Project project : missingParents )
@@ -175,6 +195,18 @@ public class MissingInfoCapture
         }
 
         return result;
+    }
+
+    private DependencyManagement getDependencyManagement( final Model model )
+    {
+        DependencyManagement dm = model.getDependencyManagement();
+        if ( dm == null )
+        {
+            dm = new DependencyManagement();
+            model.setDependencyManagement( dm );
+        }
+
+        return dm;
     }
 
     private boolean processPlugins( final Map<VersionlessProjectKey, Set<Plugin>> missingPlugins, final Model model )
@@ -227,7 +259,8 @@ public class MissingInfoCapture
     private boolean processDependencies( final Map<VersionlessProjectKey, Set<Dependency>> missingDeps,
                                          final Model model )
     {
-        final DependencyManagement dm = new DependencyManagement();
+        final DependencyManagement dm = getDependencyManagement( model );
+
         for ( final Map.Entry<VersionlessProjectKey, Set<Dependency>> entry : missingDeps.entrySet() )
         {
             final Map<String, Set<Dependency>> mks = new HashMap<String, Set<Dependency>>();

@@ -82,12 +82,15 @@ public class VersionManagerSession
 
     private final MissingInfo missingInfo;
 
+    private final boolean strict;
+
     public VersionManagerSession( final File workspace, final File reports, final String versionSuffix,
-                                  final boolean preserveFiles )
+                                  final boolean preserveFiles, final boolean strict )
     {
         this.workspace = workspace;
         this.reports = reports;
         this.versionSuffix = versionSuffix;
+        this.strict = strict;
 
         backups = new File( workspace, "backups" );
         backups.mkdirs();
@@ -99,6 +102,11 @@ public class VersionManagerSession
 
         managedInfo = new ManagedInfo( this );
         missingInfo = new MissingInfo();
+    }
+
+    public boolean isStrict()
+    {
+        return strict;
     }
 
     public String getVersionSuffix()

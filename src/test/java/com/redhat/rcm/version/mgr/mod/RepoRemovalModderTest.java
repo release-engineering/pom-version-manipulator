@@ -19,6 +19,7 @@ package com.redhat.rcm.version.mgr.mod;
 
 import static com.redhat.rcm.version.testutil.TestProjectUtils.getResourceFile;
 import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModel;
+import static com.redhat.rcm.version.testutil.TestProjectUtils.newVersionManagerSession;
 import static org.apache.commons.io.FileUtils.copyFile;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -29,7 +30,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
 import java.io.File;
@@ -76,10 +76,8 @@ public class RepoRemovalModderTest
         assertThat( model.getRepositories().size(), equalTo( 1 ) );
 
         final boolean changed =
-            new RepoRemovalModder().inject( new Project( model ), new VersionManagerSession( workspace,
-                                                                                             reports,
-                                                                                             "-rebuild-1",
-                                                                                             false ) );
+            new RepoRemovalModder().inject( new Project( model ),
+                                            newVersionManagerSession( workspace, reports, "-rebuild-1" ) );
 
         assertThat( changed, equalTo( true ) );
         assertThat( model.getRepositories().size(), equalTo( 0 ) );
@@ -94,10 +92,8 @@ public class RepoRemovalModderTest
         assertThat( model.getPluginRepositories().size(), equalTo( 1 ) );
 
         final boolean changed =
-            new RepoRemovalModder().inject( new Project( model ), new VersionManagerSession( workspace,
-                                                                                             reports,
-                                                                                             "-rebuild-1",
-                                                                                             false ) );
+            new RepoRemovalModder().inject( new Project( model ),
+                                            newVersionManagerSession( workspace, reports, "-rebuild-1" ) );
 
         assertThat( changed, equalTo( true ) );
         assertThat( model.getPluginRepositories().size(), equalTo( 0 ) );

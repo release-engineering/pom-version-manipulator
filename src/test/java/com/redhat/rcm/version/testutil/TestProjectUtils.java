@@ -20,6 +20,16 @@ package com.redhat.rcm.version.testutil;
 
 import static junit.framework.Assert.fail;
 
+import org.apache.maven.mae.project.ProjectToolsException;
+import org.apache.maven.mae.project.key.FullProjectKey;
+import org.apache.maven.model.Model;
+import org.apache.maven.model.io.DefaultModelReader;
+import org.apache.maven.model.io.ModelReader;
+import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
+
+import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.mgr.session.VersionManagerSession;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
@@ -29,20 +39,17 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.maven.mae.project.ProjectToolsException;
-import org.apache.maven.mae.project.key.FullProjectKey;
-import org.apache.maven.model.Model;
-import org.apache.maven.model.io.DefaultModelReader;
-import org.apache.maven.model.io.ModelReader;
-import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
-
-import com.redhat.rcm.version.VManException;
-
 public final class TestProjectUtils
 {
 
     private TestProjectUtils()
     {
+    }
+
+    public static VersionManagerSession newVersionManagerSession( final File workspace, final File reports,
+                                                                  final String suffix )
+    {
+        return new VersionManagerSession( workspace, reports, suffix, false, true );
     }
 
     public static File getResourceFile( final String path )
@@ -66,7 +73,7 @@ public final class TestProjectUtils
     public static Model loadModel( final File pom )
         throws IOException
     {
-        Map<String, Object> options = new HashMap<String, Object>();
+        final Map<String, Object> options = new HashMap<String, Object>();
         options.put( ModelReader.IS_STRICT, Boolean.FALSE.toString() );
 
         return new DefaultModelReader().read( pom, options );
@@ -75,7 +82,7 @@ public final class TestProjectUtils
     public static FullProjectKey loadProjectKey( final String path )
         throws ProjectToolsException, IOException
     {
-        Model model = loadModel( path );
+        final Model model = loadModel( path );
 
         return new FullProjectKey( model );
     }
@@ -83,7 +90,7 @@ public final class TestProjectUtils
     public static FullProjectKey loadProjectKey( final File pom )
         throws ProjectToolsException, IOException
     {
-        Model model = loadModel( pom );
+        final Model model = loadModel( pom );
 
         return new FullProjectKey( model );
     }
@@ -91,8 +98,8 @@ public final class TestProjectUtils
     public static Set<Model> loadModels( final Set<File> poms )
         throws VManException, IOException
     {
-        Set<Model> models = new LinkedHashSet<Model>( poms.size() );
-        for ( File pom : poms )
+        final Set<Model> models = new LinkedHashSet<Model>( poms.size() );
+        for ( final File pom : poms )
         {
             models.add( loadModel( pom ) );
         }
@@ -103,7 +110,7 @@ public final class TestProjectUtils
     public static void dumpModel( final Model model )
         throws IOException
     {
-        StringWriter writer = new StringWriter();
+        final StringWriter writer = new StringWriter();
         new MavenXpp3Writer().write( writer, model );
 
         System.out.println( "\n\n" + writer.toString() + "\n\n" );
