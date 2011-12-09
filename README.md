@@ -75,9 +75,11 @@ written, and how VMan will decide which POMs to process (from the `target` and `
      
      --dont-inject-boms                     : Do NOT inject BOMs directly into root project file(s)
      
-     --strict                               : Change ONLY the dependencies, plugins, and parents that are listed in BOMs and toolchain POM
+     --strict                               : Change ONLY the dependencies, plugins, and parents that are 
+                                              listed in BOMs and toolchain POM
      
-     -C (--config) FILE                     : Load default configuration for BOMs, toolchain, removedPluginsList, etc. from this file.
+     -C (--config) FILE                     : Load default configuration for BOMs, toolchain, removedPluginsList, 
+                                              etc. from this file.
      
      -L (--local-repo, 
          --local-repository) FILE           : Local repository directory.
@@ -104,11 +106,14 @@ written, and how VMan will decide which POMs to process (from the `target` and `
      -p VAL                                 : POM path pattern (glob)
      
      -r (--rm-plugins, 
-         --removed-plugins) VAL             : List of plugins (format: <groupId:artifactId>[,<groupId:artifactId>]) to REMOVE if found
+         --removed-plugins) VAL             : List of plugins (format: <groupId:artifactId>[,<groupId:artifactId>]) to 
+                                              REMOVE if found
          
      -s (--version-suffix) VAL              : A suffix to append to each POM's version
     
-     -t (--toolchain) VAL                   : Toolchain POM URL, containing standard plugin versions in the build/pluginManagement section, and plugin injections in the regular build/plugins section.
+     -t (--toolchain) VAL                   : Toolchain POM URL, containing standard plugin versions in the build /
+                                              pluginManagement section, and plugin injections in the regular build /
+                                              plugins section.
 
 KNOWN BUGS
 ----------
