@@ -49,7 +49,7 @@ public final class TestProjectUtils
     public static VersionManagerSession newVersionManagerSession( final File workspace, final File reports,
                                                                   final String suffix )
     {
-        return new VersionManagerSession( workspace, reports, suffix, false, true );
+        return new VersionManagerSession( workspace, reports, suffix, false, true, true );
     }
 
     public static File getResourceFile( final String path )

@@ -84,13 +84,16 @@ public class VersionManagerSession
 
     private final boolean strict;
 
+    private final boolean injectBoms;
+
     public VersionManagerSession( final File workspace, final File reports, final String versionSuffix,
-                                  final boolean preserveFiles, final boolean strict )
+                                  final boolean preserveFiles, final boolean strict, final boolean injectBoms )
     {
         this.workspace = workspace;
         this.reports = reports;
         this.versionSuffix = versionSuffix;
         this.strict = strict;
+        this.injectBoms = injectBoms;
 
         backups = new File( workspace, "backups" );
         backups.mkdirs();
@@ -102,6 +105,11 @@ public class VersionManagerSession
 
         managedInfo = new ManagedInfo( this );
         missingInfo = new MissingInfo();
+    }
+
+    public boolean isInjectBoms()
+    {
+        return injectBoms;
     }
 
     public boolean isStrict()
@@ -479,6 +487,16 @@ public class VersionManagerSession
     public boolean isCurrentProject( final ProjectKey key )
     {
         return managedInfo.isCurrentProject( key );
+    }
+
+    public boolean isCurrentProject( final Parent parent )
+    {
+        if ( parent == null )
+        {
+            return false;
+        }
+
+        return managedInfo.isCurrentProject( new FullProjectKey( parent ) );
     }
 
 }

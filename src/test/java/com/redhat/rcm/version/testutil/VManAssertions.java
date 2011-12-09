@@ -20,13 +20,16 @@ package com.redhat.rcm.version.testutil;
 
 import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModel;
 import static com.redhat.rcm.version.testutil.TestProjectUtils.loadProjectKey;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Dependency;
+import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 
@@ -63,28 +66,26 @@ public final class VManAssertions
 
             new MavenXpp3Writer().write( System.out, model );
 
-            // NOTE: Assuming injection of BOMs will happen in toolchain ancestor now...
-            //
-            // final DependencyManagement dm = model.getDependencyManagement();
-            // if ( dm != null )
-            // {
-            // Set<FullProjectKey> foundBoms = new HashSet<FullProjectKey>();
-            //
-            // for ( final Dependency dep : dm.getDependencies() )
-            // {
-            // if ( ( "pom".equals( dep.getType() ) && Artifact.SCOPE_IMPORT.equals( dep.getScope() ) ) )
-            // {
-            // foundBoms.add( new FullProjectKey( dep ) );
-            // }
-            // else
-            // {
-            // assertNull( "Managed Dependency version was NOT nullified: " + dep.getManagementKey()
-            // + "\nPOM: " + out, dep.getVersion() );
-            // }
-            // }
-            //
-            // assertThat( foundBoms, equalTo( bomKeys ) );
-            // }
+            final DependencyManagement dm = model.getDependencyManagement();
+            if ( dm != null )
+            {
+                final Set<FullProjectKey> foundBoms = new HashSet<FullProjectKey>();
+
+                for ( final Dependency dep : dm.getDependencies() )
+                {
+                    if ( ( "pom".equals( dep.getType() ) && Artifact.SCOPE_IMPORT.equals( dep.getScope() ) ) )
+                    {
+                        foundBoms.add( new FullProjectKey( dep ) );
+                    }
+                    else
+                    {
+                        assertNull( "Managed Dependency version was NOT nullified: " + dep.getManagementKey()
+                            + "\nPOM: " + out, dep.getVersion() );
+                    }
+                }
+
+                assertThat( foundBoms, equalTo( bomKeys ) );
+            }
 
             for ( final Dependency dep : model.getDependencies() )
             {

@@ -35,7 +35,9 @@ import org.codehaus.plexus.util.FileUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
 import com.redhat.rcm.version.fixture.LoggingFixture;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
@@ -49,6 +51,9 @@ public class BOMManagementTest
     extends AbstractVersionManagerTest
 {
 
+    @Rule
+    public TestName name = new TestName();
+
     @BeforeClass
     public static void enableLogging()
     {
@@ -61,20 +66,68 @@ public class BOMManagementTest
     {
         setupDirs();
         setupVersionManager();
+
+        System.out.println( "START: " + name.getMethodName() + "\n\n" );
     }
 
     @After
     public void teardown()
     {
         LoggingFixture.flushLogging();
+        System.out.println( "\n\nEND: " + name.getMethodName() );
+    }
+
+    @Test
+    public void modifyProjectTree_BOMInjected()
+        throws Exception
+    {
+        final File srcRepo = getResourceFile( "bom-injection-multi" );
+        FileUtils.copyDirectoryStructure( srcRepo, new File( repo, "project" ) );
+
+        final File pom = new File( repo, "project/pom.xml" );
+
+        final File bom = getResourceFile( "bom.xml" );
+
+        final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
+
+        final Set<File> modified =
+            vman.modifyVersions( pom, Collections.singletonList( bom.getAbsolutePath() ), null, null, session );
+
+        assertNoErrors( session );
+
+        // NOTE: Child POM not modified...nothing to do there!
+        assertThat( modified.size(), equalTo( 1 ) );
+        assertNormalizedToBOMs( modified, Collections.singleton( bom ) );
+
+        System.out.println( "\n\n" );
+    }
+
+    @Test
+    public void modifySinglePom_BOMInjected()
+        throws Exception
+    {
+        final File srcPom = getResourceFile( "bom-injection-single/pom.xml" );
+        final File bom = getResourceFile( "bom.xml" );
+
+        final File pom = new File( repo, srcPom.getName() );
+        FileUtils.copyFile( srcPom, pom );
+
+        final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
+
+        final Set<File> modified =
+            vman.modifyVersions( pom, Collections.singletonList( bom.getAbsolutePath() ), null, null, session );
+
+        assertNoErrors( session );
+        assertThat( modified.size(), equalTo( 1 ) );
+        assertNormalizedToBOMs( modified, Collections.singleton( bom ) );
+
+        System.out.println( "\n\n" );
     }
 
     @Test
     public void modifySinglePom_BOMWithParentInRepo()
         throws Exception
     {
-        System.out.println( "BOM-parent-in-repo test (normalize to BOM usage)..." );
-
         final File srcRepo = getResourceFile( "bom-parent-in-repo" );
         FileUtils.copyDirectoryStructure( srcRepo, repo );
 

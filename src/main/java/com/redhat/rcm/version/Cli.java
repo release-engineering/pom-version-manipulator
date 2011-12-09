@@ -73,6 +73,9 @@ public class Cli
     @Option( name = "--strict", usage = "Change ONLY the dependencies, plugins, and parents that are listed in BOMs and toolchain POM" )
     private boolean strict = false;
 
+    @Option( name = "--dont-inject-boms", usage = "Do NOT inject BOMs directly into root project file(s)" )
+    private boolean injectBoms = true;
+
     @Option( name = "-P", aliases = { "--preserve" }, usage = "Write changed POMs back to original input files" )
     private boolean preserveFiles = false;
 
@@ -119,6 +122,8 @@ public class Cli
     public static final String CAPTURE_POM_PROPERTY = "capture-pom";
 
     public static final String STRICT_MODE_PROPERTY = "strict";
+
+    public static final String INJECT_BOMS_PROPERTY = "inject-boms";
 
     private static VersionManager vman;
 
@@ -198,7 +203,7 @@ public class Cli
         }
 
         final VersionManagerSession session =
-            new VersionManagerSession( workspace, reports, versionSuffix, preserveFiles, strict );
+            new VersionManagerSession( workspace, reports, versionSuffix, preserveFiles, strict, injectBoms );
 
         if ( remoteRepository != null )
         {
@@ -378,6 +383,12 @@ public class Cli
                 {
                     strict =
                         Boolean.valueOf( props.getProperty( STRICT_MODE_PROPERTY, Boolean.toString( Boolean.FALSE ) ) );
+                }
+
+                if ( injectBoms )
+                {
+                    injectBoms =
+                        Boolean.valueOf( props.getProperty( INJECT_BOMS_PROPERTY, Boolean.toString( Boolean.TRUE ) ) );
                 }
             }
             catch ( final IOException e )

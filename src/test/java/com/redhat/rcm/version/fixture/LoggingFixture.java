@@ -18,13 +18,6 @@
 
 package com.redhat.rcm.version.fixture;
 
-import java.net.URL;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
@@ -32,6 +25,13 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.SimpleLayout;
 import org.apache.log4j.spi.Configurator;
 import org.apache.log4j.spi.LoggerRepository;
+
+import java.net.URL;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class LoggingFixture
 {
@@ -58,7 +58,7 @@ public class LoggingFixture
             @SuppressWarnings( "unchecked" )
             public void doConfigure( final URL notUsed, final LoggerRepository repo )
             {
-                Level defaultLevel = Level.ERROR;
+                final Level defaultLevel = Level.DEBUG;
 
                 // appender.setImmediateFlush( true );
                 appender.setThreshold( Level.TRACE );
@@ -67,14 +67,14 @@ public class LoggingFixture
                 repo.getRootLogger().addAppender( appender );
                 repo.getRootLogger().setLevel( defaultLevel );
 
-                Set<String> processed = new HashSet<String>();
+                final Set<String> processed = new HashSet<String>();
                 if ( levels != null )
                 {
-                    for ( Map.Entry<Class<?>, Level> entry : levels.entrySet() )
+                    for ( final Map.Entry<Class<?>, Level> entry : levels.entrySet() )
                     {
-                        String name = entry.getKey().getName();
+                        final String name = entry.getKey().getName();
 
-                        Logger logger = repo.getLogger( name );
+                        final Logger logger = repo.getLogger( name );
                         if ( logger != null )
                         {
                             logger.removeAllAppenders();
@@ -90,7 +90,7 @@ public class LoggingFixture
                 while ( loggers.hasMoreElements() )
                 {
                     final Logger logger = loggers.nextElement();
-                    String name = logger.getName();
+                    final String name = logger.getName();
 
                     if ( !processed.contains( name ) )
                     {

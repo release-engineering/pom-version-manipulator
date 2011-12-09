@@ -21,9 +21,11 @@ package com.redhat.rcm.version.mgr.mod;
 import static com.redhat.rcm.version.mgr.mod.Interpolations.interpolate;
 
 import org.apache.log4j.Logger;
+import org.apache.maven.artifact.Artifact;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Dependency;
+import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Exclusion;
 import org.apache.maven.model.Model;
 import org.codehaus.plexus.component.annotations.Component;
@@ -34,6 +36,7 @@ import com.redhat.rcm.version.model.ReadOnlyDependency;
 
 import java.io.File;
 import java.util.Iterator;
+import java.util.Set;
 
 @Component( role = ProjectModder.class, hint = "BOM-realignment" )
 public class BomModder
@@ -70,7 +73,28 @@ public class BomModder
         }
 
         // NOTE: dependencyManagement BLOCKS the imported deps from the BOM. Nullify it!
-        if ( model.getDependencyManagement() != null )
+        // NOTE: Inject BOMs directly, but ONLY if the parent project is NOT in the current projects list.
+        // (If the parent is a current project, we want to inject the BOMs there instead.)
+        final Set<FullProjectKey> bomCoords = session.getBomCoords();
+        if ( !session.isCurrentProject( project.getParent() ) && bomCoords != null && !bomCoords.isEmpty() )
+        {
+            final DependencyManagement dm = new DependencyManagement();
+            for ( final FullProjectKey bomCoord : bomCoords )
+            {
+                final Dependency dep = new Dependency();
+                dep.setGroupId( bomCoord.getGroupId() );
+                dep.setArtifactId( bomCoord.getArtifactId() );
+                dep.setVersion( bomCoord.getVersion() );
+                dep.setType( "pom" );
+                dep.setScope( Artifact.SCOPE_IMPORT );
+
+                dm.addDependency( dep );
+                changed = true;
+            }
+
+            model.setDependencyManagement( dm );
+        }
+        else if ( model.getDependencyManagement() != null )
         {
             model.setDependencyManagement( null );
             changed = true;
