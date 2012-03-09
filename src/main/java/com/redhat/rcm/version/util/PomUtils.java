@@ -20,18 +20,17 @@ package com.redhat.rcm.version.util;
 
 import static java.io.File.separatorChar;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.Writer;
-
 import org.apache.log4j.Logger;
 import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.jdom.MavenJDOMWriter;
 import org.codehaus.plexus.util.IOUtil;
 import org.codehaus.plexus.util.WriterFactory;
+import org.jdom.Attribute;
 import org.jdom.Document;
+import org.jdom.Element;
 import org.jdom.JDOMException;
+import org.jdom.Namespace;
 import org.jdom.input.SAXBuilder;
 import org.jdom.output.Format;
 import org.jdom.output.Format.TextMode;
@@ -39,6 +38,10 @@ import org.jdom.output.XMLOutputter;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.Writer;
 
 public final class PomUtils
 {
@@ -53,7 +56,7 @@ public final class PomUtils
                                          final String version, final File basedir, final VersionManagerSession session,
                                          final boolean relocatePom )
     {
-        File out = relocatePom ? generateRelocatedPomFile( coord, version, basedir ) : pom;
+        final File out = relocatePom ? generateRelocatedPomFile( coord, version, basedir ) : pom;
 
         Writer writer = null;
         try
@@ -67,11 +70,36 @@ public final class PomUtils
                 encoding = "UTF-8";
             }
 
+            final Element project = doc.getRootElement();
+
+            final Namespace ns = Namespace.getNamespace( "http://maven.apache.org/POM/4.0.0" );
+            project.setNamespace( ns );
+
+            Namespace xsi = project.getNamespace( "xsi" );
+            if ( xsi == null )
+            {
+                xsi = Namespace.getNamespace( "xsi", "http://www.w3.org/2001/XMLSchema-instance" );
+                project.addNamespaceDeclaration( xsi );
+            }
+
+            Attribute schemaLocation = project.getAttribute( "schemaLocation", ns );
+            if ( schemaLocation == null )
+            {
+                schemaLocation =
+                    new Attribute( "schemaLocation",
+                                   "http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd",
+                                   xsi );
+
+                project.setAttribute( schemaLocation );
+            }
+
             final Format format =
                 Format.getRawFormat()
-                      .setEncoding( encoding )
+                      .setEncoding( "UTF-8" )
                       .setTextMode( TextMode.PRESERVE )
-                      .setLineSeparator( System.getProperty( "line.separator" ) );
+                      .setLineSeparator( System.getProperty( "line.separator" ) )
+                      .setOmitDeclaration( false )
+                      .setOmitEncoding( false );
 
             LOGGER.info( "Writing modified POM:\n\n" + new XMLOutputter( format ).outputString( doc ) );
 
@@ -102,12 +130,17 @@ public final class PomUtils
         }
         catch ( final IOException e )
         {
-            session.addError( new VManException( "Failed to write modified POM: %s to: %s\n\tReason: %s", e, pom, out,
+            session.addError( new VManException( "Failed to write modified POM: %s to: %s\n\tReason: %s",
+                                                 e,
+                                                 pom,
+                                                 out,
                                                  e.getMessage() ) );
         }
         catch ( final JDOMException e )
         {
-            session.addError( new VManException( "Failed to read original POM for rewrite: %s\n\tReason: %s", e, pom,
+            session.addError( new VManException( "Failed to read original POM for rewrite: %s\n\tReason: %s",
+                                                 e,
+                                                 pom,
                                                  e.getMessage() ) );
         }
         finally
@@ -132,7 +165,7 @@ public final class PomUtils
                    .append( version )
                    .append( ".pom" );
 
-        File out = new File( basedir, pathBuilder.toString() );
+        final File out = new File( basedir, pathBuilder.toString() );
         final File outDir = out.getParentFile();
         outDir.mkdirs();
 

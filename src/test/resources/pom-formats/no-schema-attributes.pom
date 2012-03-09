@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>org.test</groupId>
+  <artifactId>plugin-config-attributes</artifactId>
+  <version>0.1</version>
+
+  <packaging>pom</packaging>
+
+</project>
