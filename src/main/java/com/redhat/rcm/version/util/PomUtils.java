@@ -39,6 +39,8 @@ import org.jdom.output.XMLOutputter;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
@@ -62,35 +64,12 @@ public final class PomUtils
         try
         {
             final SAXBuilder builder = new SAXBuilder();
-            final Document doc = builder.build( pom );
+            Document doc = builder.build( pom );
 
             String encoding = model.getModelEncoding();
             if ( encoding == null )
             {
                 encoding = "UTF-8";
-            }
-
-            final Element project = doc.getRootElement();
-
-            final Namespace ns = Namespace.getNamespace( "http://maven.apache.org/POM/4.0.0" );
-            project.setNamespace( ns );
-
-            Namespace xsi = project.getNamespace( "xsi" );
-            if ( xsi == null )
-            {
-                xsi = Namespace.getNamespace( "xsi", "http://www.w3.org/2001/XMLSchema-instance" );
-                project.addNamespaceDeclaration( xsi );
-            }
-
-            Attribute schemaLocation = project.getAttribute( "schemaLocation", ns );
-            if ( schemaLocation == null )
-            {
-                schemaLocation =
-                    new Attribute( "schemaLocation",
-                                   "http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd",
-                                   xsi );
-
-                project.setAttribute( schemaLocation );
             }
 
             final Format format =
@@ -103,10 +82,18 @@ public final class PomUtils
 
             LOGGER.info( "Writing modified POM:\n\n" + new XMLOutputter( format ).outputString( doc ) );
 
-            session.getLog( pom ).add( "Writing modified POM: %s", out );
-            writer = WriterFactory.newWriter( out, encoding );
+            final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            writer = WriterFactory.newWriter( baos, encoding );
 
             new MavenJDOMWriter().write( model, doc, writer, format );
+
+            doc = builder.build( new ByteArrayInputStream( baos.toByteArray() ) );
+
+            normalizeNamespace( doc );
+
+            session.getLog( pom ).add( "Writing modified POM: %s", out );
+            writer = WriterFactory.newWriter( out, encoding );
+            new XMLOutputter( format ).output( doc, writer );
 
             if ( relocatePom && !out.equals( pom ) )
             {
@@ -149,6 +136,38 @@ public final class PomUtils
         }
 
         return out;
+    }
+
+    /**
+     * @param project
+     * @param ns
+     */
+    private static void normalizeNamespace( final Document doc )
+    {
+        final Namespace ns = Namespace.getNamespace( "http://maven.apache.org/POM/4.0.0" );
+        final Element project = doc.getRootElement();
+        if ( !ns.equals( project.getNamespace() ) )
+        {
+            project.setNamespace( ns );
+        }
+
+        Namespace xsi = project.getNamespace( "xsi" );
+        if ( xsi == null )
+        {
+            xsi = Namespace.getNamespace( "xsi", "http://www.w3.org/2001/XMLSchema-instance" );
+            project.addNamespaceDeclaration( xsi );
+        }
+
+        Attribute schemaLocation = project.getAttribute( "schemaLocation", ns );
+        if ( schemaLocation == null )
+        {
+            schemaLocation =
+                new Attribute( "schemaLocation",
+                               "http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd",
+                               xsi );
+
+            project.setAttribute( schemaLocation );
+        }
     }
 
     public static File generateRelocatedPomFile( final ProjectKey coord, final String version, final File basedir )

@@ -18,13 +18,14 @@
 
 package com.redhat.rcm.version.mgr;
 
-import static com.redhat.rcm.version.testutil.TestProjectUtils.newVersionManagerSession;
 import static com.redhat.rcm.version.testutil.TestProjectUtils.dumpModel;
 import static com.redhat.rcm.version.testutil.TestProjectUtils.getResourceFile;
 import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModel;
 import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModels;
+import static com.redhat.rcm.version.testutil.TestProjectUtils.newVersionManagerSession;
 import static org.apache.commons.io.FileUtils.copyDirectory;
 import static org.apache.commons.io.FileUtils.copyFile;
+import static org.apache.commons.io.FileUtils.readFileToString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
@@ -282,6 +283,11 @@ public class VersionSuffixManagementTest
                                      session );
             assertNoErrors( session );
 
+            for ( final File file : modified )
+            {
+                System.out.println( "POM: " + file + "\n\n" + readFileToString( file ) );
+            }
+
             final Set<Model> changedModels = loadModels( modified );
             assertThat( "POM: " + pomPath + " was not modified!", changedModels.size(), not( equalTo( 0 ) ) );
 
@@ -346,6 +352,5 @@ public class VersionSuffixManagementTest
             }
         }
     }
-
 
 }

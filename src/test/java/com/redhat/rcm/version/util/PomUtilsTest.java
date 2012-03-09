@@ -131,6 +131,8 @@ public class PomUtilsTest
         final String pomStr = readFileToString( out );
         System.out.println( "Modified POM for " + name.getMethodName() + ":\n\n" + pomStr + "\n\n" );
         assertThat( pomStr.contains( "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" ), equalTo( true ) );
+
+        loadModel( out );
     }
 
     @Test
@@ -169,6 +171,8 @@ public class PomUtilsTest
         assertThat( pomStr.contains( "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"" ), equalTo( true ) );
         assertThat( pomStr.contains( "xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd\"" ),
                     equalTo( true ) );
+
+        loadModel( out );
     }
 
     @BeforeClass
