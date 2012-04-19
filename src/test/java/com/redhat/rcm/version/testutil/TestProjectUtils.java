@@ -28,13 +28,17 @@ import org.apache.maven.model.io.ModelReader;
 import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 
 import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.mgr.mod.ProjectModder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.net.URL;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -49,7 +53,27 @@ public final class TestProjectUtils
     public static VersionManagerSession newVersionManagerSession( final File workspace, final File reports,
                                                                   final String suffix )
     {
-        return new VersionManagerSession( workspace, reports, suffix, false, true, true );
+        return newVersionManagerSession( workspace, reports, suffix, null, getStandardModders() );
+    }
+
+    public static VersionManagerSession newVersionManagerSession( final File workspace, final File reports,
+                                                                  final String suffix,
+                                                                  final Collection<String> removedPlugins )
+    {
+        return newVersionManagerSession( workspace, reports, suffix, removedPlugins, getStandardModders() );
+    }
+
+    public static Set<String> getStandardModders()
+    {
+        return new HashSet<String>( Arrays.asList( ProjectModder.STANDARD_MODIFICATIONS ) );
+    }
+
+    public static VersionManagerSession newVersionManagerSession( final File workspace, final File reports,
+                                                                  final String suffix,
+                                                                  final Collection<String> removedPlugins,
+                                                                  final Set<String> modders )
+    {
+        return new VersionManagerSession( workspace, reports, suffix, removedPlugins, modders, false, true, true );
     }
 
     public static File getResourceFile( final String path )

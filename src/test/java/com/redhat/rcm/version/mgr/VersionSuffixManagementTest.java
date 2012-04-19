@@ -141,7 +141,7 @@ public class VersionSuffixManagementTest
 
         final VersionManagerSession session = newVersionManagerSession( workspace, reports, SUFFIX );
 
-        final Set<File> modified = vman.modifyVersions( pom, null, toolchain, null, session );
+        final Set<File> modified = vman.modifyVersions( pom, null, toolchain, session );
         assertNoErrors( session );
 
         final Set<Model> changedModels = loadModels( modified );
@@ -232,7 +232,6 @@ public class VersionSuffixManagementTest
                 vman.modifyVersions( pom,
                                      Collections.singletonList( getResourceFile( PARENT_VERSION_BOM ).getAbsolutePath() ),
                                      toolchain,
-                                     null,
                                      session );
             assertNoErrors( session );
 
@@ -279,7 +278,6 @@ public class VersionSuffixManagementTest
                 vman.modifyVersions( pom,
                                      Collections.singletonList( getResourceFile( PARENT_VERSION_BOM ).getAbsolutePath() ),
                                      toolchain,
-                                     null,
                                      session );
             assertNoErrors( session );
 

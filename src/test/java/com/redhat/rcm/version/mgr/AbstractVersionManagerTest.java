@@ -124,12 +124,7 @@ public abstract class AbstractVersionManagerTest
     {
         final VersionManagerSession session = createVersionManagerSession();
 
-        vman.modifyVersions( repo,
-                             "**/*.pom",
-                             Arrays.asList( boms ),
-                             useToolchain ? getToolchainPath() : null,
-                             null,
-                             session );
+        vman.modifyVersions( repo, "**/*.pom", Arrays.asList( boms ), useToolchain ? getToolchainPath() : null, session );
         assertNoErrors( session );
         vman.generateReports( reports, session );
 

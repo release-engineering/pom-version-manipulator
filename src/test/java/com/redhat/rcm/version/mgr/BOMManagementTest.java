@@ -91,7 +91,7 @@ public class BOMManagementTest
         final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
 
         final Set<File> modified =
-            vman.modifyVersions( pom, Collections.singletonList( bom.getAbsolutePath() ), null, null, session );
+            vman.modifyVersions( pom, Collections.singletonList( bom.getAbsolutePath() ), null, session );
 
         assertNoErrors( session );
 
@@ -115,7 +115,7 @@ public class BOMManagementTest
         final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
 
         final Set<File> modified =
-            vman.modifyVersions( pom, Collections.singletonList( bom.getAbsolutePath() ), null, null, session );
+            vman.modifyVersions( pom, Collections.singletonList( bom.getAbsolutePath() ), null, session );
 
         assertNoErrors( session );
         assertThat( modified.size(), equalTo( 1 ) );
@@ -144,7 +144,7 @@ public class BOMManagementTest
         session.setResolveRepositories( resolve );
 
         final Set<File> modified =
-            vman.modifyVersions( pom, Collections.singletonList( bom.getAbsolutePath() ), null, null, session );
+            vman.modifyVersions( pom, Collections.singletonList( bom.getAbsolutePath() ), null, session );
         assertNoErrors( session );
         assertNormalizedToBOMs( modified, Collections.singleton( bom ) );
 
@@ -173,7 +173,7 @@ public class BOMManagementTest
         session.setResolveRepositories( resolve );
 
         final Set<File> modified =
-            vman.modifyVersions( pom, Collections.singletonList( bom.getAbsolutePath() ), null, null, session );
+            vman.modifyVersions( pom, Collections.singletonList( bom.getAbsolutePath() ), null, session );
         assertNoErrors( session );
         assertNormalizedToBOMs( modified, Collections.singleton( bom ) );
 
@@ -195,7 +195,7 @@ public class BOMManagementTest
         final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
 
         final Set<File> modified =
-            vman.modifyVersions( pom, Collections.singletonList( bom.getAbsolutePath() ), null, null, session );
+            vman.modifyVersions( pom, Collections.singletonList( bom.getAbsolutePath() ), null, session );
         assertNoErrors( session );
         assertNormalizedToBOMs( modified, Collections.singleton( bom ) );
 
@@ -216,12 +216,7 @@ public class BOMManagementTest
         final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
 
         final Set<File> modified =
-            vman.modifyVersions( repo,
-                                 "pom.xml",
-                                 Collections.singletonList( bom.getAbsolutePath() ),
-                                 null,
-                                 null,
-                                 session );
+            vman.modifyVersions( repo, "pom.xml", Collections.singletonList( bom.getAbsolutePath() ), null, session );
 
         assertNoErrors( session );
 
@@ -244,12 +239,7 @@ public class BOMManagementTest
         final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
 
         final Set<File> modified =
-            vman.modifyVersions( repo,
-                                 "pom.xml",
-                                 Collections.singletonList( bom.getAbsolutePath() ),
-                                 null,
-                                 null,
-                                 session );
+            vman.modifyVersions( repo, "pom.xml", Collections.singletonList( bom.getAbsolutePath() ), null, session );
 
         assertNoErrors( session );
 
@@ -301,7 +291,7 @@ public class BOMManagementTest
         final VersionManagerSession session = createVersionManagerSession();
 
         final Set<File> results =
-            vman.modifyVersions( repo, "**/*.pom", Collections.singletonList( bom ), null, null, session );
+            vman.modifyVersions( repo, "**/*.pom", Collections.singletonList( bom ), null, session );
         assertNoErrors( session );
         for ( final File file : results )
         {
@@ -382,11 +372,7 @@ public class BOMManagementTest
 
         final VersionManagerSession session = createVersionManagerSession();
 
-        /* final File out = */vman.modifyVersions( pom,
-                                                   Collections.singletonList( bom ),
-                                                   getToolchainPath(),
-                                                   null,
-                                                   session );
+        /* final File out = */vman.modifyVersions( pom, Collections.singletonList( bom ), getToolchainPath(), session );
         vman.generateReports( reports, session );
 
         // final String source = FileUtils.fileRead( srcPom );
@@ -414,7 +400,7 @@ public class BOMManagementTest
 
         final VersionManagerSession session = createVersionManagerSession();
 
-        vman.modifyVersions( pom, Collections.singletonList( bom ), null, null, session );
+        vman.modifyVersions( pom, Collections.singletonList( bom ), null, session );
         assertNoErrors( session );
         vman.generateReports( reports, session );
 
@@ -435,7 +421,7 @@ public class BOMManagementTest
 
         final VersionManagerSession session = createVersionManagerSession();
 
-        final Set<File> modified = vman.modifyVersions( pom, Collections.singletonList( bom ), null, null, session );
+        final Set<File> modified = vman.modifyVersions( pom, Collections.singletonList( bom ), null, session );
         assertNoErrors( session );
 
         assertNotNull( modified );

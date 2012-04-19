@@ -87,6 +87,7 @@ public class VersionManagerSession
     private final boolean injectBoms;
 
     public VersionManagerSession( final File workspace, final File reports, final String versionSuffix,
+                                  final Collection<String> removedPlugins, final Set<String> modderKeys,
                                   final boolean preserveFiles, final boolean strict, final boolean injectBoms )
     {
         this.workspace = workspace;
@@ -103,7 +104,7 @@ public class VersionManagerSession
 
         this.preserveFiles = preserveFiles;
 
-        managedInfo = new ManagedInfo( this );
+        managedInfo = new ManagedInfo( this, removedPlugins, modderKeys );
         missingInfo = new MissingInfo();
     }
 
@@ -499,4 +500,8 @@ public class VersionManagerSession
         return managedInfo.isCurrentProject( new FullProjectKey( parent ) );
     }
 
+    public Set<String> getModderKeys()
+    {
+        return managedInfo.getModderKeys();
+    }
 }

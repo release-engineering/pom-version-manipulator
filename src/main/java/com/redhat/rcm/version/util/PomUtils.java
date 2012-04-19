@@ -35,6 +35,7 @@ import org.jdom.input.SAXBuilder;
 import org.jdom.output.Format;
 import org.jdom.output.Format.TextMode;
 import org.jdom.output.XMLOutputter;
+import org.jdom.xpath.XPath;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
@@ -44,6 +45,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
+import java.util.List;
 
 public final class PomUtils
 {
@@ -167,6 +169,24 @@ public final class PomUtils
                                xsi );
 
             project.setAttribute( schemaLocation );
+        }
+
+        try
+        {
+            @SuppressWarnings( "unchecked" )
+            final List<Element> allNodes = XPath.selectNodes( project, "//*" );
+            for ( final Element node : allNodes )
+            {
+                if ( node.getNamespace() == null || node.getNamespace() == Namespace.NO_NAMESPACE
+                    || node.getNamespace().getURI().trim().length() < 1 )
+                {
+                    node.setNamespace( ns );
+                }
+            }
+        }
+        catch ( final JDOMException e )
+        {
+            LOGGER.error( "Failed to select all nodes in the document.", e );
         }
     }
 

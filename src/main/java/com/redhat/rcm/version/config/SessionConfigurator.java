@@ -18,17 +18,15 @@
 
 package com.redhat.rcm.version.config;
 
-import java.util.Collection;
-import java.util.List;
-
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
+
+import java.util.List;
 
 public interface SessionConfigurator
 {
 
-    void configureSession( List<String> boms, String toolchain, Collection<String> removedPlugins,
-                           VersionManagerSession session )
+    void configureSession( List<String> boms, String toolchain, VersionManagerSession session )
         throws VManException;
 
 }

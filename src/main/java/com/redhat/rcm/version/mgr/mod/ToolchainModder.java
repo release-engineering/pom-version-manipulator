@@ -52,6 +52,11 @@ public class ToolchainModder
 
     private final InjectionMerger merger = new InjectionMerger();
 
+    public String getDescription()
+    {
+        return "Forcibly realign POM build section to use plugins declared in the supplied toolchain POM (if present).";
+    }
+
     @Override
     public boolean inject( final Project project, final VersionManagerSession session )
     {

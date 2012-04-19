@@ -100,55 +100,53 @@
     <dependency>
     	<groupId>args4j</groupId>
     	<artifactId>args4j</artifactId>
-    	<version>2.0.12</version>
     </dependency>
     
     <dependency>
     	<groupId>org.commonjava.maven</groupId>
     	<artifactId>maven-model-jdom-support</artifactId>
-    	<version>${mavenVersion}</version>
     </dependency>
     <dependency>
     	<groupId>org.jdom</groupId>
     	<artifactId>jdom</artifactId>
-    	<version>1.1</version>
     </dependency>
-<!--     <dependency>
-        <groupId>jaxen</groupId>
-        <artifactId>jaxen</artifactId>
-        <version>1.1</version>
+    <dependency>
+      <groupId>org.jdom</groupId>
+      <artifactId>jaxen-core</artifactId>
+      <version>1.0-FCS</version>
     </dependency>
- -->    
+    <dependency>
+      <groupId>org.jdom</groupId>
+      <artifactId>jaxen-jdom</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jdom</groupId>
+      <artifactId>saxpath</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
-      <version>${slf4jVersion}</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-log4j12</artifactId>
-      <version>${slf4jVersion}</version>
     </dependency>
     <dependency>
     	<groupId>org.slf4j</groupId>
     	<artifactId>jul-to-slf4j</artifactId>
-    	<version>${slf4jVersion}</version>
     </dependency>
     <dependency>
     	<groupId>org.slf4j</groupId>
     	<artifactId>jcl-over-slf4j</artifactId>
-    	<version>${slf4jVersion}</version>
     </dependency>
     <dependency>
       <groupId>log4j</groupId>
       <artifactId>log4j</artifactId>
-      <version>1.2.12</version>
     </dependency>
     
     <dependency>
     	<groupId>org.apache.httpcomponents</groupId>
     	<artifactId>httpclient</artifactId>
-    	<version>4.1.1</version>
       <exclusions>
         <exclusion>
           <groupId>commons-logging</groupId>
@@ -160,24 +158,20 @@
     <dependency>
     	<groupId>commons-io</groupId>
     	<artifactId>commons-io</artifactId>
-    	<version>2.0.1</version>
     </dependency>
     <dependency>
     	<groupId>commons-lang</groupId>
     	<artifactId>commons-lang</artifactId>
-    	<version>2.5</version>
     </dependency>
     
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>4.8.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
     	<groupId>org.hamcrest</groupId>
     	<artifactId>hamcrest-all</artifactId>
-    	<version>1.1</version>
     	<scope>test</scope>
     </dependency>
   </dependencies>

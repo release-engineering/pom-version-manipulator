@@ -31,6 +31,11 @@ public class RepoRemovalModder
     implements ProjectModder
 {
 
+    public String getDescription()
+    {
+        return "Remove <repositories/> and <pluginRepostories/> elements from the POM (this is a Maven best practice).";
+    }
+
     /**
      * {@inheritDoc}
      * 

@@ -38,12 +38,17 @@ import java.io.File;
 import java.util.Iterator;
 import java.util.Set;
 
-@Component( role = ProjectModder.class, hint = "BOM-realignment" )
+@Component( role = ProjectModder.class, hint = "bom-realignment" )
 public class BomModder
     implements ProjectModder
 {
 
     private static final Logger LOGGER = Logger.getLogger( BomModder.class );
+
+    public String getDescription()
+    {
+        return "Forcibly realign dependencies to use those declared in the supplied BOM file(s). Inject supplied BOM(s) into the project root POM.";
+    }
 
     @Override
     public boolean inject( final Project project, final VersionManagerSession session )

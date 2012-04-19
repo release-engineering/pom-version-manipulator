@@ -33,6 +33,11 @@ public class VersionSuffixModder
     implements ProjectModder
 {
 
+    public String getDescription()
+    {
+        return "Modify the POM version to include the supplied version suffix.";
+    }
+
     @Override
     public boolean inject( final Project project, final VersionManagerSession session )
     {

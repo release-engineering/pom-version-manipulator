@@ -76,9 +76,14 @@ class ManagedInfo
 
     private final Set<VersionlessProjectKey> currentProjectKeys = new LinkedHashSet<VersionlessProjectKey>();
 
-    ManagedInfo( final VersionManagerSession session )
+    private final Set<String> modderKeys = new HashSet<String>();
+
+    ManagedInfo( final VersionManagerSession session, final Collection<String> removedPlugins,
+                 final Set<String> modderKeys )
     {
         this.session = session;
+        setRemovedPlugins( removedPlugins );
+        setModderKeys( modderKeys );
     }
 
     boolean hasDependencyMap()
@@ -213,6 +218,11 @@ class ManagedInfo
 
     void setRemovedPlugins( final Collection<String> removedPlugins )
     {
+        if ( removedPlugins == null )
+        {
+            return;
+        }
+
         for ( final String rm : removedPlugins )
         {
             this.removedPlugins.add( new VersionlessProjectKey( rm ) );
@@ -222,6 +232,24 @@ class ManagedInfo
     Set<VersionlessProjectKey> getRemovedPlugins()
     {
         return removedPlugins;
+    }
+
+    void setModderKeys( final Set<String> modderKeys )
+    {
+        if ( modderKeys == null )
+        {
+            return;
+        }
+
+        for ( final String key : modderKeys )
+        {
+            this.modderKeys.add( key );
+        }
+    }
+
+    Set<String> getModderKeys()
+    {
+        return modderKeys;
     }
 
     public FullProjectKey getToolchainKey()

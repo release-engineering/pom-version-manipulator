@@ -172,6 +172,11 @@ public class PomUtilsTest
         assertThat( pomStr.contains( "xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd\"" ),
                     equalTo( true ) );
 
+        // make sure we're not stranding all the other elements to be in some different, empty xmlns.
+        assertThat( "Found empty xmlns! All non-plugin-config elements should be aligned to project element...",
+                    pomStr.contains( "xmlns=\"\"" ),
+                    equalTo( false ) );
+
         loadModel( out );
     }
 

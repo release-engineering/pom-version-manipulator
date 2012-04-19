@@ -49,7 +49,6 @@ import com.redhat.rcm.version.report.Report;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -132,8 +131,7 @@ public class VersionManager
     }
 
     public Set<File> modifyVersions( final File dir, final String pomNamePattern, final List<String> boms,
-                                     final String toolchain, final Collection<String> removedPlugins,
-                                     final VersionManagerSession session )
+                                     final String toolchain, final VersionManagerSession session )
     {
         final DirectoryScanner scanner = new DirectoryScanner();
         scanner.setBasedir( dir );
@@ -150,7 +148,7 @@ public class VersionManager
 
         try
         {
-            sessionConfigurator.configureSession( boms, toolchain, removedPlugins, session );
+            sessionConfigurator.configureSession( boms, toolchain, session );
         }
         catch ( final VManException e )
         {
@@ -190,7 +188,7 @@ public class VersionManager
     }
 
     public Set<File> modifyVersions( File pom, final List<String> boms, final String toolchain,
-                                     final Collection<String> removedPlugins, final VersionManagerSession session )
+                                     final VersionManagerSession session )
     {
         try
         {
@@ -203,7 +201,7 @@ public class VersionManager
 
         try
         {
-            sessionConfigurator.configureSession( boms, toolchain, removedPlugins, session );
+            sessionConfigurator.configureSession( boms, toolchain, session );
         }
         catch ( final VManException e )
         {
@@ -264,25 +262,36 @@ public class VersionManager
         {
             LOGGER.info( "Modifying '" + project.getKey() + "'..." );
 
+            final Set<String> modderKeys = session.getModderKeys();
+
             boolean changed = false;
             if ( modders != null )
             {
-                for ( final Map.Entry<String, ProjectModder> entry : modders.entrySet() )
+                for ( final String key : modderKeys )
                 {
-                    final String key = entry.getKey();
-                    final ProjectModder injector = entry.getValue();
+                    final ProjectModder modder = modders.get( key );
+                    if ( modder == null )
+                    {
+                        LOGGER.info( "Skipping missing project modifier: '" + key + "'" );
+                        session.addError( new VManException( "Cannot find modder for key: '%s'. Skipping...", key ) );
+                        continue;
+                    }
 
-                    LOGGER.info( "Injecting '" + key + "' into '" + project.getKey() + "'" );
-                    changed = injector.inject( project, session ) || changed;
+                    LOGGER.info( "Modifying '" + project.getKey() + " using: '" + key + "'" );
+                    changed = modder.inject( project, session ) || changed;
                 }
             }
 
             if ( changed )
             {
-                for ( final Map.Entry<String, ProjectVerifier> entry : verifiers.entrySet() )
+                for ( final String key : modderKeys )
                 {
-                    LOGGER.info( "Verifying '" + project.getKey() + "' (" + entry.getKey() + ")..." );
-                    entry.getValue().verify( project, session );
+                    final ProjectVerifier verifier = verifiers.get( key );
+                    if ( verifier != null )
+                    {
+                        LOGGER.info( "Verifying '" + project.getKey() + "' (" + key + ")..." );
+                        verifier.verify( project, session );
+                    }
                 }
 
                 LOGGER.info( "Writing modified '" + project.getKey() + "'..." );
@@ -423,5 +432,10 @@ public class VersionManager
         {
             useClasspathScanning = scanning;
         }
+    }
+
+    public Map<String, ProjectModder> getModders()
+    {
+        return modders;
     }
 }

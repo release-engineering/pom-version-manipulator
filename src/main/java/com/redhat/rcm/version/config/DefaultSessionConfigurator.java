@@ -22,17 +22,6 @@ import static org.apache.commons.io.IOUtils.closeQuietly;
 import static org.apache.commons.io.IOUtils.copy;
 import static org.apache.commons.lang.StringUtils.isEmpty;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
 import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.Credentials;
@@ -60,6 +49,16 @@ import org.codehaus.plexus.component.annotations.Requirement;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+
 @Component( role = SessionConfigurator.class )
 public class DefaultSessionConfigurator
     implements SessionConfigurator
@@ -85,8 +84,7 @@ public class DefaultSessionConfigurator
     }
 
     @Override
-    public void configureSession( final List<String> boms, final String toolchain,
-                                  final Collection<String> removedPlugins, final VersionManagerSession session )
+    public void configureSession( final List<String> boms, final String toolchain, final VersionManagerSession session )
         throws VManException
     {
         if ( session.getSettingsXml() != null )
@@ -107,11 +105,6 @@ public class DefaultSessionConfigurator
         {
             loadToolchain( toolchain, session );
         }
-
-        if ( removedPlugins != null )
-        {
-            session.setRemovedPlugins( removedPlugins );
-        }
     }
 
     private void loadSettings( final VersionManagerSession session )
@@ -123,27 +116,29 @@ public class DefaultSessionConfigurator
             executionRequest = new DefaultMavenExecutionRequest();
         }
 
-        File settingsXml = session.getSettingsXml();
+        final File settingsXml = session.getSettingsXml();
 
-        DefaultSettingsBuildingRequest req = new DefaultSettingsBuildingRequest();
+        final DefaultSettingsBuildingRequest req = new DefaultSettingsBuildingRequest();
         req.setUserSettingsFile( settingsXml );
         req.setSystemProperties( System.getProperties() );
 
         try
         {
-            SettingsBuildingResult result = settingsBuilder.build( req );
-            Settings settings = result.getEffectiveSettings();
+            final SettingsBuildingResult result = settingsBuilder.build( req );
+            final Settings settings = result.getEffectiveSettings();
 
             executionRequest = requestPopulator.populateFromSettings( executionRequest, settings );
             session.setExecutionRequest( executionRequest );
         }
-        catch ( SettingsBuildingException e )
+        catch ( final SettingsBuildingException e )
         {
             throw new VManException( "Failed to build settings from: %s. Reason: %s", e, settingsXml, e.getMessage() );
         }
-        catch ( MavenExecutionRequestPopulationException e )
+        catch ( final MavenExecutionRequestPopulationException e )
         {
-            throw new VManException( "Failed to initialize system using settings from: %s. Reason: %s", e, settingsXml,
+            throw new VManException( "Failed to initialize system using settings from: %s. Reason: %s",
+                                     e,
+                                     settingsXml,
                                      e.getMessage() );
         }
     }
@@ -151,7 +146,7 @@ public class DefaultSessionConfigurator
     private void loadToolchain( final String toolchain, final VersionManagerSession session )
         throws VManException
     {
-        File toolchainFile = getFile( toolchain, session );
+        final File toolchainFile = getFile( toolchain, session );
         if ( toolchainFile != null )
         {
             MavenProject project;
@@ -159,7 +154,7 @@ public class DefaultSessionConfigurator
             {
                 project = projectLoader.buildProjectInstance( toolchainFile, session );
             }
-            catch ( ProjectToolsException e )
+            catch ( final ProjectToolsException e )
             {
                 session.addError( e );
                 return;
@@ -181,7 +176,7 @@ public class DefaultSessionConfigurator
             {
                 projects = projectLoader.buildReactorProjectInstances( session, false, bomFiles );
             }
-            catch ( ProjectToolsException e )
+            catch ( final ProjectToolsException e )
             {
                 session.addError( e );
                 return;
@@ -189,9 +184,9 @@ public class DefaultSessionConfigurator
 
             if ( projects != null )
             {
-                for ( MavenProject project : projects )
+                for ( final MavenProject project : projects )
                 {
-                    File bom = project.getFile();
+                    final File bom = project.getFile();
 
                     LOGGER.info( "Adding BOM to session: " + bom + "; " + project );
                     session.addBOM( bom, project );
@@ -207,7 +202,7 @@ public class DefaultSessionConfigurator
 
         for ( final String bom : boms )
         {
-            File bomFile = getFile( bom, session );
+            final File bomFile = getFile( bom, session );
             if ( bomFile != null )
             {
                 result.add( bomFile );
@@ -266,7 +261,8 @@ public class DefaultSessionConfigurator
                                                     response.getStatusLine(),
                                                     location ) );
                         session.addError( new VManException( "Received status: '%s' while downloading: %s",
-                                                             response.getStatusLine(), location ) );
+                                                             response.getStatusLine(),
+                                                             location ) );
                     }
                 }
                 catch ( final ClientProtocolException e )

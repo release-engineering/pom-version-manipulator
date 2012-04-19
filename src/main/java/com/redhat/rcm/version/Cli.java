@@ -30,6 +30,7 @@ import org.kohsuke.args4j.ExampleMode;
 import org.kohsuke.args4j.Option;
 
 import com.redhat.rcm.version.mgr.VersionManager;
+import com.redhat.rcm.version.mgr.mod.ProjectModder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
 import java.io.BufferedReader;
@@ -41,10 +42,15 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.MalformedURLException;
+import java.text.BreakIterator;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 public class Cli
 {
@@ -80,7 +86,7 @@ public class Cli
     private boolean preserveFiles = false;
 
     @Option( name = "-C", aliases = "--config", usage = "Load default configuration for BOMs, toolchain, removedPluginsList, etc. from this file." )
-    private final File config = new File( System.getProperty( "user.home" ), ".vman.properties" );
+    private File config = new File( System.getProperty( "user.home" ), ".vman.properties" );
 
     @Option( name = "-W", aliases = { "--workspace" }, usage = "Backup original files here up before modifying." )
     private File workspace = new File( "vman-workspace" );
@@ -90,6 +96,9 @@ public class Cli
 
     @Option( name = "-h", aliases = { "--help" }, usage = "Print this message and quit" )
     private boolean help = false;
+
+    @Option( name = "-H", aliases = { "--help-modifications" }, usage = "Print the list of available modifications and quit" )
+    private boolean helpModders = false;
 
     @Option( name = "-S", aliases = { "--settings" }, usage = "Maven settings.xml file." )
     private File settings;
@@ -102,6 +111,9 @@ public class Cli
 
     @Option( name = "-O", aliases = { "--capture-output", "--capture-pom" }, usage = "Write captured (missing) definitions to this POM location." )
     private File capturePom;
+
+    @Option( name = "-M", aliases = { "--enable-modifications" }, usage = "List of modifications to enable for this execution (see --help-modifications for more information)." )
+    private String modifications;
 
     private static final Logger LOGGER = Logger.getLogger( Cli.class );
 
@@ -125,11 +137,15 @@ public class Cli
 
     public static final String INJECT_BOMS_PROPERTY = "inject-boms";
 
+    public static final String MODIFICATIONS = "pom-modifications";
+
     private static VersionManager vman;
 
     private List<String> boms;
 
     private List<String> removedPlugins;
+
+    private Set<String> modders;
 
     private static int exitValue = Integer.MIN_VALUE;
 
@@ -146,10 +162,16 @@ public class Cli
         {
             parser.parseArgument( args );
 
+            vman = VersionManager.getInstance();
+
             exitValue = 0;
             if ( cli.help )
             {
                 printUsage( parser, null );
+            }
+            else if ( cli.helpModders )
+            {
+                printModders();
             }
             else
             {
@@ -188,8 +210,6 @@ public class Cli
     public int run()
         throws MAEException, VManException, MalformedURLException
     {
-        vman = VersionManager.getInstance();
-
         loadConfiguration();
 
         if ( boms == null && bomList != null )
@@ -202,8 +222,17 @@ public class Cli
             loadRemovedPlugins();
         }
 
+        loadAndNormalizeModifications();
+
         final VersionManagerSession session =
-            new VersionManagerSession( workspace, reports, versionSuffix, preserveFiles, strict, injectBoms );
+            new VersionManagerSession( workspace,
+                                       reports,
+                                       versionSuffix,
+                                       removedPlugins,
+                                       modders,
+                                       preserveFiles,
+                                       strict,
+                                       injectBoms );
 
         if ( remoteRepository != null )
         {
@@ -241,11 +270,11 @@ public class Cli
 
             if ( target.isDirectory() )
             {
-                vman.modifyVersions( target, pomPattern, boms, toolchain, removedPlugins, session );
+                vman.modifyVersions( target, pomPattern, boms, toolchain, session );
             }
             else
             {
-                vman.modifyVersions( target, boms, toolchain, removedPlugins, session );
+                vman.modifyVersions( target, boms, toolchain, session );
             }
         }
 
@@ -280,6 +309,75 @@ public class Cli
         return 0;
     }
 
+    private static void printModders()
+    {
+        final Map<String, ProjectModder> modders = vman.getModders();
+        final List<String> keys = new ArrayList<String>( modders.keySet() );
+        Collections.sort( keys );
+
+        int max = 0;
+        for ( final String key : keys )
+        {
+            max = Math.max( max, key.length() );
+        }
+
+        final StringBuilder sb = new StringBuilder();
+        sb.append( "The following project modifications are available: " );
+
+        final int descMax = 75 - max;
+        final String fmt = "%-" + max + "s    %-" + descMax + "s\n";
+
+        final List<String> lines = new ArrayList<String>();
+        for ( final String key : keys )
+        {
+            final String description = modders.get( key ).getDescription();
+            lines.clear();
+            final BreakIterator iter = BreakIterator.getLineInstance();
+            iter.setText( description );
+
+            int start = iter.first();
+            int end = BreakIterator.DONE;
+            final StringBuilder currentLine = new StringBuilder();
+            String seg;
+            while ( start != BreakIterator.DONE && ( end = iter.next() ) != BreakIterator.DONE )
+            {
+                seg = description.substring( start, end );
+                if ( currentLine.length() + seg.length() > descMax )
+                {
+                    lines.add( currentLine.toString() );
+                    currentLine.setLength( 0 );
+                }
+
+                currentLine.append( seg );
+                start = end;
+            }
+
+            if ( currentLine.length() > 0 )
+            {
+                lines.add( currentLine.toString() );
+            }
+
+            System.out.printf( fmt, key, lines.get( 0 ) );
+            if ( lines.size() > 1 )
+            {
+                for ( int i = 1; i < lines.size(); i++ )
+                {
+                    System.out.printf( fmt, "", lines.get( i ) );
+                }
+            }
+
+            System.out.println();
+        }
+
+        System.out.println( "\n\nNOTE: To ADD any of these modifiers to the standard list, use the notation '--modifications=+<modifier-id>' (prefixed with '+').\n\nThe standard modifiers are: " );
+        for ( final String key : ProjectModder.STANDARD_MODIFICATIONS )
+        {
+            System.out.printf( "\n  - %s", key );
+        }
+        System.out.println();
+        System.out.println();
+    }
+
     private void loadRemovedPlugins()
     {
         if ( removedPluginsList != null )
@@ -287,6 +385,52 @@ public class Cli
             final String[] ls = removedPluginsList.split( "\\s*,\\s*" );
             removedPlugins = Arrays.asList( ls );
         }
+    }
+
+    private void loadAndNormalizeModifications()
+    {
+        if ( modifications != null )
+        {
+            final String[] ls = modifications.split( "\\s*,\\s*" );
+            modders = new HashSet<String>( Arrays.asList( ls ) );
+        }
+
+        final Set<String> mods = new HashSet<String>();
+        boolean loadStandards = modders == null;
+        if ( modders != null )
+        {
+            if ( !modders.isEmpty() && modders.iterator().next().startsWith( "+" ) )
+            {
+                loadStandards = true;
+            }
+
+            for ( final String key : modders )
+            {
+                if ( ProjectModder.STANDARD_MODS_ALIAS.equals( key ) )
+                {
+                    loadStandards = true;
+                }
+                else if ( key.startsWith( "+" ) )
+                {
+                    if ( key.length() > 1 )
+                    {
+                        mods.add( key.substring( 1 ).trim() );
+                    }
+                }
+                else
+                {
+                    mods.add( key );
+                }
+            }
+        }
+
+        if ( loadStandards )
+        {
+            mods.addAll( Arrays.asList( ProjectModder.STANDARD_MODIFICATIONS ) );
+        }
+
+        modders = mods;
+
     }
 
     private void loadConfiguration()
@@ -309,6 +453,15 @@ public class Cli
                 if ( removedPluginsList == null )
                 {
                     removedPlugins = readListProperty( props, REMOVED_PLUGINS_PROPERTY );
+                }
+
+                if ( modifications == null )
+                {
+                    final List<String> lst = readListProperty( props, MODIFICATIONS );
+                    if ( lst != null )
+                    {
+                        modders = new HashSet<String>( modders );
+                    }
                 }
 
                 if ( bomList == null )
@@ -485,6 +638,26 @@ public class Cli
         this.help = help;
     }
 
+    protected boolean isHelpModifications()
+    {
+        return help;
+    }
+
+    protected void setHelpModifications( final boolean help )
+    {
+        helpModders = help;
+    }
+
+    protected String getModifications()
+    {
+        return modifications;
+    }
+
+    protected void setModifications( final String modifications )
+    {
+        this.modifications = modifications;
+    }
+
     public File getTarget()
     {
         return target;
@@ -563,6 +736,16 @@ public class Cli
     public void setVersionSuffix( final String versionSuffix )
     {
         this.versionSuffix = versionSuffix;
+    }
+
+    protected File getConfig()
+    {
+        return config;
+    }
+
+    protected void setConfig( final File config )
+    {
+        this.config = config;
     }
 
 }

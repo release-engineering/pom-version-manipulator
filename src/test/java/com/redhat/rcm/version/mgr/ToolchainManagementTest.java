@@ -631,12 +631,12 @@ public class ToolchainManagementTest
             final File pom = new File( repo, srcPom.getName() );
             copyFile( srcPom, pom );
 
-            final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
+            final VersionManagerSession session = newVersionManagerSession( workspace, reports, null, removedPlugins );
 
             final File remoteRepo = getResourceFile( TOOLCHAIN_TEST_POMS + "repo" );
             session.setRemoteRepository( remoteRepo.toURI().normalize().toURL().toExternalForm() );
 
-            final Set<File> modified = vman.modifyVersions( pom, null, toolchain, removedPlugins, session );
+            final Set<File> modified = vman.modifyVersions( pom, null, toolchain, session );
             assertNoErrors( session );
 
             final Set<Model> changedModels = loadModels( modified );
@@ -668,12 +668,12 @@ public class ToolchainManagementTest
             final File pom = new File( repo, srcPom.getName() );
             copyFile( srcPom, pom );
 
-            final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
+            final VersionManagerSession session = newVersionManagerSession( workspace, reports, null, removedPlugins );
 
             final File remoteRepo = getResourceFile( TOOLCHAIN_TEST_POMS + "repo" );
             session.setRemoteRepository( remoteRepo.toURI().normalize().toURL().toExternalForm() );
 
-            final Set<File> modified = vman.modifyVersions( pom, null, toolchain, removedPlugins, session );
+            final Set<File> modified = vman.modifyVersions( pom, null, toolchain, session );
             assertNoErrors( session );
 
             final Set<Model> changedModels = loadModels( modified );
