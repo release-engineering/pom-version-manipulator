@@ -17,6 +17,8 @@
 
 package com.redhat.rcm.version.mgr.mod;
 
+import org.apache.maven.model.Contributor;
+import org.apache.maven.model.Developer;
 import org.apache.maven.model.DistributionManagement;
 import org.apache.maven.model.MailingList;
 import org.apache.maven.model.Model;
@@ -46,6 +48,18 @@ public class MinimizingModder
         if ( model.getReporting() != null )
         {
             model.setReporting( null );
+            changed = true;
+        }
+
+        if ( model.getDevelopers() != null )
+        {
+            model.setDevelopers( Collections.<Developer> emptyList() );
+            changed = true;
+        }
+
+        if ( model.getContributors() != null )
+        {
+            model.setContributors( Collections.<Contributor> emptyList() );
             changed = true;
         }
 
