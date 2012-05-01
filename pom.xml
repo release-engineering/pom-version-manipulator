@@ -106,7 +106,7 @@
     <dependency>
     	<groupId>org.commonjava.maven</groupId>
     	<artifactId>maven-model-jdom-support</artifactId>
-    	<version>${mavenVersion}</version>
+    	<version>3.0.x-1.1</version>
     </dependency>
     <dependency>
     	<groupId>org.jdom</groupId>

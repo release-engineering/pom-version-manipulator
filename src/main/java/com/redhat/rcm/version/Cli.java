@@ -19,6 +19,7 @@
 package com.redhat.rcm.version;
 
 import static org.apache.commons.io.IOUtils.closeQuietly;
+import static org.apache.commons.lang.StringUtils.join;
 
 import org.apache.log4j.Logger;
 import org.apache.maven.mae.MAEException;
@@ -137,7 +138,7 @@ public class Cli
 
     public static final String INJECT_BOMS_PROPERTY = "inject-boms";
 
-    public static final String MODIFICATIONS = "pom-modifications";
+    public static final String MODIFICATIONS = "modifications";
 
     private static VersionManager vman;
 
@@ -224,6 +225,8 @@ public class Cli
 
         loadAndNormalizeModifications();
 
+        printConfig();
+
         final VersionManagerSession session =
             new VersionManagerSession( workspace,
                                        reports,
@@ -307,6 +310,11 @@ public class Cli
         }
 
         return 0;
+    }
+
+    private void printConfig()
+    {
+        LOGGER.info( "modifications = " + join( modders, " " ) );
     }
 
     private static void printModders()
@@ -458,9 +466,11 @@ public class Cli
                 if ( modifications == null )
                 {
                     final List<String> lst = readListProperty( props, MODIFICATIONS );
+                    LOGGER.info( "modifications from properties: '" + join( lst, " " ) + "'" );
                     if ( lst != null )
                     {
-                        modders = new HashSet<String>( modders );
+                        modders = modders == null ? new HashSet<String>() : new HashSet<String>( modders );
+                        modders.addAll( lst );
                     }
                 }
 
