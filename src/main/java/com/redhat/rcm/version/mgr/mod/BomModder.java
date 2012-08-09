@@ -1,24 +1,28 @@
 /*
  * Copyright (c) 2011 Red Hat, Inc.
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
  * by the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see 
+ * along with this program.  If not, see
  * <http://www.gnu.org/licenses>.
  */
 
 package com.redhat.rcm.version.mgr.mod;
 
 import static com.redhat.rcm.version.mgr.mod.Interpolations.interpolate;
+
+import java.io.File;
+import java.util.Iterator;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.apache.maven.artifact.Artifact;
@@ -33,10 +37,6 @@ import org.codehaus.plexus.component.annotations.Component;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.model.ReadOnlyDependency;
-
-import java.io.File;
-import java.util.Iterator;
-import java.util.Set;
 
 @Component( role = ProjectModder.class, hint = "bom-realignment" )
 public class BomModder
@@ -56,6 +56,7 @@ public class BomModder
         final Model model = project.getModel();
         final File pom = project.getPom();
 
+        DependencyManagement dm = null;
         boolean changed = false;
 
         if ( model.getDependencies() != null )
@@ -77,13 +78,42 @@ public class BomModder
             }
         }
 
-        // NOTE: dependencyManagement BLOCKS the imported deps from the BOM. Nullify it!
+        if (session.isStrict())
+        {
+            dm = model.getDependencyManagement();
+
+            if ( model.getDependencyManagement() != null && dm.getDependencies() != null )
+            {
+                LOGGER.info( "Processing dependencyManagement for '" + project.getKey() + "'..." );
+                for ( final Iterator<Dependency> it = dm.getDependencies().iterator();
+                      it.hasNext(); )
+                {
+                    final Dependency dep = it.next();
+                    final DepModResult depResult = modifyDep( dep, model, project, pom, session, true );
+                    if ( depResult == DepModResult.DELETED )
+                    {
+                        it.remove();
+                        changed = true;
+                    }
+                    else
+                    {
+                        changed = DepModResult.MODIFIED == depResult || changed;
+                    }
+                }
+            }
+        }
+
         // NOTE: Inject BOMs directly, but ONLY if the parent project is NOT in the current projects list.
         // (If the parent is a current project, we want to inject the BOMs there instead.)
         final Set<FullProjectKey> bomCoords = session.getBomCoords();
         if ( !session.isCurrentProject( project.getParent() ) && bomCoords != null && !bomCoords.isEmpty() )
         {
-            final DependencyManagement dm = new DependencyManagement();
+            if ( dm == null )
+            {
+                dm = new DependencyManagement();
+                model.setDependencyManagement( dm );
+            }
+
             for ( final FullProjectKey bomCoord : bomCoords )
             {
                 final Dependency dep = new Dependency();
@@ -96,34 +126,12 @@ public class BomModder
                 dm.addDependency( dep );
                 changed = true;
             }
-
-            model.setDependencyManagement( dm );
         }
         else if ( model.getDependencyManagement() != null )
         {
             model.setDependencyManagement( null );
             changed = true;
         }
-
-        // if ( model.getDependencyManagement() != null && model.getDependencyManagement().getDependencies() != null )
-        // {
-        // LOGGER.info( "Processing dependencyManagement for '" + project.getKey() + "'..." );
-        // for ( final Iterator<Dependency> it = model.getDependencyManagement().getDependencies().iterator();
-        // it.hasNext(); )
-        // {
-        // final Dependency dep = it.next();
-        // final DepModResult depResult = modifyDep( dep, model, project, pom, session, true );
-        // if ( depResult == DepModResult.DELETED )
-        // {
-        // it.remove();
-        // changed = true;
-        // }
-        // else
-        // {
-        // changed = DepModResult.MODIFIED == depResult || changed;
-        // }
-        // }
-        // }
 
         return changed;
     }

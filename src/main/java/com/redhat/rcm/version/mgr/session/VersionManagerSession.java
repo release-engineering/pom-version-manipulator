@@ -1,18 +1,18 @@
 /*
  * Copyright (c) 2011 Red Hat, Inc.
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
  * by the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see 
+ * along with this program.  If not, see
  * <http://www.gnu.org/licenses>.
  */
 
@@ -31,6 +31,7 @@ import org.apache.maven.model.ReportPlugin;
 import org.apache.maven.model.Repository;
 import org.apache.maven.project.MavenProject;
 
+import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.model.ProjectAncestryGraph;
 import com.redhat.rcm.version.util.ActivityLog;
@@ -45,6 +46,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 public class VersionManagerSession
@@ -275,7 +277,7 @@ public class VersionManagerSession
         return managedInfo.getBomCoords();
     }
 
-    public VersionManagerSession addBOM( final File bom, final MavenProject project )
+    public VersionManagerSession addBOM( final File bom, final MavenProject project ) throws VManException
     {
         managedInfo.addBOM( bom, project );
 
@@ -503,5 +505,10 @@ public class VersionManagerSession
     public Set<String> getModderKeys()
     {
         return managedInfo.getModderKeys();
+    }
+
+    public Map<String, Entry<String, String>> getPropertyMapping()
+    {
+    	return managedInfo.getPropertyMapping();
     }
 }
