@@ -18,6 +18,8 @@
 
 package com.redhat.rcm.version.mgr.session;
 
+import static com.redhat.rcm.version.util.InputUtils.parseProperties;
+
 import org.apache.log4j.Logger;
 import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.FullProjectKey;
@@ -31,11 +33,11 @@ import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginManagement;
 import org.apache.maven.project.MavenProject;
 
+import com.redhat.rcm.version.Cli;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.model.Project;
 
 import java.io.File;
-import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -43,7 +45,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 
@@ -53,13 +54,14 @@ class ManagedInfo
     private static final Logger LOGGER = Logger.getLogger( VersionManagerSession.class );
 
     private static final String RELOCATIONS_KEY = "relocations";
+
     private static final String MAPPINGS_KEY = "mapping";
 
     private final Set<FullProjectKey> bomCoords = new LinkedHashSet<FullProjectKey>();
 
-    private final Relocations relocations = new Relocations();
+    private final CoordinateRelocations relocatedCoords;
 
-    private final Map<String, Map.Entry<String,String>> mappings = new HashMap<String, Map.Entry<String, String>>();
+    private final PropertyMappings propertyMappings;
 
     private final Map<VersionlessProjectKey, String> depMap = new HashMap<VersionlessProjectKey, String>();
 
@@ -76,8 +78,6 @@ class ManagedInfo
 
     private final Set<VersionlessProjectKey> removedPlugins = new HashSet<VersionlessProjectKey>();
 
-    private final VersionManagerSession session;
-
     private final Set<Project> currentProjects = new LinkedHashSet<Project>();
 
     private final Set<VersionlessProjectKey> currentProjectKeys = new LinkedHashSet<VersionlessProjectKey>();
@@ -85,9 +85,12 @@ class ManagedInfo
     private final Set<String> modderKeys = new HashSet<String>();
 
     ManagedInfo( final VersionManagerSession session, final Collection<String> removedPlugins,
-                 final Set<String> modderKeys )
+                 final Set<String> modderKeys, final Map<String, String> relocatedCoords,
+                 final Map<String, String> propertyMappings )
     {
-        this.session = session;
+        this.relocatedCoords = new CoordinateRelocations( relocatedCoords, session );
+        this.propertyMappings = new PropertyMappings( propertyMappings, session );
+
         setRemovedPlugins( removedPlugins );
         setModderKeys( modderKeys );
     }
@@ -112,10 +115,7 @@ class ManagedInfo
         final VersionlessProjectKey key = new VersionlessProjectKey( dep.getGroupId(), dep.getArtifactId() );
         final String version = dep.getVersion();
 
-        if ( !depMap.containsKey( key ) )
-        {
-            depMap.put( key, version );
-        }
+        final String lastVersion = depMap.put( key, version );
 
         Map<VersionlessProjectKey, String> bomMap = bomDepMap.get( srcBom );
         if ( bomMap == null )
@@ -125,6 +125,23 @@ class ManagedInfo
         }
 
         bomMap.put( key, version );
+
+        // remove this key from all other BOM mappings if it overwrites something from an earlier BOM.
+        if ( lastVersion != null )
+        {
+            for ( final Map<VersionlessProjectKey, String> map : bomDepMap.values() )
+            {
+                if ( map == bomMap )
+                {
+                    continue;
+                }
+
+                if ( map.containsKey( key ) )
+                {
+                    map.remove( key );
+                }
+            }
+        }
     }
 
     private void startBomMap( final File srcBom, final String groupId, final String artifactId, final String version )
@@ -142,7 +159,8 @@ class ManagedInfo
         bomMap.put( bomKey, version );
     }
 
-    void addBOM( final File bom, final MavenProject project ) throws VManException
+    void addBOM( final File bom, final MavenProject project )
+        throws VManException
     {
         bomCoords.add( new FullProjectKey( project.getGroupId(), project.getArtifactId(), project.getVersion() ) );
 
@@ -163,31 +181,29 @@ class ManagedInfo
             LOGGER.info( "Got relocations:\n\n" + relocations );
             if ( relocations != null )
             {
-                addRelocations( bom, relocations );
+                LOGGER.warn( "[DEPRECATED] BOM-based coordinate relocations have been replaced by the "
+                    + Cli.RELOCATIONS_PROPERTY
+                    + " configuration, which specifies a URL to a properties file. Please use this instead." );
+
+                relocatedCoords.addBomRelocations( bom, parseProperties( relocations ) );
             }
 
-            final String mappingsStr = properties.getProperty( MAPPINGS_KEY );
-            LOGGER.info( "Got mapping:\n\n" + mappingsStr);
-            if ( mappingsStr != null )
+            final String mappings = properties.getProperty( MAPPINGS_KEY );
+            LOGGER.info( "Got mappings:\n\n" + mappings );
+            if ( mappings != null )
             {
-                // Look up the tree to find the component version master.
-                MavenProject parent = project.getParent();
-                if (parent != null)
-                {
-                    addPropertyRelocations (bom, mappingsStr, session, parent.getProperties ());
-                }
+                LOGGER.warn( "[DEPRECATED] BOM-based property mappings have been replaced by the "
+                    + Cli.PROPERTY_MAPPINGS_PROPERTY
+                    + " configuration, which specifies a URL to a properties file. Please use this instead." );
+
+                propertyMappings.addBomPropertyMappings( bom, parseProperties( mappings ) );
             }
         }
     }
 
-    private void addRelocations( final File bom, final String relocationsStr )
-    {
-        relocations.addBomRelocations( bom, relocationsStr, session );
-    }
-
     FullProjectKey getRelocation( final ProjectKey key )
     {
-        return relocations.getRelocation( key );
+        return relocatedCoords.getRelocation( key );
     }
 
     Set<FullProjectKey> getBomCoords()
@@ -195,9 +211,9 @@ class ManagedInfo
         return bomCoords;
     }
 
-    Relocations getRelocations()
+    CoordinateRelocations getRelocations()
     {
-        return relocations;
+        return relocatedCoords;
     }
 
     void setToolchain( final File toolchainFile, final MavenProject project )
@@ -324,52 +340,9 @@ class ManagedInfo
         return currentProjectKeys.contains( new VersionlessProjectKey( key ) );
     }
 
-    public Map<String, Entry<String, String>> getPropertyMapping()
+    public PropertyMappings getPropertyMapping()
     {
-        return mappings;
+        return propertyMappings;
     }
 
-
-    private void addPropertyRelocations( final File bom, final String relocationsStr,
-                                        final VersionManagerSession session, final Properties parentProps ) throws VManException
-    {
-        final String[] lines = relocationsStr.split( "[\\s*,\\s*]+" );
-        if ( lines != null && lines.length > 0 )
-        {
-            LOGGER.info( bom + ": Found " + lines.length + " mappings..." );
-            for ( String line : lines )
-            {
-                LOGGER.info( "processing: '" + line + "'" );
-                int idx = line.indexOf( '#' );
-                if ( idx > -1 )
-                {
-                    line = line.substring( 0, idx );
-                }
-
-                idx = line.indexOf( '=' );
-                if ( idx > 0 )
-                {
-                    final String map[] = line.split("=");
-
-                    if (Character.isDigit(map[1].charAt(0)))
-                    {
-                        mappings.put(map[0], new AbstractMap.SimpleEntry<String, String>(map[1], map[1]));
-                    }
-                    else
-                    {
-                        if (parentProps.get (map[1]) == null)
-                        {
-                            throw new VManException ("No mapping value found for " + map[1] + " in parent properties.");
-                        }
-
-                        mappings.put(map[0], new AbstractMap.SimpleEntry<String, String>(map[1], (String)parentProps.get(map[1])));
-                    }
-                }
-            }
-        }
-        else
-        {
-            LOGGER.info( bom + ": No mappings found" );
-        }
-    }
 }

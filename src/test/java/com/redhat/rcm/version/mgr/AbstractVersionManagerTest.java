@@ -27,6 +27,7 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
+import com.redhat.rcm.version.fixture.LoggingFixture;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
 import java.io.File;
@@ -54,6 +55,12 @@ public abstract class AbstractVersionManagerTest
 
     protected AbstractVersionManagerTest()
     {
+    }
+
+    @BeforeClass
+    public static void enableLogging()
+    {
+        LoggingFixture.setupLogging();
     }
 
     @BeforeClass
@@ -124,7 +131,12 @@ public abstract class AbstractVersionManagerTest
     {
         final VersionManagerSession session = createVersionManagerSession();
 
-        vman.modifyVersions( repo, "**/*.pom", "", Arrays.asList( boms ), useToolchain ? getToolchainPath() : null, session );
+        vman.modifyVersions( repo,
+                             "**/*.pom",
+                             "",
+                             Arrays.asList( boms ),
+                             useToolchain ? getToolchainPath() : null,
+                             session );
         assertNoErrors( session );
         vman.generateReports( reports, session );
 

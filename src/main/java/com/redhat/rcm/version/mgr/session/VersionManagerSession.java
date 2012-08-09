@@ -46,7 +46,6 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 public class VersionManagerSession
@@ -90,7 +89,8 @@ public class VersionManagerSession
 
     public VersionManagerSession( final File workspace, final File reports, final String versionSuffix,
                                   final Collection<String> removedPlugins, final Set<String> modderKeys,
-                                  final boolean preserveFiles, final boolean strict, final boolean injectBoms )
+                                  final boolean preserveFiles, final boolean strict, final boolean injectBoms,
+                                  final Map<String, String> relocatedCoords, final Map<String, String> propertyMappings )
     {
         this.workspace = workspace;
         this.reports = reports;
@@ -101,13 +101,20 @@ public class VersionManagerSession
         backups = new File( workspace, "backups" );
         backups.mkdirs();
 
-        downloads = new File( workspace, "downloads" );
-        downloads.mkdirs();
+        downloads = getDownloadsDir( workspace );
 
         this.preserveFiles = preserveFiles;
 
-        managedInfo = new ManagedInfo( this, removedPlugins, modderKeys );
+        managedInfo = new ManagedInfo( this, removedPlugins, modderKeys, relocatedCoords, propertyMappings );
         missingInfo = new MissingInfo();
+    }
+
+    public static File getDownloadsDir( final File workspace )
+    {
+        final File downloads = new File( workspace, "downloads" );
+        downloads.mkdirs();
+
+        return downloads;
     }
 
     public boolean isInjectBoms()
@@ -277,7 +284,8 @@ public class VersionManagerSession
         return managedInfo.getBomCoords();
     }
 
-    public VersionManagerSession addBOM( final File bom, final MavenProject project ) throws VManException
+    public VersionManagerSession addBOM( final File bom, final MavenProject project )
+        throws VManException
     {
         managedInfo.addBOM( bom, project );
 
@@ -291,7 +299,7 @@ public class VersionManagerSession
         return this;
     }
 
-    public Relocations getRelocations()
+    public CoordinateRelocations getRelocations()
     {
         return managedInfo.getRelocations();
     }
@@ -507,8 +515,8 @@ public class VersionManagerSession
         return managedInfo.getModderKeys();
     }
 
-    public Map<String, Entry<String, String>> getPropertyMapping()
+    public PropertyMappings getPropertyMappings()
     {
-    	return managedInfo.getPropertyMapping();
+        return managedInfo.getPropertyMapping();
     }
 }

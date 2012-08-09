@@ -27,10 +27,11 @@ import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.junit.Test;
 
 import com.redhat.rcm.version.mgr.AbstractVersionManagerTest;
-import com.redhat.rcm.version.mgr.session.Relocations;
+import com.redhat.rcm.version.mgr.session.CoordinateRelocations;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.Map;
 
 public class RelocationsTest
@@ -40,8 +41,9 @@ public class RelocationsTest
     @Test
     public void checkAddRelocations_HandlingOfSpaceNewlineComma()
     {
+        final VersionManagerSession session = createVersionManagerSession();
+
         final File f = new File( "." );
-        final Relocations relocations = new Relocations();
 
         final String inGA1 = "org.foo:foo";
         final String outGA1 = "org.bar:foo:1.0";
@@ -49,9 +51,12 @@ public class RelocationsTest
         final String inGA2 = "my.proj:core";
         final String outGA2 = "org.proj:core:1.0";
 
-        relocations.addBomRelocations( f,
-                                       inGA1 + "=" + outGA1 + " \n," + inGA2 + "=" + outGA2,
-                                       createVersionManagerSession() );
+        final Map<String, String> relos = new HashMap<String, String>();
+        relos.put( inGA1, outGA1 );
+        relos.put( inGA2, outGA2 );
+
+        final CoordinateRelocations relocations = new CoordinateRelocations( new HashMap<String, String>(), session );
+        relocations.addBomRelocations( f, relos );
 
         final Map<VersionlessProjectKey, FullProjectKey> r = relocations.getRelocationsByFile().get( f );
 
@@ -68,17 +73,19 @@ public class RelocationsTest
     public void checkAddRelocations_HandlingOfSpaceCommaNewlineTab()
     {
         final File f = new File( "." );
-        final Relocations relocations = new Relocations();
-
         final String inGA1 = "org.foo:foo";
         final String outGA1 = "org.bar:foo:1.0";
 
         final String inGA2 = "my.proj:core";
         final String outGA2 = "org.proj:core:1.0";
 
-        relocations.addBomRelocations( f,
-                                       inGA1 + "=" + outGA1 + " ,\n\t" + inGA2 + "=" + outGA2,
-                                       createVersionManagerSession() );
+        final Map<String, String> relos = new HashMap<String, String>();
+        relos.put( inGA1, outGA1 );
+        relos.put( inGA2, outGA2 );
+
+        final VersionManagerSession session = createVersionManagerSession();
+        final CoordinateRelocations relocations = new CoordinateRelocations( new HashMap<String, String>(), session );
+        relocations.addBomRelocations( f, relos );
 
         final Map<VersionlessProjectKey, FullProjectKey> r = relocations.getRelocationsByFile().get( f );
 
@@ -95,7 +102,6 @@ public class RelocationsTest
     public void checkAddRelocations_InvalidLineDoesNotStopOtherAdditions()
     {
         final File f = new File( "." );
-        final Relocations relocations = new Relocations();
 
         final String inGA1 = "org.foo:foo";
         final String outGA1 = "org.bar:foo:1.0";
@@ -106,9 +112,14 @@ public class RelocationsTest
         final String inGA3 = "com.foo:project:1";
         final String outGA3 = "com.myco.foo:project1";
 
+        final Map<String, String> relos = new HashMap<String, String>();
+        relos.put( inGA1, outGA1 );
+        relos.put( inGA2, outGA2 );
+        relos.put( inGA3, outGA3 );
+
         final VersionManagerSession session = createVersionManagerSession();
-        relocations.addBomRelocations( f, inGA1 + "=" + outGA1 + " ,\n\t" + inGA2 + "=" + outGA2 + ",\n\t" + inGA3
-            + "=" + outGA3, session );
+        final CoordinateRelocations relocations = new CoordinateRelocations( new HashMap<String, String>(), session );
+        relocations.addBomRelocations( f, relos );
 
         final Map<VersionlessProjectKey, FullProjectKey> r = relocations.getRelocationsByFile().get( f );
 

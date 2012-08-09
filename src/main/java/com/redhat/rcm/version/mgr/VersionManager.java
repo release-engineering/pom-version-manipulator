@@ -84,7 +84,7 @@ public class VersionManager
     @Requirement
     private SessionConfigurator sessionConfigurator;
 
-	private HashMap<String, String> pomExcludedModules;
+    private HashMap<String, String> pomExcludedModules;
 
     private static boolean useClasspathScanning = false;
 
@@ -135,17 +135,22 @@ public class VersionManager
         }
     }
 
-    public Set<File> modifyVersions( final File dir, final String pomNamePattern, String pomExcludePattern, final List<String> boms,
-                                     final String toolchain, final VersionManagerSession session )
+    public Set<File> modifyVersions( final File dir, final String pomNamePattern, final String pomExcludePattern,
+                                     final List<String> boms, final String toolchain,
+                                     final VersionManagerSession session )
     {
         final DirectoryScanner scanner = new DirectoryScanner();
         scanner.setBasedir( dir );
 
-        final String[] initExcludes = new String[] { session.getWorkspace().getName() + "/**",
-            session.getReports().getName() + "/**" };
-        final String[] excludePattern = pomExcludePattern.split( "\\s*,\\s*" );
-        String[] excludes = Arrays.copyOf(initExcludes, initExcludes.length + excludePattern.length);
-        System.arraycopy(excludePattern, 0, excludes, initExcludes.length, excludePattern.length);
+        final String[] initExcludes =
+            new String[] { session.getWorkspace().getName() + "/**", session.getReports().getName() + "/**" };
+
+        final String[] excludePattern =
+            pomExcludePattern == null ? new String[] {} : pomExcludePattern.split( "\\s*,\\s*" );
+
+        final String[] excludes = Arrays.copyOf( initExcludes, initExcludes.length + excludePattern.length );
+
+        System.arraycopy( excludePattern, 0, excludes, initExcludes.length, excludePattern.length );
 
         scanner.setExcludes( excludes );
         scanner.addDefaultExcludes();
@@ -168,14 +173,8 @@ public class VersionManager
         final List<File> pomFiles = new ArrayList<File>();
         final String[] includedSubpaths = scanner.getIncludedFiles();
 
-        LOGGER.debug
-        (
-            "Scanning from " + dir +
-            " and got included files " +
-            Arrays.toString(includedSubpaths) +
-            " and got excluded files " +
-            Arrays.toString(scanner.getExcludedFiles())
-        );
+        LOGGER.debug( "Scanning from " + dir + " and got included files " + Arrays.toString( includedSubpaths )
+            + " and got excluded files " + Arrays.toString( scanner.getExcludedFiles() ) );
 
         for ( final String subpath : includedSubpaths )
         {
@@ -265,27 +264,30 @@ public class VersionManager
             session.setProcessPomPlugins( processPomPlugins );
         }
 
-		for (Iterator<Model> i = models.iterator() ; i.hasNext() ; )
-		{
-			Model m = i.next();
-			
-			String groupId;
-			if (m.getGroupId() == null && m.getParent() == null)
-			{
-				LOGGER.warn("Unable to determine groupId for model " + m);
-				continue;
-			}
-			else
-			{
-				groupId = (m.getGroupId() == null ? m.getParent().getGroupId() : m.getGroupId());
-			}
-			
-			String v = pomExcludedModules.get(groupId);
-			if ( v != null && m.getArtifactId().equals(v))
-			{
-				i.remove();
-			}
-		}
+        if ( pomExcludedModules != null )
+        {
+            for ( final Iterator<Model> i = models.iterator(); i.hasNext(); )
+            {
+                final Model m = i.next();
+
+                String groupId;
+                if ( m.getGroupId() == null && m.getParent() == null )
+                {
+                    LOGGER.warn( "Unable to determine groupId for model " + m );
+                    continue;
+                }
+                else
+                {
+                    groupId = ( m.getGroupId() == null ? m.getParent().getGroupId() : m.getGroupId() );
+                }
+
+                final String v = pomExcludedModules.get( groupId );
+                if ( v != null && m.getArtifactId().equals( v ) )
+                {
+                    i.remove();
+                }
+            }
+        }
 
         try
         {
@@ -480,16 +482,21 @@ public class VersionManager
         return modders;
     }
 
-	public void setPomExcludeModules(String pomExcludeModules) 
-	{
-		String []modules = pomExcludeModules.split(",");
-	
-		pomExcludedModules = new HashMap<String,String>();
+    public void setPomExcludeModules( final String pomExcludeModules )
+    {
+        if ( pomExcludeModules == null )
+        {
+            return;
+        }
 
-		for (String m: modules)
-		{
-			int index = m.indexOf(':');
-			pomExcludedModules.put (m.substring(0, index), m.substring(index+1));
-		}
-	}
+        final String[] modules = pomExcludeModules.split( "," );
+
+        pomExcludedModules = new HashMap<String, String>();
+
+        for ( final String m : modules )
+        {
+            final int index = m.indexOf( ':' );
+            pomExcludedModules.put( m.substring( 0, index ), m.substring( index + 1 ) );
+        }
+    }
 }

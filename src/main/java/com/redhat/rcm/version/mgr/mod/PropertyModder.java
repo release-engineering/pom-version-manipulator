@@ -18,24 +18,14 @@
 
 package com.redhat.rcm.version.mgr.mod;
 
-import static com.redhat.rcm.version.mgr.mod.Interpolations.interpolate;
-
 import org.apache.log4j.Logger;
-import org.apache.maven.artifact.Artifact;
-import org.apache.maven.mae.project.key.FullProjectKey;
-import org.apache.maven.mae.project.key.VersionlessProjectKey;
-import org.apache.maven.model.Dependency;
-import org.apache.maven.model.DependencyManagement;
-import org.apache.maven.model.Exclusion;
 import org.apache.maven.model.Model;
 import org.codehaus.plexus.component.annotations.Component;
 
+import com.redhat.rcm.version.mgr.session.PropertyMappings;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
-import com.redhat.rcm.version.model.ReadOnlyDependency;
 
-import java.io.File;
-import java.util.Iterator;
 import java.util.Properties;
 import java.util.Set;
 
@@ -56,19 +46,28 @@ public class PropertyModder
         final Model model = project.getModel();
         boolean changed = false;
 
-        Properties currentModel = model.getProperties();
-        Set<String> commonKeys = currentModel.stringPropertyNames();
-        commonKeys.retainAll(session.getPropertyMapping().keySet());
+        final Properties currentModel = model.getProperties();
+        final Set<String> commonKeys = currentModel.stringPropertyNames();
 
-        for (String key : commonKeys)
+        final PropertyMappings propertyMappings = session.getPropertyMappings();
+        commonKeys.retainAll( propertyMappings.getMappedKeys() );
+
+        for ( final String key : commonKeys )
         {
-            LOGGER.info ("Replacing " + key + '/' +
-                         currentModel.get(key) + " with " +  session.getPropertyMapping().get(key).getKey() + '/' +
-                         session.getPropertyMapping().get(key).getValue());
+            final String value = propertyMappings.getMappingTarget( key );
+            final boolean isLiteral = propertyMappings.isLiteralMapping( key );
 
-            // In case the property is used elsewhere as a value just update it to the new value.
-            currentModel.put (key, session.getPropertyMapping().get(key).getValue());
-
+            if ( isLiteral )
+            {
+                LOGGER.info( "Replacing " + key + '/' + currentModel.get( key ) + " with LITERAL: '" + value + "'" );
+                currentModel.put( key, value );
+            }
+            else
+            {
+                LOGGER.info( "Replacing " + key + '/' + currentModel.get( key ) + " with EXPRESSION: '${" + value
+                    + "}'" );
+                currentModel.put( key, "${" + value + "}" );
+            }
             changed = true;
         }
 

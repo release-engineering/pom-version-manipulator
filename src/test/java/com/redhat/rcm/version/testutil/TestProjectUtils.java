@@ -73,7 +73,16 @@ public final class TestProjectUtils
                                                                   final Collection<String> removedPlugins,
                                                                   final Set<String> modders )
     {
-        return new VersionManagerSession( workspace, reports, suffix, removedPlugins, modders, false, true, true );
+        return new VersionManagerSession( workspace,
+                                          reports,
+                                          suffix,
+                                          removedPlugins,
+                                          modders,
+                                          false,
+                                          true,
+                                          true,
+                                          new HashMap<String, String>(),
+                                          new HashMap<String, String>() );
     }
 
     public static File getResourceFile( final String path )

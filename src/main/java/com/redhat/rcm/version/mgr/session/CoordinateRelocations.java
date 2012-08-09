@@ -30,16 +30,24 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class Relocations
+public class CoordinateRelocations
 {
 
-    private static final Logger LOGGER = Logger.getLogger( Relocations.class );
+    private static final Logger LOGGER = Logger.getLogger( CoordinateRelocations.class );
 
-    private final Map<VersionlessProjectKey, FullProjectKey> relocations =
+    private final Map<VersionlessProjectKey, FullProjectKey> relocatedCoords =
         new HashMap<VersionlessProjectKey, FullProjectKey>();
 
     private final Map<File, Map<VersionlessProjectKey, FullProjectKey>> byFile =
         new LinkedHashMap<File, Map<VersionlessProjectKey, FullProjectKey>>();
+
+    private final VersionManagerSession session;
+
+    public CoordinateRelocations( final Map<String, String> relocations, final VersionManagerSession session )
+    {
+        this.session = session;
+        addRelocations( relocations );
+    }
 
     private VersionlessProjectKey toVersionlessCoord( final String src )
         throws VManException
@@ -98,57 +106,46 @@ public class Relocations
 
     public FullProjectKey getRelocation( final ProjectKey key )
     {
-        final FullProjectKey result = relocations.get( new VersionlessProjectKey( key ) );
+        final FullProjectKey result = relocatedCoords.get( new VersionlessProjectKey( key ) );
         return result;
     }
 
-    public Relocations addBomRelocations( final File bom, final String relocationsStr,
-                                          final VersionManagerSession session )
+    public CoordinateRelocations addBomRelocations( final File bom, final Map<String, String> relocations )
     {
-        final String[] lines = relocationsStr.split( "[\\s*,\\s*]+" );
-        if ( lines != null && lines.length > 0 )
-        {
-            LOGGER.info( bom + ": Found " + lines.length + " relocations..." );
-            final Map<VersionlessProjectKey, FullProjectKey> relocations =
-                new LinkedHashMap<VersionlessProjectKey, FullProjectKey>();
+        final Map<VersionlessProjectKey, FullProjectKey> relocatedCoords = addRelocations( relocations );
 
-            for ( String line : lines )
-            {
-                LOGGER.info( "processing: '" + line + "'" );
-                int idx = line.indexOf( '#' );
-                if ( idx > -1 )
-                {
-                    line = line.substring( 0, idx );
-                }
-
-                idx = line.indexOf( '=' );
-                if ( idx > 0 )
-                {
-                    try
-                    {
-                        final VersionlessProjectKey key = toVersionlessCoord( line.substring( 0, idx ).trim() );
-                        final FullProjectKey val = toFullCoord( line.substring( idx + 1 ).trim() );
-
-                        LOGGER.info( "Adding relocation from: " + key + " to: " + val + " in BOM: " + bom );
-                        relocations.put( key, val );
-                    }
-                    catch ( final VManException e )
-                    {
-                        LOGGER.warn( "NOT adding relocation from line: '" + line + "'. Error: " + e.getMessage() );
-                        session.addError( e );
-                    }
-                }
-            }
-
-            this.relocations.putAll( relocations );
-            byFile.put( bom, relocations );
-        }
-        else
-        {
-            LOGGER.info( bom + ": No relocations found" );
-        }
+        byFile.put( bom, relocatedCoords );
 
         return this;
+    }
+
+    private Map<VersionlessProjectKey, FullProjectKey> addRelocations( final Map<String, String> relocations )
+    {
+        final Map<VersionlessProjectKey, FullProjectKey> relocatedCoords =
+            new HashMap<VersionlessProjectKey, FullProjectKey>();
+
+        for ( final Map.Entry<String, String> entry : relocations.entrySet() )
+        {
+            LOGGER.info( "Processing relocation of: '" + entry.getKey() + "' to: '" + entry.getValue() + "'." );
+            try
+            {
+                final VersionlessProjectKey key = toVersionlessCoord( entry.getKey() );
+                final FullProjectKey val = toFullCoord( entry.getValue() );
+
+                LOGGER.info( "Adding relocation from: " + key + " to: " + val );
+                relocatedCoords.put( key, val );
+            }
+            catch ( final VManException e )
+            {
+                LOGGER.warn( "NOT adding relocation from: '" + entry.getKey() + "' to: '" + entry.getValue()
+                    + "'. Error: " + e.getMessage() );
+                session.addError( e );
+            }
+
+        }
+        this.relocatedCoords.putAll( relocatedCoords );
+
+        return relocatedCoords;
     }
 
     public Map<File, Map<VersionlessProjectKey, FullProjectKey>> getRelocationsByFile()

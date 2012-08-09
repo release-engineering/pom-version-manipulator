@@ -112,11 +112,11 @@ public class LoggingFixture
     {
         System.out.flush();
         System.err.flush();
-        if ( appender != null )
-        {
-            appender.close();
-            appender = null;
-        }
+        // if ( appender != null )
+        // {
+        // appender.close();
+        // appender = null;
+        // }
     }
 
 }

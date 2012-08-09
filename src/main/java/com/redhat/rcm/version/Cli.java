@@ -18,6 +18,9 @@
 
 package com.redhat.rcm.version;
 
+import static com.redhat.rcm.version.util.InputUtils.readFileProperty;
+import static com.redhat.rcm.version.util.InputUtils.readListProperty;
+import static com.redhat.rcm.version.util.InputUtils.readProperties;
 import static org.apache.commons.io.IOUtils.closeQuietly;
 import static org.apache.commons.lang.StringUtils.join;
 
@@ -47,6 +50,7 @@ import java.text.BreakIterator;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -146,6 +150,10 @@ public class Cli
 
     public static final String MODIFICATIONS = "modifications";
 
+    public static final String RELOCATIONS_PROPERTY = "relocated-coordinates";
+
+    public static final String PROPERTY_MAPPINGS_PROPERTY = "property-mappings";
+
     private static VersionManager vman;
 
     private List<String> boms;
@@ -153,6 +161,10 @@ public class Cli
     private List<String> removedPlugins;
 
     private Set<String> modders;
+
+    private Map<String, String> relocatedCoords;
+
+    private Map<String, String> propertyMappings;
 
     private static int exitValue = Integer.MIN_VALUE;
 
@@ -241,7 +253,9 @@ public class Cli
                                        modders,
                                        preserveFiles,
                                        strict,
-                                       injectBoms );
+                                       injectBoms,
+                                       relocatedCoords,
+                                       propertyMappings );
 
         if ( remoteRepository != null )
         {
@@ -277,8 +291,8 @@ public class Cli
                 + StringUtils.join( boms.iterator(), "\n\t" ) + "\n\nWorkspace:\n\t" + workspace + "\n\nReports:\n\t"
                 + reports );
 
-            vman.setPomExcludeModules (pomExcludeModules);
-            
+            vman.setPomExcludeModules( pomExcludeModules );
+
             if ( target.isDirectory() )
             {
                 vman.modifyVersions( target, pomPattern, pomExcludePattern, boms, toolchain, session );
@@ -466,6 +480,27 @@ public class Cli
 
                 LOGGER.info( "Loading configuration from: " + config + ":\n\n" + sWriter );
 
+                final File downloadsDir = VersionManagerSession.getDownloadsDir( workspace );
+                final File relocations = readFileProperty( props, RELOCATIONS_PROPERTY, downloadsDir );
+                if ( relocations != null )
+                {
+                    relocatedCoords = readProperties( relocations );
+                }
+                else
+                {
+                    relocatedCoords = new HashMap<String, String>();
+                }
+
+                final File propertyMappings = readFileProperty( props, PROPERTY_MAPPINGS_PROPERTY, downloadsDir );
+                if ( propertyMappings != null )
+                {
+                    this.propertyMappings = readProperties( propertyMappings );
+                }
+                else
+                {
+                    this.propertyMappings = new HashMap<String, String>();
+                }
+
                 if ( removedPluginsList == null )
                 {
                     removedPlugins = readListProperty( props, REMOVED_PLUGINS_PROPERTY );
@@ -571,18 +606,6 @@ public class Cli
                 closeQuietly( is );
             }
         }
-    }
-
-    private List<String> readListProperty( final Properties props, final String property )
-    {
-        final String val = props.getProperty( property );
-        if ( val != null )
-        {
-            final String[] rm = val.split( "(\\s)*,(\\s)*" );
-            return Arrays.asList( rm );
-        }
-
-        return null;
     }
 
     private void loadBomList()
