@@ -60,28 +60,41 @@ public class VersionSuffixModder
                 final VersionlessProjectKey vpk = new VersionlessProjectKey( parent );
                 final String version = session.getArtifactVersion( vpk );
 
-                if ( tk == null || new VersionlessProjectKey( tk ).equals( vpk ) )
+                // if the parent references a project in the current vman modification session...
+                if ( session.inCurrentSession( parent ) )
                 {
-                    // NOP.
-                }
-                else if ( session.inCurrentSession( parent ) )
-                {
+                    // and if the parent ref's version doesn't end with the suffix we're using here...
                     if ( !parent.getVersion().endsWith( suffix ) )
                     {
+                        // adjust it.
                         parent.setVersion( parent.getVersion() + suffix );
                         changed = true;
                     }
                 }
+                // otherwise, if we're not using a toolchain POM or our parent references the
+                // toolchain POM already, don't mess with the rest of this stuff.
+                else if ( tk == null || new VersionlessProjectKey( tk ).equals( vpk ) )
+                {
+                    // NOP.
+                }
+                // if we do have a toolchain POM, and the parent ref for this project isn't listed in
+                // a BOM (I know, that's weird)...
                 else if ( version == null )
                 {
+                    // note it in the session that this parent POM hasn't been captured in our info.
                     session.addMissingParent( project );
                     if ( !session.isStrict() && !parent.getVersion().endsWith( suffix ) )
                     {
+                        // if we're not operating in strict mode, and the parent ref version doesn't
+                        // end with the suffix we're using, append it and assume that the parent POM
+                        // will be VMan-ized and built using the same configuration.
                         parent.setVersion( parent.getVersion() + suffix );
                     }
                 }
+                // if we're using a different version of a parent listed in our BOMs
                 else if ( !parent.getVersion().equals( version ) )
                 {
+                    // adjust the parent version to match the BOM.
                     parent.setVersion( version );
                     changed = true;
                 }

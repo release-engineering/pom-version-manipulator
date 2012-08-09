@@ -81,7 +81,7 @@ public class VersionManagerSession
 
     private final ManagedInfo managedInfo;
 
-    private final MissingInfo missingInfo;
+    private final ChangeInfo changeInfo;
 
     private final boolean strict;
 
@@ -106,7 +106,7 @@ public class VersionManagerSession
         this.preserveFiles = preserveFiles;
 
         managedInfo = new ManagedInfo( this, removedPlugins, modderKeys, relocatedCoords, propertyMappings );
-        missingInfo = new MissingInfo();
+        changeInfo = new ChangeInfo();
     }
 
     public static File getDownloadsDir( final File workspace )
@@ -166,19 +166,19 @@ public class VersionManagerSession
 
     public synchronized VersionManagerSession addUnmanagedPlugin( final File pom, final Plugin plugin )
     {
-        missingInfo.addUnmanagedPlugin( pom, plugin );
+        changeInfo.addUnmanagedPlugin( pom, plugin );
 
         return this;
     }
 
     public void addMissingParent( final Project project )
     {
-        missingInfo.addMissingParent( project );
+        changeInfo.addMissingParent( project );
     }
 
     public synchronized VersionManagerSession addMissingDependency( final Project project, final Dependency dep )
     {
-        missingInfo.addMissingDependency( project, dep );
+        changeInfo.addMissingDependency( project, dep );
 
         return this;
     }
@@ -216,47 +216,47 @@ public class VersionManagerSession
 
     public Map<VersionlessProjectKey, Set<Plugin>> getUnmanagedPluginRefs()
     {
-        return missingInfo.getUnmanagedPluginRefs();
+        return changeInfo.getUnmanagedPluginRefs();
     }
 
     public Map<File, Set<VersionlessProjectKey>> getUnmanagedPlugins()
     {
-        return missingInfo.getUnmanagedPlugins();
+        return changeInfo.getUnmanagedPlugins();
     }
 
     public Set<VersionlessProjectKey> getUnmanagedPlugins( final File pom )
     {
-        return missingInfo.getUnmanagedPlugins( pom );
+        return changeInfo.getUnmanagedPlugins( pom );
     }
 
     public Set<Project> getProjectsWithMissingParent()
     {
-        return missingInfo.getProjectsWithMissingParent();
+        return changeInfo.getProjectsWithMissingParent();
     }
 
     public boolean isMissingParent( final Project project )
     {
-        return missingInfo.isMissingParent( project );
+        return changeInfo.isMissingParent( project );
     }
 
     public Map<VersionlessProjectKey, Set<Dependency>> getMissingDependencies()
     {
-        return missingInfo.getMissingDependencies();
+        return changeInfo.getMissingDependencies();
     }
 
     public Set<Dependency> getMissingDependencies( final VersionlessProjectKey key )
     {
-        return missingInfo.getMissingDependencies( key );
+        return changeInfo.getMissingDependencies( key );
     }
 
     public Map<VersionlessProjectKey, Set<File>> getMissingVersions()
     {
-        return missingInfo.getMissingVersions();
+        return changeInfo.getMissingVersions();
     }
 
     public Set<VersionlessProjectKey> getMissingVersions( final ProjectKey key )
     {
-        return missingInfo.getMissingVersions( key );
+        return changeInfo.getMissingVersions( key );
     }
 
     public List<Throwable> getErrors()
@@ -518,5 +518,20 @@ public class VersionManagerSession
     public PropertyMappings getPropertyMappings()
     {
         return managedInfo.getPropertyMapping();
+    }
+
+    public Map<ProjectKey, FullProjectKey> getRelocatedCoordinates( final File pom )
+    {
+        return changeInfo.getRelocatedCoordinates( pom );
+    }
+
+    public void addRelocatedCoordinate( final File pom, final ProjectKey old, final FullProjectKey relocation )
+    {
+        changeInfo.addRelocatedCoordinate( pom, old, relocation );
+    }
+
+    public Map<File, Map<ProjectKey, FullProjectKey>> getRelocatedCoordinatesByFile()
+    {
+        return changeInfo.getRelocatedCoordinatesByFile();
     }
 }

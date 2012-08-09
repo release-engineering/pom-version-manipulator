@@ -18,22 +18,27 @@
 
 package com.redhat.rcm.version.mgr.session;
 
+import org.apache.maven.mae.project.key.FullProjectKey;
+import org.apache.maven.mae.project.key.ProjectKey;
+import org.apache.maven.mae.project.key.VersionlessProjectKey;
+import org.apache.maven.model.Dependency;
+import org.apache.maven.model.Plugin;
+
+import com.redhat.rcm.version.model.Project;
+import com.redhat.rcm.version.model.ReadOnlyDependency;
+
 import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.maven.mae.project.key.ProjectKey;
-import org.apache.maven.mae.project.key.VersionlessProjectKey;
-import org.apache.maven.model.Dependency;
-import org.apache.maven.model.Plugin;
-
-import com.redhat.rcm.version.model.ReadOnlyDependency;
-import com.redhat.rcm.version.model.Project;
-
-class MissingInfo
+class ChangeInfo
 {
+
+    private final Map<File, Map<ProjectKey, FullProjectKey>> relocatedCoordinates =
+        new HashMap<File, Map<ProjectKey, FullProjectKey>>();
+
     private final Set<Project> missingParents = new HashSet<Project>();
 
     private final Map<VersionlessProjectKey, Set<File>> missingVersions =
@@ -53,7 +58,7 @@ class MissingInfo
 
     void addUnmanagedPlugin( final File pom, final Plugin plugin )
     {
-        VersionlessProjectKey pluginKey = new VersionlessProjectKey( plugin );
+        final VersionlessProjectKey pluginKey = new VersionlessProjectKey( plugin );
 
         Set<VersionlessProjectKey> pluginKeys = unmanagedPlugins.get( pom );
         if ( pluginKeys == null )
@@ -81,7 +86,7 @@ class MissingInfo
 
     void addMissingDependency( final Project project, final Dependency dep )
     {
-        VersionlessProjectKey depKey = new VersionlessProjectKey( dep );
+        final VersionlessProjectKey depKey = new VersionlessProjectKey( dep );
 
         Set<File> poms = missingVersions.get( depKey );
         if ( poms == null )
@@ -92,7 +97,7 @@ class MissingInfo
 
         poms.add( project.getPom() );
 
-        VersionlessProjectKey vpk = new VersionlessProjectKey( project.getKey() );
+        final VersionlessProjectKey vpk = new VersionlessProjectKey( project.getKey() );
         Set<VersionlessProjectKey> keys = missingVersionsByProject.get( vpk );
         if ( keys == null )
         {
@@ -155,4 +160,27 @@ class MissingInfo
     {
         return missingVersionsByProject.get( new VersionlessProjectKey( key ) );
     }
+
+    Map<ProjectKey, FullProjectKey> getRelocatedCoordinates( final File pom )
+    {
+        return relocatedCoordinates.get( pom );
+    }
+
+    Map<File, Map<ProjectKey, FullProjectKey>> getRelocatedCoordinatesByFile()
+    {
+        return relocatedCoordinates;
+    }
+
+    synchronized void addRelocatedCoordinate( final File pom, final ProjectKey old, final FullProjectKey relocation )
+    {
+        Map<ProjectKey, FullProjectKey> relocations = relocatedCoordinates.get( pom );
+        if ( relocations == null )
+        {
+            relocations = new HashMap<ProjectKey, FullProjectKey>();
+            relocatedCoordinates.put( pom, relocations );
+        }
+
+        relocations.put( old, relocation );
+    }
+
 }

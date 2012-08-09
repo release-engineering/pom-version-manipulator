@@ -105,7 +105,22 @@ public class ToolchainModder
         {
             for ( final ReportPlugin plugin : reportPlugins )
             {
-                final VersionlessProjectKey pluginKey = new VersionlessProjectKey( plugin );
+                VersionlessProjectKey pluginKey = new VersionlessProjectKey( plugin );
+                final FullProjectKey relocation = session.getRelocation( pluginKey );
+                if ( relocation != null )
+                {
+                    session.addRelocatedCoordinate( project.getPom(), pluginKey, relocation );
+
+                    pluginKey = new VersionlessProjectKey( relocation );
+                    plugin.setGroupId( relocation.getGroupId() );
+                    plugin.setArtifactId( relocation.getArtifactId() );
+
+                    if ( session.isStrict() )
+                    {
+                        plugin.setVersion( relocation.getVersion() );
+                    }
+                }
+
                 final Plugin managedPlugin = session.getManagedPlugin( pluginKey );
                 if ( managedPlugin != null && !managedPlugin.getVersion().equals( plugin.getVersion() ) )
                 {
@@ -374,14 +389,32 @@ public class ToolchainModder
         {
             for ( final Plugin plugin : new ArrayList<Plugin>( plugins ) )
             {
-                final VersionlessProjectKey pluginKey = new VersionlessProjectKey( plugin );
+                VersionlessProjectKey pluginKey = new VersionlessProjectKey( plugin );
+                final FullProjectKey relocation = session.getRelocation( pluginKey );
+                if ( relocation != null )
+                {
+                    session.addRelocatedCoordinate( project.getPom(), pluginKey, relocation );
+
+                    pluginKey = new VersionlessProjectKey( relocation );
+                    plugin.setGroupId( relocation.getGroupId() );
+                    plugin.setArtifactId( relocation.getArtifactId() );
+
+                    if ( session.isStrict() )
+                    {
+                        plugin.setVersion( relocation.getVersion() );
+                    }
+                }
+
                 final Plugin managedPlugin = session.getManagedPlugin( pluginKey );
 
-                // No matter what, remove the plugin version. It should ALWAYS come from the toolchain.
-                // The capture-POM will assist with adding missing plugins to the toolchain.
-
                 final Plugin p = plugin.clone();
-                plugin.setVersion( null );
+
+                if ( !session.isStrict() || managedPlugin != null )
+                {
+                    // Unless strict mode is set, remove the plugin version. It SHOULD come from the toolchain.
+                    // The capture-POM will assist with adding missing plugins to the toolchain.
+                    plugin.setVersion( null );
+                }
 
                 if ( managedPlugin != null )
                 {

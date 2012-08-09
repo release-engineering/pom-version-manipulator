@@ -20,10 +20,6 @@ package com.redhat.rcm.version.mgr.mod;
 
 import static com.redhat.rcm.version.mgr.mod.Interpolations.interpolate;
 
-import java.io.File;
-import java.util.Iterator;
-import java.util.Set;
-
 import org.apache.log4j.Logger;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.mae.project.key.FullProjectKey;
@@ -37,6 +33,10 @@ import org.codehaus.plexus.component.annotations.Component;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.model.ReadOnlyDependency;
+
+import java.io.File;
+import java.util.Iterator;
+import java.util.Set;
 
 @Component( role = ProjectModder.class, hint = "bom-realignment" )
 public class BomModder
@@ -78,15 +78,14 @@ public class BomModder
             }
         }
 
-        if (session.isStrict())
+        if ( session.isStrict() )
         {
             dm = model.getDependencyManagement();
 
             if ( model.getDependencyManagement() != null && dm.getDependencies() != null )
             {
                 LOGGER.info( "Processing dependencyManagement for '" + project.getKey() + "'..." );
-                for ( final Iterator<Dependency> it = dm.getDependencies().iterator();
-                      it.hasNext(); )
+                for ( final Iterator<Dependency> it = dm.getDependencies().iterator(); it.hasNext(); )
                 {
                     final Dependency dep = it.next();
                     final DepModResult depResult = modifyDep( dep, model, project, pom, session, true );
@@ -190,6 +189,8 @@ public class BomModder
         if ( newKey != null && !key.equals( newKey ) )
         {
             LOGGER.info( "Relocating dependency: " + key + " to: " + newKey );
+            session.addRelocatedCoordinate( pom, key, newKey );
+
             d.setGroupId( newKey.getGroupId() );
             d.setArtifactId( newKey.getArtifactId() );
             d.setVersion( newKey.getVersion() );
@@ -215,6 +216,8 @@ public class BomModder
         version = session.getArtifactVersion( key );
 
         // wipe this out, and use the one in the BOM implicitly...DRY-style.
+        // If in non-strict mode (default), wipe it out even if the dependency isn't in the BOM
+        // ...assume it will be added from the capture POM.
         if ( version != null || !session.isStrict() )
         {
             d.setVersion( null );
@@ -230,6 +233,7 @@ public class BomModder
 
         if ( version == null )
         {
+            // log this dependency as missing from the BOM(s) to can be captured and added.
             session.addMissingDependency( project, dep );
         }
 

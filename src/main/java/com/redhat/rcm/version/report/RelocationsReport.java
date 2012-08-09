@@ -19,6 +19,7 @@
 package com.redhat.rcm.version.report;
 
 import org.apache.maven.mae.project.key.FullProjectKey;
+import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.util.IOUtil;
@@ -55,24 +56,36 @@ public class RelocationsReport
         try
         {
             writer = new PrintWriter( new FileWriter( reportFile ) );
-            final Map<File, Map<VersionlessProjectKey, FullProjectKey>> byFile =
-                sessionData.getRelocations().getRelocationsByFile();
+            writer.printf( "ACTUAL RELOCATIONS (by POM):\n---------------------------------------------------------\n\n" );
+            final Map<File, Map<ProjectKey, FullProjectKey>> relocationsByPom =
+                sessionData.getRelocatedCoordinatesByFile();
 
-            int fileCounter = 0;
-            for ( final Map.Entry<File, Map<VersionlessProjectKey, FullProjectKey>> fileEntry : byFile.entrySet() )
+            for ( final Map.Entry<File, Map<ProjectKey, FullProjectKey>> pomEntry : relocationsByPom.entrySet() )
             {
-                writer.printf( "%d: %s\n---------------------------------------------------------\n",
-                               fileCounter,
-                               fileEntry.getKey() );
-                for ( final Map.Entry<VersionlessProjectKey, FullProjectKey> coordEntry : fileEntry.getValue()
-                                                                                                          .entrySet() )
+                final File pom = pomEntry.getKey();
+                writer.printf( "%s\n---------------------------------------------------------\n", pom );
+                for ( final Map.Entry<ProjectKey, FullProjectKey> relo : pomEntry.getValue().entrySet() )
                 {
-                    writer.printf( "\n    %s = %s", coordEntry.getKey(), coordEntry.getValue() );
+                    writer.printf( "\n    %s => %s", relo.getKey(), relo.getValue() );
                 }
                 writer.println();
                 writer.println();
+            }
 
-                fileCounter++;
+            writer.printf( "\n\nALL AVAILABLE RELOCATIONS:\n---------------------------------------------------------\n" );
+            final Map<File, Map<VersionlessProjectKey, FullProjectKey>> byFile =
+                sessionData.getRelocations().getRelocationsByFile();
+
+            for ( final Map.Entry<File, Map<VersionlessProjectKey, FullProjectKey>> fileEntry : byFile.entrySet() )
+            {
+                writer.printf( "%s\n---------------------------------------------------------\n", fileEntry.getKey() );
+                for ( final Map.Entry<VersionlessProjectKey, FullProjectKey> coordEntry : fileEntry.getValue()
+                                                                                                   .entrySet() )
+                {
+                    writer.printf( "\n    %s => %s", coordEntry.getKey(), coordEntry.getValue() );
+                }
+                writer.println();
+                writer.println();
             }
         }
         catch ( final IOException e )
