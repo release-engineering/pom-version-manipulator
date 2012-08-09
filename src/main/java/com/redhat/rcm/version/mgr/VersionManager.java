@@ -1,18 +1,18 @@
 /*
- * Copyright (c) 2011 Red Hat, Inc.
- * 
+ * Copyright (c) 2012 Red Hat, Inc.
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
  * by the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see 
+ * along with this program.  If not, see
  * <http://www.gnu.org/licenses>.
  */
 
@@ -49,8 +49,11 @@ import com.redhat.rcm.version.report.Report;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -80,6 +83,8 @@ public class VersionManager
 
     @Requirement
     private SessionConfigurator sessionConfigurator;
+
+	private HashMap<String, String> pomExcludedModules;
 
     private static boolean useClasspathScanning = false;
 
@@ -130,15 +135,19 @@ public class VersionManager
         }
     }
 
-    public Set<File> modifyVersions( final File dir, final String pomNamePattern, final List<String> boms,
+    public Set<File> modifyVersions( final File dir, final String pomNamePattern, String pomExcludePattern, final List<String> boms,
                                      final String toolchain, final VersionManagerSession session )
     {
         final DirectoryScanner scanner = new DirectoryScanner();
         scanner.setBasedir( dir );
 
-        scanner.setExcludes( new String[] { session.getWorkspace().getName() + "/**",
-            session.getReports().getName() + "/**", } );
+        final String[] initExcludes = new String[] { session.getWorkspace().getName() + "/**",
+            session.getReports().getName() + "/**" };
+        final String[] excludePattern = pomExcludePattern.split( "\\s*,\\s*" );
+        String[] excludes = Arrays.copyOf(initExcludes, initExcludes.length + excludePattern.length);
+        System.arraycopy(excludePattern, 0, excludes, initExcludes.length, excludePattern.length);
 
+        scanner.setExcludes( excludes );
         scanner.addDefaultExcludes();
 
         final String[] includes = pomNamePattern.split( "\\s*,\\s*" );
@@ -158,6 +167,16 @@ public class VersionManager
 
         final List<File> pomFiles = new ArrayList<File>();
         final String[] includedSubpaths = scanner.getIncludedFiles();
+
+        LOGGER.debug
+        (
+            "Scanning from " + dir +
+            " and got included files " +
+            Arrays.toString(includedSubpaths) +
+            " and got excluded files " +
+            Arrays.toString(scanner.getExcludedFiles())
+        );
+
         for ( final String subpath : includedSubpaths )
         {
             File pom = new File( dir, subpath );
@@ -245,6 +264,28 @@ public class VersionManager
         {
             session.setProcessPomPlugins( processPomPlugins );
         }
+
+		for (Iterator<Model> i = models.iterator() ; i.hasNext() ; )
+		{
+			Model m = i.next();
+			
+			String groupId;
+			if (m.getGroupId() == null && m.getParent() == null)
+			{
+				LOGGER.warn("Unable to determine groupId for model " + m);
+				continue;
+			}
+			else
+			{
+				groupId = (m.getGroupId() == null ? m.getParent().getGroupId() : m.getGroupId());
+			}
+			
+			String v = pomExcludedModules.get(groupId);
+			if ( v != null && m.getArtifactId().equals(v))
+			{
+				i.remove();
+			}
+		}
 
         try
         {
@@ -438,4 +479,17 @@ public class VersionManager
     {
         return modders;
     }
+
+	public void setPomExcludeModules(String pomExcludeModules) 
+	{
+		String []modules = pomExcludeModules.split(",");
+	
+		pomExcludedModules = new HashMap<String,String>();
+
+		for (String m: modules)
+		{
+			int index = m.indexOf(':');
+			pomExcludedModules.put (m.substring(0, index), m.substring(index+1));
+		}
+	}
 }

@@ -138,6 +138,7 @@ public class ToolchainModder
 
         boolean changed = false;
         Parent parent = model.getParent();
+
         if ( toolchainKey != null )
         {
             if ( parent == null )
