@@ -1,18 +1,18 @@
 /*
  * Copyright (c) 2010 Red Hat, Inc.
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
  * by the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see 
+ * along with this program.  If not, see
  * <http://www.gnu.org/licenses>.
  */
 
@@ -31,9 +31,11 @@ import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginManagement;
 import org.apache.maven.project.MavenProject;
 
+import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.model.Project;
 
 import java.io.File;
+import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -41,6 +43,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 
@@ -50,10 +53,13 @@ class ManagedInfo
     private static final Logger LOGGER = Logger.getLogger( VersionManagerSession.class );
 
     private static final String RELOCATIONS_KEY = "relocations";
+    private static final String MAPPINGS_KEY = "mapping";
 
     private final Set<FullProjectKey> bomCoords = new LinkedHashSet<FullProjectKey>();
 
     private final Relocations relocations = new Relocations();
+
+    private final Map<String, Map.Entry<String,String>> mappings = new HashMap<String, Map.Entry<String, String>>();
 
     private final Map<VersionlessProjectKey, String> depMap = new HashMap<VersionlessProjectKey, String>();
 
@@ -136,7 +142,7 @@ class ManagedInfo
         bomMap.put( bomKey, version );
     }
 
-    void addBOM( final File bom, final MavenProject project )
+    void addBOM( final File bom, final MavenProject project ) throws VManException
     {
         bomCoords.add( new FullProjectKey( project.getGroupId(), project.getArtifactId(), project.getVersion() ) );
 
@@ -158,6 +164,18 @@ class ManagedInfo
             if ( relocations != null )
             {
                 addRelocations( bom, relocations );
+            }
+
+            final String mappingsStr = properties.getProperty( MAPPINGS_KEY );
+            LOGGER.info( "Got mapping:\n\n" + mappingsStr);
+            if ( mappingsStr != null )
+            {
+                // Look up the tree to find the component version master.
+                MavenProject parent = project.getParent();
+                if (parent != null)
+                {
+                    addPropertyRelocations (bom, mappingsStr, session, parent.getProperties ());
+                }
             }
         }
     }
@@ -306,4 +324,52 @@ class ManagedInfo
         return currentProjectKeys.contains( new VersionlessProjectKey( key ) );
     }
 
+    public Map<String, Entry<String, String>> getPropertyMapping()
+    {
+        return mappings;
+    }
+
+
+    private void addPropertyRelocations( final File bom, final String relocationsStr,
+                                        final VersionManagerSession session, final Properties parentProps ) throws VManException
+    {
+        final String[] lines = relocationsStr.split( "[\\s*,\\s*]+" );
+        if ( lines != null && lines.length > 0 )
+        {
+            LOGGER.info( bom + ": Found " + lines.length + " mappings..." );
+            for ( String line : lines )
+            {
+                LOGGER.info( "processing: '" + line + "'" );
+                int idx = line.indexOf( '#' );
+                if ( idx > -1 )
+                {
+                    line = line.substring( 0, idx );
+                }
+
+                idx = line.indexOf( '=' );
+                if ( idx > 0 )
+                {
+                    final String map[] = line.split("=");
+
+                    if (Character.isDigit(map[1].charAt(0)))
+                    {
+                        mappings.put(map[0], new AbstractMap.SimpleEntry<String, String>(map[1], map[1]));
+                    }
+                    else
+                    {
+                        if (parentProps.get (map[1]) == null)
+                        {
+                            throw new VManException ("No mapping value found for " + map[1] + " in parent properties.");
+                        }
+
+                        mappings.put(map[0], new AbstractMap.SimpleEntry<String, String>(map[1], (String)parentProps.get(map[1])));
+                    }
+                }
+            }
+        }
+        else
+        {
+            LOGGER.info( bom + ": No mappings found" );
+        }
+    }
 }
