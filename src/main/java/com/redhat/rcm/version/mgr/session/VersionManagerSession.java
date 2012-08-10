@@ -85,18 +85,15 @@ public class VersionManagerSession
 
     private final boolean strict;
 
-    private final boolean injectBoms;
-
     public VersionManagerSession( final File workspace, final File reports, final String versionSuffix,
                                   final Collection<String> removedPlugins, final Set<String> modderKeys,
-                                  final boolean preserveFiles, final boolean strict, final boolean injectBoms,
-                                  final Map<String, String> relocatedCoords, final Map<String, String> propertyMappings )
+                                  final boolean preserveFiles, final boolean strict, final Map<String, String> relocatedCoords,
+                                  final Map<String, String> propertyMappings )
     {
         this.workspace = workspace;
         this.reports = reports;
         this.versionSuffix = versionSuffix;
         this.strict = strict;
-        this.injectBoms = injectBoms;
 
         backups = new File( workspace, "backups" );
         backups.mkdirs();
@@ -115,11 +112,6 @@ public class VersionManagerSession
         downloads.mkdirs();
 
         return downloads;
-    }
-
-    public boolean isInjectBoms()
-    {
-        return injectBoms;
     }
 
     public boolean isStrict()

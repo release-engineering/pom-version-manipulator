@@ -41,15 +41,10 @@ public class PropertyMappings
         addMappings( mappings, session );
     }
 
-    public PropertyMappings addBomPropertyMappings( final File bom, final Map<String, String> mappings )
+    public PropertyMappings addBomPropertyMappings( final File bom, final Map<String, String> newMappings )
     {
-        addMappings( mappings, session );
+        addMappings( newMappings, session );
         return this;
-    }
-
-    public boolean containsMappingKey( final String key )
-    {
-        return mappings.containsKey( key );
     }
 
     public String getMappingTarget( final String key )
@@ -62,15 +57,16 @@ public class PropertyMappings
         return literalFlags.get( key );
     }
 
-    private void addMappings( final Map<String, String> mappings, final VersionManagerSession session )
+    private void addMappings( final Map<String, String> newMappings, final VersionManagerSession session )
     {
         final Pattern pattern = Pattern.compile( EXPRESSION_PATTERN );
 
-        for ( final Map.Entry<String, String> entry : mappings.entrySet() )
+        for ( final Map.Entry<String, String> entry : newMappings.entrySet() )
         {
             String val = entry.getValue();
             boolean literal = true;
             final Matcher matcher = pattern.matcher( val );
+
             if ( matcher.matches() )
             {
                 literal = false;
