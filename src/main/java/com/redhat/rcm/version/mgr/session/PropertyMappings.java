@@ -17,6 +17,8 @@
 
 package com.redhat.rcm.version.mgr.session;
 
+import org.apache.log4j.Logger;
+
 import java.io.File;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -25,8 +27,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.apache.log4j.Logger;
 
 public class PropertyMappings
 {
@@ -73,7 +73,7 @@ public class PropertyMappings
             }
             else
             {
-                mappings.put( entry.getKey(), val);
+                mappings.put( entry.getKey(), val );
             }
         }
     }
@@ -83,22 +83,21 @@ public class PropertyMappings
         return mappings.keySet();
     }
 
-
     /*
-     * This method should take a properties from a BOM and look through that
-     * to update the mappings value with the real value.
+     * This method should take a properties from a BOM and look through that to update the mappings value with the real
+     * value.
      */
-    void updateProjectMap(Properties properties)
+    void updateProjectMap( final Properties properties )
     {
-        Set<Map.Entry<String,String>> contents = expressions.entrySet();
-        for (Iterator<Map.Entry<String,String>> i = contents.iterator() ; i.hasNext() ; )
+        final Set<Map.Entry<String, String>> contents = expressions.entrySet();
+        for ( final Iterator<Map.Entry<String, String>> i = contents.iterator(); i.hasNext(); )
         {
-            Map.Entry<String, String> v = i.next();
+            final Map.Entry<String, String> v = i.next();
 
-            LOGGER.info ("Replacing " + v.getKey() + " with value from " + v.getValue() + '(' +
-                         properties.getProperty(v.getValue()) + ')');
+            LOGGER.info( "Replacing " + v.getKey() + " with value from " + v.getValue() + '('
+                + properties.getProperty( v.getValue() ) + ')' );
 
-            mappings.put(v.getKey(), (String)properties.get(v.getValue()));
+            mappings.put( v.getKey(), (String) properties.get( v.getValue() ) );
 
             i.remove();
         }
