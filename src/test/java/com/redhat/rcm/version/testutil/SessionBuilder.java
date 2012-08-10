@@ -47,9 +47,9 @@ public final class SessionBuilder
 
     private boolean strict = true;
 
-    private Map<String, String> coordinateRelocations = new HashMap<String, String>();
+    private final Map<String, String> coordinateRelocations = new HashMap<String, String>();
 
-    private Map<String, String> propertyMappings = new HashMap<String, String>();
+    private final Map<String, String> propertyMappings = new HashMap<String, String>();
 
     public SessionBuilder( final File workspace )
     {
@@ -109,25 +109,26 @@ public final class SessionBuilder
 
     public SessionBuilder withCoordinateRelocations( final Map<String, String> coordinateRelocations )
     {
-        this.coordinateRelocations = coordinateRelocations;
+        this.coordinateRelocations.putAll( coordinateRelocations );
         return this;
     }
 
     public SessionBuilder withPropertyMappings( final Map<String, String> propertyMappings )
     {
-        this.propertyMappings = propertyMappings;
+        this.propertyMappings.putAll( propertyMappings );
         return this;
     }
 
-    public synchronized SessionBuilder withPropertyMapping( final String key, final String value )
+    public SessionBuilder withPropertyMapping( final String key, final String value )
     {
-        if ( propertyMappings == null )
-        {
-            propertyMappings = new HashMap<String, String>();
-        }
-
         propertyMappings.put( key, value );
 
+        return this;
+    }
+
+    public SessionBuilder withCoordinateRelocation( final String oldCoord, final String newCoord )
+    {
+        coordinateRelocations.put( oldCoord, newCoord );
         return this;
     }
 

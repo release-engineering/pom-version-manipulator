@@ -19,7 +19,6 @@ package com.redhat.rcm.version.mgr.mod;
 
 import static com.redhat.rcm.version.testutil.TestProjectUtils.getResourceFile;
 import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModel;
-import static org.apache.commons.io.FileUtils.copyFile;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
@@ -87,7 +86,7 @@ public class PropertyModderTest
     public void remapPropertyToLiteral()
         throws Exception
     {
-        final Model model = load( "pom-with-property.xml" );
+        final Model model = loadModel( "pom-with-property.xml" );
 
         assertThat( model.getProperties().getProperty( "foo" ), equalTo( "bar" ) );
 
@@ -103,8 +102,8 @@ public class PropertyModderTest
     public void remapPropertyToResolvedSimpleExpression()
         throws Exception
     {
-        final Model model = load( "pom-with-property.xml" );
-        final File bom = getFile( "bom-with-property.xml" );
+        final Model model = loadModel( "pom-with-property.xml" );
+        final File bom = getResourceFile( "bom-with-property.xml" );
 
         assertThat( model.getProperties().getProperty( "foo" ), equalTo( "bar" ) );
 
@@ -123,8 +122,8 @@ public class PropertyModderTest
     public void dontRemapPropertyForUnresolvedSimpleExpression()
         throws Exception
     {
-        final Model model = load( "pom-with-property.xml" );
-        final File bom = getFile( "bom-with-property.xml" );
+        final Model model = loadModel( "pom-with-property.xml" );
+        final File bom = getResourceFile( "bom-with-property.xml" );
 
         assertThat( model.getProperties().getProperty( "foo" ), equalTo( "bar" ) );
 
@@ -137,24 +136,6 @@ public class PropertyModderTest
 
         assertThat( changed, equalTo( false ) );
         assertThat( model.getProperties().getProperty( "foo" ), equalTo( "bar" ) );
-    }
-
-    private Model load( final String path )
-        throws IOException
-    {
-        final File model = getFile( path );
-
-        return loadModel( model );
-    }
-
-    private File getFile( final String path )
-        throws IOException
-    {
-        final File src = getResourceFile( path );
-        final File dest = tempFolder.newFile( new File( path ).getName() );
-        copyFile( src, dest );
-
-        return dest;
     }
 
 }

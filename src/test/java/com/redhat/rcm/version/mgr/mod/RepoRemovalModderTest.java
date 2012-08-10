@@ -17,10 +17,8 @@
 
 package com.redhat.rcm.version.mgr.mod;
 
-import static com.redhat.rcm.version.testutil.TestProjectUtils.getResourceFile;
 import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModel;
 import static com.redhat.rcm.version.testutil.TestProjectUtils.newVersionManagerSession;
-import static org.apache.commons.io.FileUtils.copyFile;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
@@ -71,7 +69,7 @@ public class RepoRemovalModderTest
     public void removeRegularRepository()
         throws Exception
     {
-        final Model model = load( "pom-with-repo.xml" );
+        final Model model = loadModel( "pom-with-repo.xml" );
 
         assertThat( model.getRepositories().size(), equalTo( 1 ) );
 
@@ -87,7 +85,7 @@ public class RepoRemovalModderTest
     public void removePluginRepository()
         throws Exception
     {
-        final Model model = load( "pom-with-pluginRepo.xml" );
+        final Model model = loadModel( "pom-with-pluginRepo.xml" );
 
         assertThat( model.getPluginRepositories().size(), equalTo( 1 ) );
 
@@ -97,16 +95,6 @@ public class RepoRemovalModderTest
 
         assertThat( changed, equalTo( true ) );
         assertThat( model.getPluginRepositories().size(), equalTo( 0 ) );
-    }
-
-    private Model load( final String path )
-        throws IOException
-    {
-        final File src = getResourceFile( path );
-        final File dest = tempFolder.newFile( new File( path ).getName() );
-        copyFile( src, dest );
-
-        return loadModel( dest );
     }
 
 }

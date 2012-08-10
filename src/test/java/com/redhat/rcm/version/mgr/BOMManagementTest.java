@@ -19,17 +19,21 @@
 package com.redhat.rcm.version.mgr;
 
 import static com.redhat.rcm.version.testutil.TestProjectUtils.getResourceFile;
+import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModel;
 import static com.redhat.rcm.version.testutil.TestProjectUtils.newVersionManagerSession;
 import static com.redhat.rcm.version.testutil.VManAssertions.assertNormalizedToBOMs;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Dependency;
+import org.apache.maven.model.Model;
 import org.apache.maven.model.Repository;
 import org.codehaus.plexus.util.FileUtils;
 import org.junit.After;
@@ -40,7 +44,10 @@ import org.junit.Test;
 import org.junit.rules.TestName;
 
 import com.redhat.rcm.version.fixture.LoggingFixture;
+import com.redhat.rcm.version.mgr.mod.BomModder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
+import com.redhat.rcm.version.model.Project;
+import com.redhat.rcm.version.testutil.SessionBuilder;
 
 import java.io.File;
 import java.io.IOException;
@@ -437,4 +444,69 @@ public class BOMManagementTest
         System.out.println( "\n\n" );
     }
 
+    @Test
+    public void modifySinglePomWithNonBOMRelocatedCoordinates()
+        throws IOException, ProjectToolsException
+    {
+        System.out.println( "Single POM test (with relocations NOT from BOM)..." );
+
+        final File pom = getResourceFile( "pom-with-relocation.xml" );
+        final String bom = getResourceFile( "bom-min.xml" ).getAbsolutePath();
+
+        final Model model = loadModel( pom );
+
+        final VersionManagerSession session =
+            new SessionBuilder( workspace, reports ).withCoordinateRelocation( "old.group.id:some-artifact:1",
+                                                                               "new.group.id:new-artifact:1.0.0" )
+                                                    .build();
+
+        vman.configureSession( Collections.singletonList( bom ), bom, session );
+
+        new BomModder().inject( new Project( model ), session );
+
+        assertNoErrors( session );
+
+        assertThat( model.getDependencies().size(), equalTo( 1 ) );
+
+        final Dependency dep = model.getDependencies().get( 0 );
+
+        assertThat( dep.getGroupId(), equalTo( "new.group.id" ) );
+        assertThat( dep.getArtifactId(), equalTo( "new-artifact" ) );
+        assertThat( dep.getVersion(), nullValue() );
+
+        System.out.println( "\n\n" );
+    }
+
+    @Test
+    public void modifySinglePomWithNonBOMRelocatedCoordinatesWhenDepNotInBOM()
+        throws IOException, ProjectToolsException
+    {
+        System.out.println( "Single POM test (with relocations NOT from BOM, no dep in BOM)..." );
+
+        final File pom = getResourceFile( "pom-with-relocation.xml" );
+        final String bom = getResourceFile( "bom-empty.xml" ).getAbsolutePath();
+
+        final Model model = loadModel( pom );
+
+        final VersionManagerSession session =
+            new SessionBuilder( workspace, reports ).withCoordinateRelocation( "old.group.id:some-artifact:1",
+                                                                               "new.group.id:new-artifact:1.0.0" )
+                                                    .build();
+
+        vman.configureSession( Collections.singletonList( bom ), bom, session );
+
+        new BomModder().inject( new Project( model ), session );
+
+        assertNoErrors( session );
+
+        assertThat( model.getDependencies().size(), equalTo( 1 ) );
+
+        final Dependency dep = model.getDependencies().get( 0 );
+
+        assertThat( dep.getGroupId(), equalTo( "new.group.id" ) );
+        assertThat( dep.getArtifactId(), equalTo( "new-artifact" ) );
+        assertThat( dep.getVersion(), equalTo( "1.0.0" ) );
+
+        System.out.println( "\n\n" );
+    }
 }

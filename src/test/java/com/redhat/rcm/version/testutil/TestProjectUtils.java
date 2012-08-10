@@ -19,6 +19,7 @@
 package com.redhat.rcm.version.testutil;
 
 import static junit.framework.Assert.fail;
+import static org.apache.commons.io.FileUtils.copyFile;
 
 import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.FullProjectKey;
@@ -26,6 +27,7 @@ import org.apache.maven.model.Model;
 import org.apache.maven.model.io.DefaultModelReader;
 import org.apache.maven.model.io.ModelReader;
 import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
+import org.junit.rules.TemporaryFolder;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.mod.ProjectModder;
@@ -90,6 +92,16 @@ public final class TestProjectUtils
         }
 
         return new File( resource.getPath() );
+    }
+
+    public static File getResourceFileCopy( final String path, final TemporaryFolder tempFolder )
+        throws IOException
+    {
+        final File src = getResourceFile( path );
+        final File dest = tempFolder.newFile( new File( path ).getName() );
+        copyFile( src, dest );
+
+        return dest;
     }
 
     public static Model loadModel( final String path )
