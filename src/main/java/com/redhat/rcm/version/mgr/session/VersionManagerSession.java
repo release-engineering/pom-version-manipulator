@@ -534,4 +534,21 @@ public class VersionManagerSession
     {
         return changeInfo.getRelocatedCoordinatesByFile();
     }
+
+    public void addBomAdjustment( final File pom, final VersionlessProjectKey key, final String oldVersion,
+                                  final String bomVersion )
+    {
+        changeInfo.addBomAdjustment( pom, key, oldVersion, bomVersion );
+    }
+
+    public Map<VersionlessProjectKey, Map.Entry<String, String>> getBomAdjustments( final File pom )
+    {
+        return changeInfo.getBomAdjustments( pom );
+    }
+
+    public Map<File, Map<VersionlessProjectKey, Map.Entry<String, String>>> getBomAdjustmentsByFile()
+    {
+        return changeInfo.getBomAdjustmentsByFile();
+    }
+
 }

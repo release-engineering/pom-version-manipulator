@@ -28,6 +28,7 @@ import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.model.ReadOnlyDependency;
 
 import java.io.File;
+import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -35,6 +36,9 @@ import java.util.Set;
 
 class ChangeInfo
 {
+
+    private final Map<File, Map<VersionlessProjectKey, Map.Entry<String, String>>> bomAdjustments =
+        new HashMap<File, Map<VersionlessProjectKey, Map.Entry<String, String>>>();
 
     private final Map<File, Map<ProjectKey, FullProjectKey>> relocatedCoordinates =
         new HashMap<File, Map<ProjectKey, FullProjectKey>>();
@@ -181,6 +185,29 @@ class ChangeInfo
         }
 
         relocations.put( old, relocation );
+    }
+
+    void addBomAdjustment( final File pom, final VersionlessProjectKey key, final String oldVersion,
+                           final String bomVersion )
+    {
+        Map<VersionlessProjectKey, Map.Entry<String, String>> adj = bomAdjustments.get( pom );
+        if ( adj == null )
+        {
+            adj = new HashMap<VersionlessProjectKey, Map.Entry<String, String>>();
+            bomAdjustments.put( pom, adj );
+        }
+
+        adj.put( key, new AbstractMap.SimpleEntry<String, String>( oldVersion, bomVersion ) );
+    }
+
+    Map<VersionlessProjectKey, Map.Entry<String, String>> getBomAdjustments( final File pom )
+    {
+        return bomAdjustments.get( pom );
+    }
+
+    Map<File, Map<VersionlessProjectKey, Map.Entry<String, String>>> getBomAdjustmentsByFile()
+    {
+        return bomAdjustments;
     }
 
 }

@@ -203,7 +203,8 @@ public class BomModder
             LOGGER.info( "No relocation available for: " + key );
         }
 
-        String version = dep.getVersion();
+        final String version = dep.getVersion();
+        final String bomVersion = session.getArtifactVersion( key );
 
         if ( version == null )
         {
@@ -212,13 +213,15 @@ public class BomModder
                                        isManaged ? " [MANAGED]" : "" );
             return result;
         }
-
-        version = session.getArtifactVersion( key );
+        else
+        {
+            session.addBomAdjustment( pom, key, version, bomVersion );
+        }
 
         // wipe this out, and use the one in the BOM implicitly...DRY-style.
         // If in non-strict mode (default), wipe it out even if the dependency isn't in the BOM
         // ...assume it will be added from the capture POM.
-        if ( version != null || !session.isStrict() )
+        if ( bomVersion != null || !session.isStrict() )
         {
             d.setVersion( null );
             if ( isManaged && ( dep.getScope() == null || dep.getExclusions() == null || dep.getExclusions().isEmpty() ) )
@@ -231,7 +234,7 @@ public class BomModder
             }
         }
 
-        if ( version == null )
+        if ( bomVersion == null )
         {
             // log this dependency as missing from the BOM(s) to can be captured and added.
             session.addMissingDependency( project, dep );
