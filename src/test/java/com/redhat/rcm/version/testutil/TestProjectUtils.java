@@ -80,7 +80,6 @@ public final class TestProjectUtils
                                           modders,
                                           false,
                                           true,
-                                          true,
                                           new HashMap<String, String>(),
                                           new HashMap<String, String>() );
     }
