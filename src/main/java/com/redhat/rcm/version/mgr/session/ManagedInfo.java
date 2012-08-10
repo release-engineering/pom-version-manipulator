@@ -50,7 +50,6 @@ import java.util.Set;
 
 class ManagedInfo
 {
-
     private static final Logger LOGGER = Logger.getLogger( VersionManagerSession.class );
 
     private static final String RELOCATIONS_KEY = "relocations";
@@ -198,6 +197,12 @@ class ManagedInfo
 
                 propertyMappings.addBomPropertyMappings( bom, parseProperties( mappings ) );
             }
+        }
+
+        if (project.getParent() != null)
+        {
+            LOGGER.info ("Updating property mappings from " + project.getId());
+            propertyMappings.updateProjectMap (project.getParent().getProperties());
         }
     }
 
