@@ -99,9 +99,6 @@ You can override any of the options in your .vman.properties file on the command
      -P (--preserve)                        : Write changed POMs back to original input files
                                               Default: false
 
-     --dont-inject-boms                     : Do NOT inject BOMs directly into root project file(s)
-                                              Default: true
-
      --strict                               : Change ONLY the dependencies, plugins, and parents that are
                                               listed in BOMs and toolchain POM
                                               Default: false
@@ -169,6 +166,21 @@ In order to add optional modifier to the standard list use either
 
 *  On the command line `--modifications=+<modifier-id>` (prefixed with '+').
 *  Or in the properties file `modifications = +property`.
+
+#### Property Modification
+The property modification allows an injected BOM to override version properties using
+a mapping syntax of
+
+            <mapping>
+                version.productX=@version.org.productX@
+                version.productY=1.0.11.Final
+            </mapping>
+
+In this example the two forms are:
+
+*  Replace the value of version.productX property with the value of org.productX property
+   from the injected BOM (or its parent).
+*  Replace the value of version.productY with the literal 1.0.11.Final.
 
 SIMPLE EXAMPLE
 --------------

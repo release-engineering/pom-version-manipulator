@@ -122,7 +122,7 @@ public final class InputUtils
         final String[] lines = content.split( "\\s*,\\s*" );
         if ( lines != null && lines.length > 0 )
         {
-            final int count = 0;
+            int count = 0;
             for ( final String line : lines )
             {
                 LOGGER.info( "processing: '" + line + "'" );
@@ -142,6 +142,7 @@ public final class InputUtils
                 }
 
                 properties.put( kv[0], kv[1] );
+                count++;
             }
 
             LOGGER.info( "Found " + count + " properties..." );

@@ -90,9 +90,6 @@ public class Cli
     @Option( name = "--strict", usage = "Change ONLY the dependencies, plugins, and parents that are listed in BOMs and toolchain POM" )
     private boolean strict = false;
 
-    @Option( name = "--dont-inject-boms", usage = "Do NOT inject BOMs directly into root project file(s)" )
-    private boolean injectBoms = true;
-
     @Option( name = "-P", aliases = { "--preserve" }, usage = "Write changed POMs back to original input files" )
     private boolean preserveFiles = false;
 
@@ -253,7 +250,6 @@ public class Cli
                                        modders,
                                        preserveFiles,
                                        strict,
-                                       injectBoms,
                                        relocatedCoords,
                                        propertyMappings );
 
@@ -589,12 +585,6 @@ public class Cli
                 {
                     strict =
                         Boolean.valueOf( props.getProperty( STRICT_MODE_PROPERTY, Boolean.toString( Boolean.FALSE ) ) );
-                }
-
-                if ( injectBoms )
-                {
-                    injectBoms =
-                        Boolean.valueOf( props.getProperty( INJECT_BOMS_PROPERTY, Boolean.toString( Boolean.TRUE ) ) );
                 }
             }
             catch ( final IOException e )
