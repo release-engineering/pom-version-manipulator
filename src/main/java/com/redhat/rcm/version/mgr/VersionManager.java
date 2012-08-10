@@ -160,13 +160,8 @@ public class VersionManager
 
         scanner.scan();
 
-        try
+        if ( !configureSession( boms, toolchain, session ) )
         {
-            sessionConfigurator.configureSession( boms, toolchain, session );
-        }
-        catch ( final VManException e )
-        {
-            session.addError( e );
             return Collections.emptySet();
         }
 
@@ -217,13 +212,8 @@ public class VersionManager
             pom = pom.getAbsoluteFile();
         }
 
-        try
+        if ( !configureSession( boms, toolchain, session ) )
         {
-            sessionConfigurator.configureSession( boms, toolchain, session );
-        }
-        catch ( final VManException e )
-        {
-            session.addError( e );
             return Collections.emptySet();
         }
 
@@ -235,6 +225,23 @@ public class VersionManager
             LOGGER.info( "Modified POM versions.\n\n\tTop POM: " + out + "\n\tBOMs:\t"
                 + ( boms == null ? "-NONE-" : StringUtils.join( boms.iterator(), "\n\t\t" ) ) + "\n\tPOM Backups: "
                 + session.getBackups() + "\n\n" );
+        }
+
+        return result;
+    }
+
+    protected boolean configureSession( final List<String> boms, final String toolchain,
+                                        final VersionManagerSession session )
+    {
+        boolean result = true;
+        try
+        {
+            sessionConfigurator.configureSession( boms, toolchain, session );
+        }
+        catch ( final VManException e )
+        {
+            session.addError( e );
+            result = false;
         }
 
         return result;

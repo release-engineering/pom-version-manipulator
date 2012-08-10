@@ -52,7 +52,7 @@ public class PropertyMappings
         return this;
     }
 
-    public String getMappingTarget( final String key )
+    public String getMappedValue( final String key )
     {
         return mappings.get( key );
     }
@@ -78,7 +78,7 @@ public class PropertyMappings
         }
     }
 
-    public Set<String> getMappedKeys()
+    public Set<String> getKeys()
     {
         return mappings.keySet();
     }
@@ -94,10 +94,16 @@ public class PropertyMappings
         {
             final Map.Entry<String, String> v = i.next();
 
-            LOGGER.info( "Replacing " + v.getKey() + " with value from " + v.getValue() + '('
-                + properties.getProperty( v.getValue() ) + ')' );
+            final String value = properties.getProperty( v.getValue() );
+            if ( value == null )
+            {
+                continue;
+            }
 
-            mappings.put( v.getKey(), (String) properties.get( v.getValue() ) );
+            mappings.put( v.getKey(), value );
+
+            LOGGER.info( "Replacing " + v.getKey() + " with value from " + v.getValue() + '('
+                + mappings.get( v.getKey() ) + ')' );
 
             i.remove();
         }

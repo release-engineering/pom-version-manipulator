@@ -50,11 +50,11 @@ public class PropertyModder
         final Set<String> commonKeys = currentModel.stringPropertyNames();
 
         final PropertyMappings propertyMappings = session.getPropertyMappings();
-        commonKeys.retainAll( propertyMappings.getMappedKeys() );
+        commonKeys.retainAll( propertyMappings.getKeys() );
 
         for ( final String key : commonKeys )
         {
-            final String value = propertyMappings.getMappingTarget( key );
+            final String value = propertyMappings.getMappedValue( key );
 
             LOGGER.info( "Replacing " + key + '/' + currentModel.get( key ) + " with: '" + value + "'" );
             currentModel.put( key, value );

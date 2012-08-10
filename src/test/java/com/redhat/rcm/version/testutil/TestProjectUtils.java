@@ -53,14 +53,16 @@ public final class TestProjectUtils
     public static VersionManagerSession newVersionManagerSession( final File workspace, final File reports,
                                                                   final String suffix )
     {
-        return newVersionManagerSession( workspace, reports, suffix, null, getStandardModders() );
+        return new SessionBuilder( workspace, reports ).withVersionSuffix( suffix ).build();
     }
 
     public static VersionManagerSession newVersionManagerSession( final File workspace, final File reports,
                                                                   final String suffix,
                                                                   final Collection<String> removedPlugins )
     {
-        return newVersionManagerSession( workspace, reports, suffix, removedPlugins, getStandardModders() );
+        return new SessionBuilder( workspace, reports ).withVersionSuffix( suffix )
+                                                       .withRemovedPlugins( removedPlugins )
+                                                       .build();
     }
 
     public static Set<String> getStandardModders()
@@ -73,15 +75,10 @@ public final class TestProjectUtils
                                                                   final Collection<String> removedPlugins,
                                                                   final Set<String> modders )
     {
-        return new VersionManagerSession( workspace,
-                                          reports,
-                                          suffix,
-                                          removedPlugins,
-                                          modders,
-                                          false,
-                                          true,
-                                          new HashMap<String, String>(),
-                                          new HashMap<String, String>() );
+        return new SessionBuilder( workspace, reports ).withVersionSuffix( suffix )
+                                                       .withRemovedPlugins( removedPlugins )
+                                                       .withModders( modders )
+                                                       .build();
     }
 
     public static File getResourceFile( final String path )
