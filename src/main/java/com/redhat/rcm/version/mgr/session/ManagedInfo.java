@@ -199,11 +199,11 @@ class ManagedInfo
             }
         }
 
-        if (project.getParent() != null)
-        {
-            LOGGER.info ("Updating property mappings from " + project.getId());
-            propertyMappings.updateProjectMap (project.getParent().getProperties());
-        }
+        LOGGER.info( "Updating property mappings from " + project.getId() );
+
+        // NOTE: parent properties are inherited into the BOM by the time the MavenProject instance
+        // is created, so we don't need to traverse up to the parent; we should have everything here.
+        propertyMappings.updateProjectMap( project.getProperties() );
     }
 
     FullProjectKey getRelocation( final ProjectKey key )

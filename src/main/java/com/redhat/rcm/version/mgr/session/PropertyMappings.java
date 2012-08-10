@@ -85,7 +85,7 @@ public class PropertyMappings
 
 
     /*
-     * This method should take a properties from a parent BOM and look through that
+     * This method should take a properties from a BOM and look through that
      * to update the mappings value with the real value.
      */
     void updateProjectMap(Properties properties)
