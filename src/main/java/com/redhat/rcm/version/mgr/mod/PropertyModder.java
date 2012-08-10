@@ -55,19 +55,9 @@ public class PropertyModder
         for ( final String key : commonKeys )
         {
             final String value = propertyMappings.getMappingTarget( key );
-            final boolean isLiteral = propertyMappings.isLiteralMapping( key );
 
-            if ( isLiteral )
-            {
-                LOGGER.info( "Replacing " + key + '/' + currentModel.get( key ) + " with LITERAL: '" + value + "'" );
-                currentModel.put( key, value );
-            }
-            else
-            {
-                LOGGER.info( "Replacing " + key + '/' + currentModel.get( key ) + " with EXPRESSION: '${" + value
-                    + "}'" );
-                currentModel.put( key, "${" + value + "}" );
-            }
+            LOGGER.info( "Replacing " + key + '/' + currentModel.get( key ) + " with: '" + value + "'" );
+            currentModel.put( key, value );
             changed = true;
         }
 
