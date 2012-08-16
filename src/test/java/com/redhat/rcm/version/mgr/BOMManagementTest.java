@@ -44,6 +44,7 @@ import org.junit.Test;
 import org.junit.rules.TestName;
 
 import com.redhat.rcm.version.fixture.LoggingFixture;
+import com.redhat.rcm.version.mgr.capture.MissingInfoCapture;
 import com.redhat.rcm.version.mgr.mod.BomModder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
@@ -509,4 +510,83 @@ public class BOMManagementTest
 
         System.out.println( "\n\n" );
     }
+
+    @Test
+    public void managedDepsMissingFromBOMIncludedInCapturePOM()
+        throws IOException, ProjectToolsException
+    {
+        System.out.println( "capture missing managed deps..." );
+
+        final File pom = getResourceFile( "pom-with-managed-dep.xml" );
+        final String bom = getResourceFile( "bom-min.xml" ).getAbsolutePath();
+
+        final Model model = loadModel( pom );
+
+        final VersionManagerSession session = new SessionBuilder( workspace, reports ).build();
+
+        final File capturePom = tempFolder.newFile( "capture.pom" );
+        session.setCapturePom( capturePom );
+        session.setCurrentProjects( Collections.singleton( model ) );
+
+        vman.configureSession( Collections.singletonList( bom ), bom, session );
+
+        new BomModder().inject( new Project( model ), session );
+        new MissingInfoCapture().captureMissing( session );
+
+        assertNoErrors( session );
+
+        final Model capture = loadModel( pom );
+
+        assertThat( capture.getDependencyManagement(), notNullValue() );
+        assertThat( capture.getDependencyManagement().getDependencies(), notNullValue() );
+        assertThat( capture.getDependencyManagement().getDependencies().size(), equalTo( 1 ) );
+
+        final Dependency dep = capture.getDependencyManagement().getDependencies().get( 0 );
+
+        assertThat( dep.getGroupId(), equalTo( "group.id" ) );
+        assertThat( dep.getArtifactId(), equalTo( "some-artifact" ) );
+        assertThat( dep.getVersion(), equalTo( "1" ) );
+
+        System.out.println( "\n\n" );
+    }
+
+    @Test
+    public void managedDepsMissingFromBOMIncludedInCapturePOM_NonStrictMode()
+        throws IOException, ProjectToolsException
+    {
+        System.out.println( "capture missing managed deps..." );
+
+        final File pom = getResourceFile( "pom-with-managed-dep.xml" );
+        final String bom = getResourceFile( "bom-min.xml" ).getAbsolutePath();
+
+        final Model model = loadModel( pom );
+
+        final VersionManagerSession session = new SessionBuilder( workspace, reports ).withStrict( false ).build();
+
+        final File capturePom = tempFolder.newFile( "capture.pom" );
+        session.setCapturePom( capturePom );
+        session.setCurrentProjects( Collections.singleton( model ) );
+
+        vman.configureSession( Collections.singletonList( bom ), bom, session );
+
+        new BomModder().inject( new Project( model ), session );
+        new MissingInfoCapture().captureMissing( session );
+
+        assertNoErrors( session );
+
+        final Model capture = loadModel( pom );
+
+        assertThat( capture.getDependencyManagement(), notNullValue() );
+        assertThat( capture.getDependencyManagement().getDependencies(), notNullValue() );
+        assertThat( capture.getDependencyManagement().getDependencies().size(), equalTo( 1 ) );
+
+        final Dependency dep = capture.getDependencyManagement().getDependencies().get( 0 );
+
+        assertThat( dep.getGroupId(), equalTo( "group.id" ) );
+        assertThat( dep.getArtifactId(), equalTo( "some-artifact" ) );
+        assertThat( dep.getVersion(), equalTo( "1" ) );
+
+        System.out.println( "\n\n" );
+    }
+
 }
