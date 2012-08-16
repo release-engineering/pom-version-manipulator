@@ -103,7 +103,8 @@ public class ToolchainModder
         final List<ReportPlugin> reportPlugins = project.getReportPlugins();
         if ( reportPlugins != null )
         {
-            for ( final ReportPlugin plugin : reportPlugins )
+            int idx = 0;
+            for ( ReportPlugin plugin : reportPlugins )
             {
                 VersionlessProjectKey pluginKey = new VersionlessProjectKey( plugin );
                 final FullProjectKey relocation = session.getRelocation( pluginKey );
@@ -111,14 +112,32 @@ public class ToolchainModder
                 {
                     session.addRelocatedCoordinate( project.getPom(), pluginKey, relocation );
 
-                    pluginKey = new VersionlessProjectKey( relocation );
-                    plugin.setGroupId( relocation.getGroupId() );
-                    plugin.setArtifactId( relocation.getArtifactId() );
+                    changed = true;
+
+                    final ReportPlugin plug = new ReportPlugin();
+                    plug.setGroupId( relocation.getGroupId() );
+                    plug.setArtifactId( relocation.getArtifactId() );
 
                     if ( session.isStrict() )
                     {
-                        plugin.setVersion( relocation.getVersion() );
+                        plug.setVersion( relocation.getVersion() );
                     }
+
+                    plug.setConfiguration( plugin.getConfiguration() );
+                    plug.setReportSets( plugin.getReportSets() );
+                    plug.setInherited( plugin.isInherited() );
+                    plug.setInherited( plugin.getInherited() );
+                    plug.setLocation( "", plugin.getLocation( "" ) );
+
+                    if ( plugin.getLocation( "inherited" ) != null )
+                    {
+                        plug.setLocation( "inherited", plugin.getLocation( "inherited" ) );
+                    }
+
+                    reportPlugins.set( idx, plug );
+
+                    pluginKey = new VersionlessProjectKey( relocation );
+                    plugin = plug;
                 }
 
                 final Plugin managedPlugin = session.getManagedPlugin( pluginKey );
@@ -140,6 +159,8 @@ public class ToolchainModder
                 {
                     session.addUnmanagedPlugin( project.getPom(), plugin );
                 }
+
+                idx++;
             }
         }
 
@@ -374,6 +395,8 @@ public class ToolchainModder
 
         changed = stripToolchainPluginInfo( project, project.getManagedPlugins(), pluginRefs, session ) || changed;
 
+        project.flushPluginMaps();
+
         return changed;
     }
 
@@ -387,7 +410,8 @@ public class ToolchainModder
         boolean changed = false;
         if ( plugins != null )
         {
-            for ( final Plugin plugin : new ArrayList<Plugin>( plugins ) )
+            int idx = 0;
+            for ( Plugin plugin : new ArrayList<Plugin>( plugins ) )
             {
                 VersionlessProjectKey pluginKey = new VersionlessProjectKey( plugin );
                 final FullProjectKey relocation = session.getRelocation( pluginKey );
@@ -395,14 +419,36 @@ public class ToolchainModder
                 {
                     session.addRelocatedCoordinate( project.getPom(), pluginKey, relocation );
 
-                    pluginKey = new VersionlessProjectKey( relocation );
-                    plugin.setGroupId( relocation.getGroupId() );
-                    plugin.setArtifactId( relocation.getArtifactId() );
+                    changed = true;
+
+                    final Plugin plug = new Plugin();
+                    plug.setGroupId( relocation.getGroupId() );
+                    plug.setArtifactId( relocation.getArtifactId() );
 
                     if ( session.isStrict() )
                     {
-                        plugin.setVersion( relocation.getVersion() );
+                        plug.setVersion( relocation.getVersion() );
                     }
+
+                    plug.setConfiguration( plugin.getConfiguration() );
+                    plug.setDependencies( plugin.getDependencies() );
+                    plug.setExecutions( plugin.getExecutions() );
+                    plug.setExtensions( plugin.isExtensions() );
+                    plug.setExtensions( plugin.getExtensions() );
+                    plug.setGoals( plugin.getGoals() );
+                    plug.setInherited( plugin.isInherited() );
+                    plug.setInherited( plugin.getInherited() );
+                    plug.setLocation( "", plugin.getLocation( "" ) );
+
+                    if ( plugin.getLocation( "inherited" ) != null )
+                    {
+                        plug.setLocation( "inherited", plugin.getLocation( "inherited" ) );
+                    }
+
+                    plugins.set( idx, plug );
+
+                    pluginKey = new VersionlessProjectKey( relocation );
+                    plugin = plug;
                 }
 
                 final Plugin managedPlugin = session.getManagedPlugin( pluginKey );
@@ -443,6 +489,8 @@ public class ToolchainModder
                 {
                     session.addUnmanagedPlugin( project.getPom(), p );
                 }
+
+                idx++;
             }
         }
 

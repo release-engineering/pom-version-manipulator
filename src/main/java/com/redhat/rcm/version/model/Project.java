@@ -228,4 +228,25 @@ public class Project
         }
     }
 
+    public void flushPluginMaps()
+    {
+        final Build build = model.getBuild();
+        if ( build != null )
+        {
+            build.flushPluginMap();
+
+            final PluginManagement pm = build.getPluginManagement();
+            if ( pm != null )
+            {
+                pm.flushPluginMap();
+            }
+        }
+
+        final Reporting reporting = model.getReporting();
+        if ( reporting != null )
+        {
+            reporting.flushReportPluginMap();
+        }
+    }
+
 }

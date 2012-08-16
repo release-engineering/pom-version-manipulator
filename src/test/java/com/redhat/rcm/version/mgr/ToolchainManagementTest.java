@@ -19,6 +19,7 @@
 package com.redhat.rcm.version.mgr;
 
 import static com.redhat.rcm.version.testutil.PluginMatcher.mavenPlugin;
+import static com.redhat.rcm.version.testutil.PluginMatcher.plugin;
 import static com.redhat.rcm.version.testutil.TestProjectUtils.dumpModel;
 import static com.redhat.rcm.version.testutil.TestProjectUtils.getResourceFile;
 import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModel;
@@ -26,6 +27,7 @@ import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModels;
 import static com.redhat.rcm.version.testutil.TestProjectUtils.loadProjectKey;
 import static com.redhat.rcm.version.testutil.TestProjectUtils.newVersionManagerSession;
 import static org.apache.commons.io.FileUtils.copyFile;
+import static org.apache.commons.lang.StringUtils.join;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
@@ -47,15 +49,18 @@ import org.apache.maven.model.PluginManagement;
 import org.apache.maven.model.ReportPlugin;
 import org.apache.maven.model.ReportSet;
 import org.apache.maven.model.Reporting;
+import org.apache.maven.project.MavenProject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.redhat.rcm.version.fixture.LoggingFixture;
+import com.redhat.rcm.version.mgr.mod.ToolchainModder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.testutil.PluginMatcher;
+import com.redhat.rcm.version.testutil.SessionBuilder;
 
 import java.io.File;
 import java.io.IOException;
@@ -98,6 +103,106 @@ public class ToolchainManagementTest
     public void teardown()
     {
         LoggingFixture.flushLogging();
+    }
+
+    @Test
+    public void relocatePlugin()
+        throws Throwable
+    {
+        final String path = "relocate-plugin.pom";
+        final Model original = loadModel( TOOLCHAIN_TEST_POMS + path );
+
+        final String toolchainPath = EMPTY_TOOLCHAIN_PATH;
+        final Model toolchainModel = loadModel( toolchainPath );
+        final MavenProject toolchainProject = new MavenProject( toolchainModel );
+        toolchainProject.setOriginalModel( toolchainModel );
+
+        assertBuildPlugins( original, 1, plugin( "org.codehaus.mojo", "rat-maven-plugin" ) );
+        assertPluginManagementPlugins( original, -1 );
+
+        final Project project = new Project( original );
+        final SessionBuilder builder =
+            new SessionBuilder( workspace, reports ).withCoordinateRelocation( "org.codehaus.mojo:rat-maven-plugin",
+                                                                               "org.apache.rat:apache-rat-plugin:0.8" );
+
+        final VersionManagerSession session = builder.build();
+        session.setToolchain( new File( toolchainPath ), toolchainProject );
+
+        final boolean changed = new ToolchainModder().inject( project, session );
+
+        dumpModel( project.getModel() );
+
+        assertThat( changed, equalTo( true ) );
+        assertNoErrors( session );
+
+        assertBuildPlugins( project.getModel(), 1, plugin( "org.apache.rat", "apache-rat-plugin" ) );
+        assertPluginManagementPlugins( project.getModel(), -1 );
+    }
+
+    @Test
+    public void relocateManagedPlugin()
+        throws Throwable
+    {
+        final String path = "relocate-managed-plugin.pom";
+        final Model original = loadModel( TOOLCHAIN_TEST_POMS + path );
+
+        final String toolchainPath = EMPTY_TOOLCHAIN_PATH;
+        final Model toolchainModel = loadModel( toolchainPath );
+        final MavenProject toolchainProject = new MavenProject( toolchainModel );
+        toolchainProject.setOriginalModel( toolchainModel );
+
+        assertBuildPlugins( original, -1 );
+        assertPluginManagementPlugins( original, 1, plugin( "org.codehaus.mojo", "rat-maven-plugin" ) );
+
+        final Project project = new Project( original );
+        final SessionBuilder builder =
+            new SessionBuilder( workspace, reports ).withCoordinateRelocation( "org.codehaus.mojo:rat-maven-plugin",
+                                                                               "org.apache.rat:apache-rat-plugin:0.8" );
+
+        final VersionManagerSession session = builder.build();
+        session.setToolchain( new File( toolchainPath ), toolchainProject );
+
+        final boolean changed = new ToolchainModder().inject( project, session );
+
+        dumpModel( project.getModel() );
+
+        assertThat( changed, equalTo( true ) );
+        assertNoErrors( session );
+
+        assertBuildPlugins( project.getModel(), -1 );
+        assertPluginManagementPlugins( project.getModel(), 1, plugin( "org.apache.rat", "apache-rat-plugin" ) );
+    }
+
+    @Test
+    public void relocateReportPlugin()
+        throws Throwable
+    {
+        final String path = "relocate-report-plugin.pom";
+        final Model original = loadModel( TOOLCHAIN_TEST_POMS + path );
+
+        final String toolchainPath = EMPTY_TOOLCHAIN_PATH;
+        final Model toolchainModel = loadModel( toolchainPath );
+        final MavenProject toolchainProject = new MavenProject( toolchainModel );
+        toolchainProject.setOriginalModel( toolchainModel );
+
+        assertReportPlugins( original, 1, plugin( "org.codehaus.mojo", "rat-maven-plugin" ) );
+
+        final Project project = new Project( original );
+        final SessionBuilder builder =
+            new SessionBuilder( workspace, reports ).withCoordinateRelocation( "org.codehaus.mojo:rat-maven-plugin",
+                                                                               "org.apache.rat:apache-rat-plugin:0.8" );
+
+        final VersionManagerSession session = builder.build();
+        session.setToolchain( new File( toolchainPath ), toolchainProject );
+
+        final boolean changed = new ToolchainModder().inject( project, session );
+
+        dumpModel( project.getModel() );
+
+        assertThat( changed, equalTo( true ) );
+        assertNoErrors( session );
+
+        assertReportPlugins( project.getModel(), 1, plugin( "org.apache.rat", "apache-rat-plugin" ) );
     }
 
     @Test
@@ -784,10 +889,11 @@ public class ToolchainManagementTest
             if ( pluginCheckSet != null )
             {
                 final Map<String, Plugin> pluginsAsMap = pluginContainer.getPluginsAsMap();
+                System.out.println( "Got plugins:\n\n" + join( pluginsAsMap.values(), "\n  " ) );
                 for ( final PluginMatcher checks : pluginCheckSet )
                 {
                     final Plugin plugin = pluginsAsMap.get( checks.key() );
-                    assertThat( plugin, notNullValue() );
+                    assertThat( checks.key() + " is missing.", plugin, notNullValue() );
 
                     if ( checks.v() != PluginMatcher.UNSPECIFIED_VERSION )
                     {
@@ -844,6 +950,8 @@ public class ToolchainManagementTest
             if ( pluginCheckSet != null )
             {
                 final Map<String, ReportPlugin> pluginsAsMap = reporting.getReportPluginsAsMap();
+                System.out.println( "Got report plugins:\n\n" + join( pluginsAsMap.values(), "\n  " ) );
+
                 for ( final PluginMatcher checks : pluginCheckSet )
                 {
                     final ReportPlugin plugin = pluginsAsMap.get( checks.key() );
