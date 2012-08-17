@@ -18,14 +18,17 @@
 
 package com.redhat.rcm.version.util;
 
+import static com.redhat.rcm.version.testutil.TestProjectUtils.getResourceFile;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.fixture.LoggingFixture;
 
+import java.io.File;
 import java.util.Map;
 
 public class InputUtilsTest
@@ -35,6 +38,18 @@ public class InputUtilsTest
     public static void enableLogging()
     {
         LoggingFixture.setupLogging();
+    }
+
+    @Test
+    public void parsePropertiesFile_HandlingOfCoordinates_Comments_AndCommaSeparatedProps()
+        throws VManException
+    {
+        final File relocations = getResourceFile( "relocations.properties" );
+        final Map<String, String> relos = InputUtils.readProperties( relocations );
+
+        assertThat( relos.get( "org.foo:bar:1.0" ), equalTo( "com.foo:bar:1.0.0" ) );
+        assertThat( relos.get( "one" ), equalTo( "two" ) );
+        assertThat( relos.get( "three" ), equalTo( "four" ) );
     }
 
     @Test

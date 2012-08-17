@@ -17,10 +17,12 @@
 
 package com.redhat.rcm.version.util;
 
+import static org.apache.commons.io.FileUtils.readFileToString;
 import static org.apache.commons.io.IOUtils.closeQuietly;
 import static org.apache.commons.io.IOUtils.copy;
 import static org.apache.commons.lang.StringUtils.isEmpty;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.Credentials;
@@ -34,7 +36,6 @@ import org.apache.log4j.Logger;
 import com.redhat.rcm.version.VManException;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -43,7 +44,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -85,44 +85,32 @@ public final class InputUtils
     public static Map<String, String> readProperties( final File properties )
         throws VManException
     {
-        final Properties props = new Properties();
-        InputStream is = null;
+        String content;
         try
         {
-            is = new FileInputStream( properties );
-            props.load( is );
+            content = readFileToString( properties );
         }
         catch ( final IOException e )
         {
             throw new VManException( "Failed to load properties file: %s. Error: %s", e, properties, e.getMessage() );
         }
-        finally
-        {
-            closeQuietly( is );
-        }
 
-        final Map<String, String> result = new HashMap<String, String>( props.size() );
-        for ( final String key : props.stringPropertyNames() )
-        {
-            result.put( key, props.getProperty( key ) );
-        }
-
-        return result;
+        return parseProperties( content );
     }
 
     public static Map<String, String> readClasspathProperties( final String resource )
         throws VManException
     {
-        final Properties props = new Properties();
         final InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream( resource );
         if ( is == null )
         {
             return null;
         }
 
+        String content;
         try
         {
-            props.load( is );
+            content = IOUtils.toString( is );
         }
         catch ( final IOException e )
         {
@@ -133,13 +121,7 @@ public final class InputUtils
             closeQuietly( is );
         }
 
-        final Map<String, String> result = new HashMap<String, String>( props.size() );
-        for ( final String key : props.stringPropertyNames() )
-        {
-            result.put( key, props.getProperty( key ) );
-        }
-
-        return result;
+        return parseProperties( content );
     }
 
     public static Map<String, String> parseProperties( final String content )
@@ -151,15 +133,20 @@ public final class InputUtils
 
         final Map<String, String> properties = new LinkedHashMap<String, String>();
 
-        final String[] lines = content.split( "\\s*,\\s*" );
+        final String[] lines = content.split( "\\s*[,\\n]\\s*" );
         if ( lines != null && lines.length > 0 )
         {
-            int count = 0;
+            // int count = 0;
             for ( final String line : lines )
             {
-                LOGGER.info( "processing: '" + line + "'" );
+                // LOGGER.info( "processing: '" + line + "'" );
 
-                String ln = line;
+                String ln = line.trim();
+                if ( ln.startsWith( "#" ) )
+                {
+                    continue;
+                }
+
                 final int idx = ln.indexOf( '#' );
                 if ( idx > -1 )
                 {
@@ -173,14 +160,19 @@ public final class InputUtils
                     continue;
                 }
 
-                properties.put( kv[0], kv[1] );
-                count++;
+                properties.put( propCleanup( kv[0] ), propCleanup( kv[1] ) );
+                // count++;
             }
 
-            LOGGER.info( "Found " + count + " properties..." );
+            // LOGGER.info( "Found " + count + " properties..." );
         }
 
         return properties;
+    }
+
+    private static String propCleanup( final String value )
+    {
+        return value.replace( "\\:", ":" ).replace( "\\=", "=" ).trim();
     }
 
     public static File[] getFiles( final List<String> boms, final File downloadsDir )
