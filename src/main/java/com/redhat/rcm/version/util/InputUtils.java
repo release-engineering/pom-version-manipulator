@@ -23,12 +23,14 @@ import static org.apache.commons.io.IOUtils.copy;
 import static org.apache.commons.lang.StringUtils.isEmpty;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.Credentials;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.conn.params.ConnRouteParams;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.log4j.Logger;
@@ -199,8 +201,19 @@ public final class InputUtils
     {
         if ( client == null )
         {
-            client = new DefaultHttpClient();
-            client.setRedirectStrategy( new DefaultRedirectStrategy() );
+            final DefaultHttpClient hc = new DefaultHttpClient();
+            hc.setRedirectStrategy( new DefaultRedirectStrategy() );
+
+            final String proxyHost = System.getProperty( "http.proxyHost" );
+            final int proxyPort = Integer.parseInt( System.getProperty( "http.proxyPort", "-1" ) );
+
+            if ( proxyHost != null && proxyPort > 0 )
+            {
+                final HttpHost proxy = new HttpHost( proxyHost, proxyPort );
+                hc.getParams().setParameter( ConnRouteParams.DEFAULT_PROXY, proxy );
+            }
+
+            client = hc;
         }
 
         File result = null;
