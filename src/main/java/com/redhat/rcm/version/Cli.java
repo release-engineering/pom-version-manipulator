@@ -18,6 +18,8 @@
 
 package com.redhat.rcm.version;
 
+import static com.redhat.rcm.version.util.InputUtils.getFile;
+import static com.redhat.rcm.version.util.InputUtils.readClasspathProperties;
 import static com.redhat.rcm.version.util.InputUtils.readFileProperty;
 import static com.redhat.rcm.version.util.InputUtils.readListProperty;
 import static com.redhat.rcm.version.util.InputUtils.readProperties;
@@ -62,21 +64,14 @@ public class Cli
     @Argument( index = 0, metaVar = "target", usage = "POM file (or directory containing POM files) to modify." )
     private File target = new File( System.getProperty( "user.dir" ), "pom.xml" );
 
-    @Option( name = "-r", aliases = { "--rm-plugins", "--removed-plugins" }, usage = "List of plugins (format: <groupId:artifactId>[,<groupId:artifactId>]) to REMOVE if found" )
-    private String removedPluginsList;
-
     @Option( name = "-b", aliases = "--boms", usage = "File containing a list of BOM URLs to use for standardizing dependencies" )
     private File bomList;
 
-    @Option( name = "-t", aliases = "--toolchain", usage = "Toolchain POM URL, containing standard plugin versions in the build/pluginManagement section, "
-        + "and plugin injections in the regular build/plugins section." )
-    private String toolchain;
+    @Option( name = "-B", aliases = { "--bootstrap" }, usage = "Bootstrap properties to read for location of VMan configuration." )
+    private File bootstrapConfig;
 
-    @Option( name = "-m", aliases = "--remote-repository", usage = "Maven remote repository from which load missing parent POMs." )
-    private String remoteRepository;
-
-    @Option( name = "-p", usage = "POM path pattern (glob)" )
-    private String pomPattern = "**/*.pom,**/pom.xml";
+    @Option( name = "-C", aliases = "--config", usage = "Load default configuration for BOMs, toolchain, removedPluginsList, etc. from this file." )
+    private File config;
 
     @Option( name = "-e", usage = "POM exclude path pattern (glob)" )
     private String pomExcludePattern;
@@ -84,32 +79,48 @@ public class Cli
     @Option( name = "-E", usage = "POM exclude module list (groupId:artifactId,groupId:artifactId...)" )
     private String pomExcludeModules;
 
-    @Option( name = "-s", aliases = "--version-suffix", usage = "A suffix to append to each POM's version" )
-    private String versionSuffix;
-
-    @Option( name = "--strict", usage = "Change ONLY the dependencies, plugins, and parents that are listed in BOMs and toolchain POM" )
-    private boolean strict = false;
-
-    @Option( name = "-P", aliases = { "--preserve" }, usage = "Write changed POMs back to original input files" )
-    private boolean preserveFiles = false;
-
-    @Option( name = "-C", aliases = "--config", usage = "Load default configuration for BOMs, toolchain, removedPluginsList, etc. from this file." )
-    private File config = new File( System.getProperty( "user.home" ), ".vman.properties" );
-
-    @Option( name = "-W", aliases = { "--workspace" }, usage = "Backup original files here up before modifying." )
-    private File workspace = new File( "vman-workspace" );
-
-    @Option( name = "-R", aliases = { "--report-dir" }, usage = "Write reports here." )
-    private File reports = new File( "vman-workspace/reports" );
-
     @Option( name = "-h", aliases = { "--help" }, usage = "Print this message and quit" )
     private boolean help = false;
 
     @Option( name = "-H", aliases = { "--help-modifications" }, usage = "Print the list of available modifications and quit" )
     private boolean helpModders = false;
 
+    @Option( name = "-m", aliases = "--remote-repository", usage = "Maven remote repository from which load missing parent POMs." )
+    private String remoteRepository;
+
+    @Option( name = "-M", aliases = { "--enable-modifications" }, usage = "List of modifications to enable for this execution (see --help-modifications for more information)." )
+    private String modifications;
+
+    @Option( name = "-O", aliases = { "--capture-output", "--capture-pom" }, usage = "Write captured (missing) definitions to this POM location." )
+    private File capturePom;
+
+    @Option( name = "-p", usage = "POM path pattern (glob)" )
+    private String pomPattern = "**/*.pom,**/pom.xml";
+
+    @Option( name = "-P", aliases = { "--preserve" }, usage = "Write changed POMs back to original input files" )
+    private boolean preserveFiles = false;
+
+    @Option( name = "-r", aliases = { "--rm-plugins", "--removed-plugins" }, usage = "List of plugins (format: <groupId:artifactId>[,<groupId:artifactId>]) to REMOVE if found" )
+    private String removedPluginsList;
+
+    @Option( name = "-R", aliases = { "--report-dir" }, usage = "Write reports here." )
+    private File reports = new File( "vman-workspace/reports" );
+
+    @Option( name = "-s", aliases = "--version-suffix", usage = "A suffix to append to each POM's version" )
+    private String versionSuffix;
+
+    @Option( name = "--strict", usage = "Change ONLY the dependencies, plugins, and parents that are listed in BOMs and toolchain POM" )
+    private boolean strict = false;
+
     @Option( name = "-S", aliases = { "--settings" }, usage = "Maven settings.xml file." )
     private File settings;
+
+    @Option( name = "-t", aliases = "--toolchain", usage = "Toolchain POM URL, containing standard plugin versions in the build/pluginManagement section, "
+        + "and plugin injections in the regular build/plugins section." )
+    private String toolchain;
+
+    @Option( name = "-W", aliases = { "--workspace" }, usage = "Backup original files here up before modifying." )
+    private File workspace = new File( "vman-workspace" );
 
     @Option( name = "-L", aliases = { "--local-repo", "--local-repository" }, usage = "Local repository directory." )
     private File localRepository;
@@ -117,13 +128,11 @@ public class Cli
     @Option( name = "-Z", aliases = { "--no-system-exit" }, usage = "Don't call System.exit(..) with the return value (for embedding/testing)." )
     private boolean noSystemExit;
 
-    @Option( name = "-O", aliases = { "--capture-output", "--capture-pom" }, usage = "Write captured (missing) definitions to this POM location." )
-    private File capturePom;
-
-    @Option( name = "-M", aliases = { "--enable-modifications" }, usage = "List of modifications to enable for this execution (see --help-modifications for more information)." )
-    private String modifications;
-
     private static final Logger LOGGER = Logger.getLogger( Cli.class );
+
+    private static final File DEFAULT_CONFIG_FILE = new File( System.getProperty( "user.home" ), ".vman.properties" );
+
+    static final String BOOTSTRAP_PROPERTIES = "bootstrap.properties";
 
     public static final String REMOTE_REPOSITORY_PROPERTY = "remote-repository";
 
@@ -150,6 +159,11 @@ public class Cli
     public static final String RELOCATIONS_PROPERTY = "relocated-coordinates";
 
     public static final String PROPERTY_MAPPINGS_PROPERTY = "property-mappings";
+
+    public static final String BOOT_CONFIG_PROPERTY = "configuration";
+
+    private static final File DEFAULT_BOOTSTRAP_CONFIG = new File( System.getProperty( "user.home" ),
+                                                                   ".vman.boot.properties" );
 
     private static VersionManager vman;
 
@@ -462,6 +476,16 @@ public class Cli
     private void loadConfiguration()
         throws VManException
     {
+        if ( config == null )
+        {
+            config = loadBootstrapConfig();
+        }
+
+        if ( config == null )
+        {
+            config = DEFAULT_CONFIG_FILE;
+        }
+
         if ( config != null && config.canRead() )
         {
             InputStream is = null;
@@ -596,6 +620,72 @@ public class Cli
                 closeQuietly( is );
             }
         }
+    }
+
+    /**
+     * Try to load bootstrap configuration using the following order or preference:
+     * 
+     * 1. configured file (using -B option)
+     * 2. default file ($HOME/.vman.boot.properties)
+     * 3. embedded resource (classpath:bootstrap.properties)
+     * 
+     * @return The configuration file referenced by the bootstrap properties, or null if no bootstrap properties is found.
+     * 
+     * @throws VManException In cases where the specified bootstrap properties file is unreadable.
+     */
+    private File loadBootstrapConfig()
+        throws VManException
+    {
+        Map<String, String> bootProps = null;
+        if ( bootstrapConfig == null )
+        {
+            if ( DEFAULT_BOOTSTRAP_CONFIG.exists() && DEFAULT_BOOTSTRAP_CONFIG.canRead() )
+            {
+                LOGGER.info( "Reading bootstrap info from: " + DEFAULT_BOOTSTRAP_CONFIG );
+                bootProps = readProperties( DEFAULT_BOOTSTRAP_CONFIG );
+            }
+            else
+            {
+                LOGGER.info( "Reading bootstrap info from classpath resource: " + BOOTSTRAP_PROPERTIES );
+                bootProps = readClasspathProperties( BOOTSTRAP_PROPERTIES );
+            }
+        }
+        else
+        {
+            if ( !bootstrapConfig.exists() || !bootstrapConfig.canRead() )
+            {
+                throw new VManException( "Cannot read bootstrap from: " + bootstrapConfig );
+            }
+            else
+            {
+                LOGGER.info( "Reading bootstrap info from: " + bootstrapConfig );
+                bootProps = readProperties( bootstrapConfig );
+            }
+        }
+
+        if ( bootProps != null )
+        {
+            final String configLocation = bootProps.get( BOOT_CONFIG_PROPERTY );
+            if ( configLocation != null )
+            {
+                LOGGER.info( "Reading configuration from: " + configLocation );
+                try
+                {
+                    final File file = getFile( configLocation, new File( System.getProperty( "java.io.tmpdir" ) ) );
+                    LOGGER.info( "...downloaded to file: " + file );
+                    return file;
+                }
+                catch ( final VManException e )
+                {
+                    LOGGER.error( "Failed to download configuration from: " + configLocation + ". Reason: "
+                                      + e.getMessage(),
+                                  e );
+                    throw e;
+                }
+            }
+        }
+
+        return null;
     }
 
     private void loadBomList()

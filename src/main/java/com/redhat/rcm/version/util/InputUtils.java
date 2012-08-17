@@ -110,6 +110,38 @@ public final class InputUtils
         return result;
     }
 
+    public static Map<String, String> readClasspathProperties( final String resource )
+        throws VManException
+    {
+        final Properties props = new Properties();
+        final InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream( resource );
+        if ( is == null )
+        {
+            return null;
+        }
+
+        try
+        {
+            props.load( is );
+        }
+        catch ( final IOException e )
+        {
+            throw new VManException( "Failed to load properties resource: %s. Error: %s", e, resource, e.getMessage() );
+        }
+        finally
+        {
+            closeQuietly( is );
+        }
+
+        final Map<String, String> result = new HashMap<String, String>( props.size() );
+        for ( final String key : props.stringPropertyNames() )
+        {
+            result.put( key, props.getProperty( key ) );
+        }
+
+        return result;
+    }
+
     public static Map<String, String> parseProperties( final String content )
     {
         if ( content == null )

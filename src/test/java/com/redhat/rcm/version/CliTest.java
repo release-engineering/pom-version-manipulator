@@ -28,6 +28,19 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
+import org.apache.maven.model.Model;
+import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.junit.rules.TestName;
+
+import com.redhat.rcm.version.fixture.LoggingFixture;
+import com.redhat.rcm.version.mgr.VersionManager;
+import com.redhat.rcm.version.testutil.HttpTestService;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -37,22 +50,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
-import org.apache.maven.model.Model;
-import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-
-import com.redhat.rcm.version.fixture.LoggingFixture;
-import com.redhat.rcm.version.mgr.VersionManager;
-
 public class CliTest
 {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
+
+    @Rule
+    public TestName name = new TestName();
 
     public void help()
         throws Exception
@@ -119,10 +124,10 @@ public class CliTest
         final File bom1 = getResourceFile( "bom.part1.xml" );
         final File bom2 = getResourceFile( "bom.part2.xml" );
 
-        File config = folder.newFile( "config.properties" );
+        final File config = folder.newFile( "config.properties" );
         config.deleteOnExit();
 
-        List<String> lines = new ArrayList<String>();
+        final List<String> lines = new ArrayList<String>();
         lines.add( "boms = " + bom1.getAbsolutePath() + ",\\" );
         lines.add( "        " + bom2.getAbsolutePath() );
 
@@ -171,13 +176,13 @@ public class CliTest
 
         final File pom = new File( repo, "project/pom.xml" );
         final File bom = new File( repo, "bom.xml" );
-        File remoteRepo = new File( repo, "repo" );
+        final File remoteRepo = new File( repo, "repo" );
 
-        Properties props = new Properties();
+        final Properties props = new Properties();
         props.setProperty( Cli.REMOTE_REPOSITORY_PROPERTY, remoteRepo.toURI().normalize().toURL().toExternalForm() );
         props.setProperty( Cli.BOMS_LIST_PROPERTY, bom.getAbsolutePath() );
 
-        File config = new File( repo, "vman.properties" );
+        final File config = new File( repo, "vman.properties" );
         FileOutputStream out = null;
         try
         {
@@ -208,12 +213,12 @@ public class CliTest
         final File srcPom = getResourceFile( "rwx-parent-0.2.1.pom" );
         final File bom = getResourceFile( "bom.xml" );
 
-        File bomListing = writeBomList( bom );
+        final File bomListing = writeBomList( bom );
 
         final File pom = new File( repo, srcPom.getName() );
         copyFile( srcPom, pom );
 
-        File config = writeConfig( new Properties() );
+        final File config = writeConfig( new Properties() );
 
         final String[] args = { "-Z", "-C", config.getPath(), "-b", bomListing.getPath(), pom.getPath() };
 
@@ -236,14 +241,14 @@ public class CliTest
         final File pom = new File( repo, srcPom.getName() );
         copyFile( srcPom, pom );
 
-        File capturePom = folder.newFile( "capture.pom" );
+        final File capturePom = folder.newFile( "capture.pom" );
 
-        Properties props = new Properties();
+        final Properties props = new Properties();
         props.setProperty( Cli.TOOLCHAIN_PROPERTY, toolchain.getAbsolutePath() );
         props.setProperty( Cli.BOMS_LIST_PROPERTY, bom.getAbsolutePath() );
         props.setProperty( Cli.CAPTURE_POM_PROPERTY, capturePom.getAbsolutePath() );
 
-        File config = writeConfig( props );
+        final File config = writeConfig( props );
 
         final String[] args = { "-Z", "-C", config.getPath(), pom.getPath() };
 
@@ -252,7 +257,7 @@ public class CliTest
         System.out.println( "\n\n" );
 
         assertThat( capturePom.exists(), equalTo( true ) );
-        Model model = loadModel( capturePom );
+        final Model model = loadModel( capturePom );
         new MavenXpp3Writer().write( System.out, model );
     }
 
@@ -265,10 +270,10 @@ public class CliTest
         final File srcPom = getResourceFile( "rwx-parent-0.2.1.pom" );
         final File bom = getResourceFile( "bom.xml" );
 
-        Properties props = new Properties();
+        final Properties props = new Properties();
         props.setProperty( "boms", bom.getAbsolutePath() );
 
-        File config = writeConfig( props );
+        final File config = writeConfig( props );
 
         final File pom = new File( repo, srcPom.getName() );
         copyFile( srcPom, pom );
@@ -281,24 +286,202 @@ public class CliTest
         System.out.println( "\n\n" );
     }
 
+    @Test
+    public void modifySinglePom_ConfigProperties_FromBootstrapPath()
+        throws Exception
+    {
+        System.out.println( "Single POM test (with config properties from file path in bootstrap)..." );
+
+        final File srcPom = getResourceFile( "rwx-parent-0.2.1.pom" );
+        final File bom = getResourceFile( "bom.xml" );
+
+        Properties props = new Properties();
+        props.setProperty( "boms", bom.getAbsolutePath() );
+
+        final File config = writeConfig( props );
+
+        final File bootstrap = getResourceFile( Cli.BOOTSTRAP_PROPERTIES );
+        props = new Properties();
+        props.setProperty( Cli.BOOT_CONFIG_PROPERTY, config.getAbsolutePath() );
+
+        writeConfigTo( props, bootstrap );
+
+        final File pom = new File( repo, srcPom.getName() );
+        copyFile( srcPom, pom );
+
+        final String[] args = { "-Z", pom.getPath() };
+
+        Cli.main( args );
+        assertExitValue();
+
+        System.out.println( "\n\n" );
+    }
+
+    @Test
+    public void modifySinglePom_ConfigProperties_FromBootstrapURL()
+        throws Exception
+    {
+        System.out.println( "Single POM test (with config properties from file path in bootstrap)..." );
+
+        final File srcPom = getResourceFile( "rwx-parent-0.2.1.pom" );
+        final File bom = getResourceFile( "bom.xml" );
+
+        Properties props = new Properties();
+        props.setProperty( "boms", bom.getAbsolutePath() );
+
+        final File config = writeConfig( props );
+
+        final HttpTestService http =
+            new HttpTestService( Collections.singletonMap( "/bootstrap.properties", config.toURI().toURL() ) );
+        try
+        {
+            String baseUrl = null;
+            try
+            {
+                baseUrl = http.start();
+            }
+            catch ( final Exception e )
+            {
+                fail( "Failed to start HTTP service..." );
+            }
+
+            final File bootstrap = getResourceFile( Cli.BOOTSTRAP_PROPERTIES );
+            props = new Properties();
+            props.setProperty( Cli.BOOT_CONFIG_PROPERTY, baseUrl + "/bootstrap.properties" );
+
+            writeConfigTo( props, bootstrap );
+
+            final File pom = new File( repo, srcPom.getName() );
+            copyFile( srcPom, pom );
+
+            final String[] args = { "-Z", pom.getPath() };
+
+            Cli.main( args );
+            assertExitValue();
+        }
+        finally
+        {
+            if ( http != null )
+            {
+                http.stop();
+            }
+        }
+
+        System.out.println( "\n\n" );
+    }
+
+    @Test
+    public void modifySinglePom_ConfigProperties_FromBootstrapPath_UsingBootstrapOption()
+        throws Exception
+    {
+        System.out.println( "Single POM test (with config properties from file path in bootstrap)..." );
+
+        final File srcPom = getResourceFile( "rwx-parent-0.2.1.pom" );
+        final File bom = getResourceFile( "bom.xml" );
+
+        Properties props = new Properties();
+        props.setProperty( "boms", bom.getAbsolutePath() );
+
+        final File config = writeConfig( props );
+
+        props = new Properties();
+        props.setProperty( Cli.BOOT_CONFIG_PROPERTY, config.getAbsolutePath() );
+
+        final File bootstrap = writeConfig( props, "bootstrap.properties" );
+
+        final File pom = new File( repo, srcPom.getName() );
+        copyFile( srcPom, pom );
+
+        final String[] args = { "-Z", "-B", bootstrap.getAbsolutePath(), pom.getPath() };
+
+        Cli.main( args );
+        assertExitValue();
+
+        System.out.println( "\n\n" );
+    }
+
+    @Test
+    public void modifySinglePom_ConfigProperties_FromBootstrapURL_UsingBootstrapOption()
+        throws Exception
+    {
+        System.out.println( "Single POM test (with config properties from file path in bootstrap)..." );
+
+        final File srcPom = getResourceFile( "rwx-parent-0.2.1.pom" );
+        final File bom = getResourceFile( "bom.xml" );
+
+        Properties props = new Properties();
+        props.setProperty( "boms", bom.getAbsolutePath() );
+
+        final File config = writeConfig( props );
+
+        final HttpTestService http =
+            new HttpTestService( Collections.singletonMap( "/bootstrap.properties", config.toURI().toURL() ) );
+        try
+        {
+            String baseUrl = null;
+            try
+            {
+                baseUrl = http.start();
+            }
+            catch ( final Exception e )
+            {
+                fail( "Failed to start HTTP service..." );
+            }
+
+            props = new Properties();
+            props.setProperty( Cli.BOOT_CONFIG_PROPERTY, baseUrl + "/bootstrap.properties" );
+
+            final File bootstrap = writeConfig( props, "bootstrap.properties" );
+
+            final File pom = new File( repo, srcPom.getName() );
+            copyFile( srcPom, pom );
+
+            final String[] args = { "-Z", "-B", bootstrap.getAbsolutePath(), pom.getPath() };
+
+            Cli.main( args );
+            assertExitValue();
+        }
+        finally
+        {
+            if ( http != null )
+            {
+                http.stop();
+            }
+        }
+
+        System.out.println( "\n\n" );
+    }
+
     private File writeConfig( final Properties props )
         throws IOException
     {
-        File config = folder.newFile( "config.properties" );
+        return writeConfig( props, "config.properties" );
+    }
+
+    private File writeConfig( final Properties props, final String name )
+        throws IOException
+    {
+        final File config = folder.newFile( name );
         config.deleteOnExit();
 
+        writeConfigTo( props, config );
+
+        return config;
+    }
+
+    private void writeConfigTo( final Properties props, final File config )
+        throws IOException
+    {
         FileOutputStream out = null;
         try
         {
             out = new FileOutputStream( config );
-            props.store( out, "Generated during pom-version-manipulator unit tests." );
+            props.store( out, "Generated for test: " + getClass().getName() + "#" + name.getMethodName() );
         }
         finally
         {
             closeQuietly( out );
         }
-
-        return config;
     }
 
     @Test
@@ -310,12 +493,12 @@ public class CliTest
         final File srcPom = getResourceFile( "rwx-parent-0.2.1.pom" );
         final File bom = getResourceFile( "bom.interp.xml" );
 
-        File bomListing = writeBomList( bom );
+        final File bomListing = writeBomList( bom );
 
         final File pom = new File( repo, srcPom.getName() );
         copyFile( srcPom, pom );
 
-        File config = writeConfig( new Properties() );
+        final File config = writeConfig( new Properties() );
 
         final String[] args = { "-Z", "-C", config.getPath(), "-b", bomListing.getPath(), pom.getPath() };
 
@@ -350,9 +533,9 @@ public class CliTest
     private void modifyRepo( final File... boms )
         throws Exception
     {
-        File bomListing = writeBomList( boms );
+        final File bomListing = writeBomList( boms );
 
-        File config = writeConfig( new Properties() );
+        final File config = writeConfig( new Properties() );
 
         final String[] baseArgs = { "-Z", "-C", config.getPath(), "-b", bomListing.getPath(), repo.getPath() };
 
@@ -369,7 +552,7 @@ public class CliTest
             bomList.add( bom.getAbsolutePath() );
         }
 
-        File bomListing = folder.newFile( "boms.lst" );
+        final File bomListing = folder.newFile( "boms.lst" );
         bomListing.deleteOnExit();
 
         writeLines( bomListing, bomList );
