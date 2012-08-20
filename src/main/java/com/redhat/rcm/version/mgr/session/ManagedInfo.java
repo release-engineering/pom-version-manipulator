@@ -114,32 +114,18 @@ class ManagedInfo
         final VersionlessProjectKey key = new VersionlessProjectKey( dep.getGroupId(), dep.getArtifactId() );
         final String version = dep.getVersion();
 
-        final String lastVersion = depMap.put( key, version );
-
-        Map<VersionlessProjectKey, String> bomMap = bomDepMap.get( srcBom );
-        if ( bomMap == null )
+        if ( !depMap.containsKey( key ) )
         {
-            bomMap = new HashMap<VersionlessProjectKey, String>();
-            bomDepMap.put( srcBom, bomMap );
-        }
+            depMap.put( key, version );
 
-        bomMap.put( key, version );
-
-        // remove this key from all other BOM mappings if it overwrites something from an earlier BOM.
-        if ( lastVersion != null )
-        {
-            for ( final Map<VersionlessProjectKey, String> map : bomDepMap.values() )
+            Map<VersionlessProjectKey, String> bomMap = bomDepMap.get( srcBom );
+            if ( bomMap == null )
             {
-                if ( map == bomMap )
-                {
-                    continue;
-                }
-
-                if ( map.containsKey( key ) )
-                {
-                    map.remove( key );
-                }
+                bomMap = new HashMap<VersionlessProjectKey, String>();
+                bomDepMap.put( srcBom, bomMap );
             }
+
+            bomMap.put( key, version );
         }
     }
 
