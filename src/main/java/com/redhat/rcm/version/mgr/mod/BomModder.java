@@ -58,10 +58,6 @@ public class BomModder
         DependencyManagement dm = null;
         boolean changed = false;
 
-        // Used to track inserting the BOMs in the correct order in the dependencyMgmt
-        // section.
-        int insertCounter = 0;
-
         if ( model.getDependencies() != null )
         {
             LOGGER.info( "Processing dependencies for '" + project.getKey() + "'..." );
@@ -106,7 +102,7 @@ public class BomModder
         }
 
         // NOTE: Inject BOMs directly, but ONLY if the parent project is NOT in
-        // the current projects list.  (If the parent is a current project, we
+        // the current projects list. (If the parent is a current project, we
         // want to inject the BOMs there instead.)
         final Set<FullProjectKey> bomCoords = session.getBomCoords();
         if ( !session.isCurrentProject( project.getParent() ) && bomCoords != null && !bomCoords.isEmpty() )
@@ -116,6 +112,10 @@ public class BomModder
                 dm = new DependencyManagement();
                 model.setDependencyManagement( dm );
             }
+
+            // Used to track inserting the BOMs in the correct order in the dependencyMgmt
+            // section.
+            int insertCounter = 0;
 
             for ( final FullProjectKey bomCoord : bomCoords )
             {
@@ -127,9 +127,9 @@ public class BomModder
                 dep.setScope( Artifact.SCOPE_IMPORT );
 
                 changed = true;
-                dm.getDependencies().add(insertCounter++, dep );
+                dm.getDependencies().add( insertCounter++, dep );
 
-                LOGGER.info("Injecting BOM " + dep.toString() + " into " + model);
+                LOGGER.info( "Injecting BOM " + dep.toString() + " into " + model );
             }
         }
         else if ( model.getDependencyManagement() != null )

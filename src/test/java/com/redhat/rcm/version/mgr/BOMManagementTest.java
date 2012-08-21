@@ -52,7 +52,9 @@ import com.redhat.rcm.version.testutil.SessionBuilder;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 public class BOMManagementTest
@@ -587,6 +589,72 @@ public class BOMManagementTest
         assertThat( dep.getVersion(), equalTo( "1" ) );
 
         System.out.println( "\n\n" );
+    }
+
+    @Test
+    public void injectBOMsAheadOfPreexistingBOMInStrictMode()
+        throws ProjectToolsException, IOException
+    {
+        final File pom = getResourceFile( "pom-with-existing-import.xml" );
+        final String bom1 = getResourceFile( "bom-min.xml" ).getAbsolutePath();
+        final String bom2 = getResourceFile( "bom-min2.xml" ).getAbsolutePath();
+
+        final List<String> boms = new ArrayList<String>();
+        boms.add( bom1 );
+        boms.add( bom2 );
+
+        final Model model = loadModel( pom );
+
+        assertThat( model.getDependencyManagement(), notNullValue() );
+        assertThat( model.getDependencyManagement().getDependencies(), notNullValue() );
+        assertThat( model.getDependencyManagement().getDependencies().size(), equalTo( 1 ) );
+
+        Dependency dep = model.getDependencyManagement().getDependencies().get( 0 );
+
+        assertThat( dep.getGroupId(), equalTo( "group.id" ) );
+        assertThat( dep.getArtifactId(), equalTo( "some-bom" ) );
+        assertThat( dep.getVersion(), equalTo( "1" ) );
+        assertThat( dep.getType(), equalTo( "pom" ) );
+        assertThat( dep.getScope(), equalTo( "import" ) );
+
+        final VersionManagerSession session = new SessionBuilder( workspace, reports ).withStrict( true ).build();
+
+        session.setCurrentProjects( Collections.singleton( model ) );
+
+        vman.configureSession( boms, null, session );
+
+        new BomModder().inject( new Project( model ), session );
+
+        assertNoErrors( session );
+
+        assertThat( model.getDependencyManagement(), notNullValue() );
+        assertThat( model.getDependencyManagement().getDependencies(), notNullValue() );
+        assertThat( model.getDependencyManagement().getDependencies().size(), equalTo( 3 ) );
+
+        int idx = 0;
+        dep = model.getDependencyManagement().getDependencies().get( idx++ );
+
+        assertThat( dep.getGroupId(), equalTo( "group" ) );
+        assertThat( dep.getArtifactId(), equalTo( "bom-min" ) );
+        assertThat( dep.getVersion(), equalTo( "1" ) );
+        assertThat( dep.getType(), equalTo( "pom" ) );
+        assertThat( dep.getScope(), equalTo( "import" ) );
+
+        dep = model.getDependencyManagement().getDependencies().get( idx++ );
+
+        assertThat( dep.getGroupId(), equalTo( "group" ) );
+        assertThat( dep.getArtifactId(), equalTo( "bom-min2" ) );
+        assertThat( dep.getVersion(), equalTo( "1" ) );
+        assertThat( dep.getType(), equalTo( "pom" ) );
+        assertThat( dep.getScope(), equalTo( "import" ) );
+
+        dep = model.getDependencyManagement().getDependencies().get( idx++ );
+
+        assertThat( dep.getGroupId(), equalTo( "group.id" ) );
+        assertThat( dep.getArtifactId(), equalTo( "some-bom" ) );
+        assertThat( dep.getVersion(), equalTo( "1" ) );
+        assertThat( dep.getType(), equalTo( "pom" ) );
+        assertThat( dep.getScope(), equalTo( "import" ) );
     }
 
 }
