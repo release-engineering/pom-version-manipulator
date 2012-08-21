@@ -53,6 +53,8 @@ Once you've specified this file ($HOME/.vman.properties), VMan should pickup you
 default configuration and execute the basic management process without requiring
 any additional command-line options.
 
+**Note: The bom order is important - those appearing first take precedence.
+
 **2. Execute VMan**
 
 Now, in your project directory, simply execute the command:
