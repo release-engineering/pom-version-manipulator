@@ -87,8 +87,8 @@ public class VersionManagerSession
 
     public VersionManagerSession( final File workspace, final File reports, final String versionSuffix,
                                   final Collection<String> removedPlugins, final Set<String> modderKeys,
-                                  final boolean preserveFiles, final boolean strict, final Map<String, String> relocatedCoords,
-                                  final Map<String, String> propertyMappings )
+                                  final boolean preserveFiles, final boolean strict,
+                                  final Map<String, String> relocatedCoords, final Map<String, String> propertyMappings )
     {
         this.workspace = workspace;
         this.reports = reports;
@@ -453,7 +453,7 @@ public class VersionManagerSession
 
     public boolean inCurrentSession( final Parent parent )
     {
-        return managedInfo.getCurrentProjects().contains( new VersionlessProjectKey( parent ) );
+        return managedInfo.isCurrentProject( new VersionlessProjectKey( parent ) );
     }
 
     public void setSettingsXml( final File settingsXml )
