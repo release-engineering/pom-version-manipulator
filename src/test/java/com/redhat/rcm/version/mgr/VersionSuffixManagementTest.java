@@ -34,6 +34,7 @@ import static org.junit.Assert.assertThat;
 
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.model.Model;
+import org.apache.maven.model.Parent;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -81,10 +82,11 @@ public class VersionSuffixManagementTest
         LoggingFixture.flushLogging();
     }
 
-    public void adjustMultiple_ParentVersions_ChildHasInheritedVersion()
+    @Test
+    public void adjustMultiple_ParentVersions_ChildHasInheritedVersion_SuffixAlreadyInPlace()
         throws Throwable
     {
-        final String path = "modules-inheritedVersion/pom.xml";
+        final String path = "modules-inheritedVersion-withSuffix/pom.xml";
 
         final Map<FullProjectKey, Project> result =
             adjustMultiple( "Adjust ONLY parent POM when child has inherited version", path );
@@ -99,6 +101,31 @@ public class VersionSuffixManagementTest
         project = result.get( key );
 
         assertThat( "Child POM was modified!", project, nullValue() );
+    }
+
+    @Test
+    public void adjustMultiple_ParentVersions_ChildHasInheritedVersion_AdjustParentRef()
+        throws Throwable
+    {
+        final String path = "modules-inheritedVersion-noSuffix/pom.xml";
+
+        final Map<FullProjectKey, Project> result =
+            adjustMultiple( "Adjust ONLY parent POM when child has inherited version", path );
+
+        FullProjectKey key = new FullProjectKey( "test", "parent", "1" + SUFFIX );
+        Project project = result.get( key );
+
+        assertThat( "Parent POM cannot be found in result map: " + key, project, notNullValue() );
+        assertThat( "Parent has wrong version!", project.getModel().getVersion(), equalTo( key.getVersion() ) );
+
+        key = new FullProjectKey( "test", "child", "1" + SUFFIX );
+        project = result.get( key );
+
+        assertThat( "Child POM was not modified!", project, notNullValue() );
+
+        final Parent parent = project.getModel().getParent();
+        assertThat( parent, notNullValue() );
+        assertThat( parent.getVersion(), equalTo( "1" + SUFFIX ) );
     }
 
     @Test
