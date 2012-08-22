@@ -18,6 +18,7 @@
 
 package com.redhat.rcm.version.mgr.mod;
 
+import org.apache.log4j.Logger;
 import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
@@ -32,6 +33,8 @@ import com.redhat.rcm.version.model.Project;
 public class VersionSuffixModder
     implements ProjectModder
 {
+
+    private static final Logger LOGGER = Logger.getLogger( VersionSuffixModder.class );
 
     public String getDescription()
     {
@@ -50,6 +53,8 @@ public class VersionSuffixModder
 
             if ( model.getVersion() != null && !model.getVersion().endsWith( suffix ) )
             {
+                LOGGER.info( "Adding suffix: '" + suffix + "' to version: '" + model.getVersion() + "' for: "
+                    + model.getId() );
                 model.setVersion( model.getVersion() + suffix );
                 changed = true;
             }
@@ -63,9 +68,13 @@ public class VersionSuffixModder
                 // if the parent references a project in the current vman modification session...
                 if ( session.inCurrentSession( parent ) )
                 {
+                    LOGGER.info( "Parent: '" + parent.getId() + "' is current session (for: " + model.getId() + ")" );
                     // and if the parent ref's version doesn't end with the suffix we're using here...
                     if ( !parent.getVersion().endsWith( suffix ) )
                     {
+                        LOGGER.info( "Adding suffix: '" + suffix + "' to parent version: '" + parent.getVersion()
+                            + "' for: " + model.getId() );
+
                         // adjust it.
                         parent.setVersion( parent.getVersion() + suffix );
                         changed = true;
@@ -75,6 +84,8 @@ public class VersionSuffixModder
                 // toolchain POM already, don't mess with the rest of this stuff.
                 else if ( tk == null || new VersionlessProjectKey( tk ).equals( vpk ) )
                 {
+                    LOGGER.info( "Toolchain key: '" + tk + "' is null, or parent: '" + parent.getId()
+                        + "' is already set to toolchain for: " + model.getId() + ". Nothing to do.." );
                     // NOP.
                 }
                 // if we do have a toolchain POM, and the parent ref for this project isn't listed in
@@ -85,15 +96,28 @@ public class VersionSuffixModder
                     session.addMissingParent( project );
                     if ( !session.isStrict() && !parent.getVersion().endsWith( suffix ) )
                     {
-                        // if we're not operating in strict mode, and the parent ref version doesn't
+                        LOGGER.info( "Adding suffix: '" + suffix + "' to parent version: '" + parent.getVersion()
+                            + "' for: " + model.getId() );
+
+                        // if we're not operating in strict mode, and the parent isn't in the current
+                        // VMan session, AND the parent ref version doesn't
                         // end with the suffix we're using, append it and assume that the parent POM
                         // will be VMan-ized and built using the same configuration.
                         parent.setVersion( parent.getVersion() + suffix );
+                    }
+                    else
+                    {
+                        LOGGER.info( "NOT adding suffix: '" + suffix + "' to parent version: '" + parent.getVersion()
+                            + "' for: " + model.getId()
+                            + "; either we're operating in strict mode, or the parent version is correct." );
                     }
                 }
                 // if we're using a different version of a parent listed in our BOMs
                 else if ( !parent.getVersion().equals( version ) )
                 {
+                    LOGGER.info( "Adjusting parent version to: '" + version + "' (was: '" + parent.getVersion()
+                        + "') for parent: '" + parent.getId() + "' in POM: " + model.getId() );
+
                     // adjust the parent version to match the BOM.
                     parent.setVersion( version );
                     changed = true;
