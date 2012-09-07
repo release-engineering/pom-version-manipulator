@@ -26,19 +26,6 @@ import static com.redhat.rcm.version.util.InputUtils.readProperties;
 import static org.apache.commons.io.IOUtils.closeQuietly;
 import static org.apache.commons.lang.StringUtils.join;
 
-import org.apache.log4j.Logger;
-import org.apache.maven.mae.MAEException;
-import org.codehaus.plexus.util.StringUtils;
-import org.kohsuke.args4j.Argument;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
-import org.kohsuke.args4j.ExampleMode;
-import org.kohsuke.args4j.Option;
-
-import com.redhat.rcm.version.mgr.VersionManager;
-import com.redhat.rcm.version.mgr.mod.ProjectModder;
-import com.redhat.rcm.version.mgr.session.VersionManagerSession;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -59,18 +46,30 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import org.apache.log4j.Logger;
+import org.apache.maven.mae.MAEException;
+import org.codehaus.plexus.util.StringUtils;
+import org.kohsuke.args4j.Argument;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.Option;
+
+import com.redhat.rcm.version.mgr.VersionManager;
+import com.redhat.rcm.version.mgr.mod.ProjectModder;
+import com.redhat.rcm.version.mgr.session.VersionManagerSession;
+
 public class Cli
 {
     @Argument( index = 0, metaVar = "target", usage = "POM file (or directory containing POM files) to modify." )
     private File target = new File( System.getProperty( "user.dir" ), "pom.xml" );
 
-    @Option( name = "-b", aliases = "--boms", usage = "File containing a list of BOM URLs to use for standardizing dependencies" )
+    @Option( name = "-b", aliases = "--boms", usage = "File containing a list of BOM URLs to use for standardizing dependencies.\nProperty file equivalent: boms" )
     private File bomList;
 
     @Option( name = "-B", aliases = { "--bootstrap" }, usage = "Bootstrap properties to read for location of VMan configuration." )
     private File bootstrapConfig;
 
-    @Option( name = "-C", aliases = "--config", usage = "Load default configuration for BOMs, toolchain, removedPluginsList, etc. from this file." )
+    @Option( name = "-C", aliases = "--config", usage = "Load default configuration for BOMs, toolchain, removedPluginsList, etc. from this file.\nDefault: $HOME/.vman.properties" )
     private File config;
 
     @Option( name = "-e", usage = "POM exclude path pattern (glob)" )
@@ -85,44 +84,43 @@ public class Cli
     @Option( name = "-H", aliases = { "--help-modifications" }, usage = "Print the list of available modifications and quit" )
     private boolean helpModders = false;
 
-    @Option( name = "-m", aliases = "--remote-repository", usage = "Maven remote repository from which load missing parent POMs." )
+    @Option( name = "-m", aliases = "--remote-repository", usage = "Maven remote repository from which load missing parent POMs.\nProperty file equivalent: remote-repository." )
     private String remoteRepository;
 
     @Option( name = "-M", aliases = { "--enable-modifications" }, usage = "List of modifications to enable for this execution (see --help-modifications for more information)." )
     private String modifications;
 
-    @Option( name = "-O", aliases = { "--capture-output", "--capture-pom" }, usage = "Write captured (missing) definitions to this POM location." )
+    @Option( name = "-O", aliases = { "--capture-output", "--capture-pom" }, usage = "Write captured (missing) definitions to this POM location.\nProperty file equivalent: capture-pom" )
     private File capturePom;
 
-    @Option( name = "-p", usage = "POM path pattern (glob)" )
+    @Option( name = "-p", usage = "POM path pattern (glob).\nDefault: **/*.pom,**/pom.xml" )
     private String pomPattern = "**/*.pom,**/pom.xml";
 
-    @Option( name = "-P", aliases = { "--preserve" }, usage = "Write changed POMs back to original input files" )
+    @Option( name = "-P", aliases = { "--preserve" }, usage = "Write changed POMs back to original input files.\nDefault: false" )
     private boolean preserveFiles = false;
 
-    @Option( name = "-r", aliases = { "--rm-plugins", "--removed-plugins" }, usage = "List of plugins (format: <groupId:artifactId>[,<groupId:artifactId>]) to REMOVE if found" )
+    @Option( name = "-r", aliases = { "--rm-plugins", "--removed-plugins" }, usage = "List of plugins (format: <groupId:artifactId>[,<groupId:artifactId>]) to REMOVE if found.\nProperty file equivalent: removed-plugins" )
     private String removedPluginsList;
 
-    @Option( name = "-R", aliases = { "--report-dir" }, usage = "Write reports here." )
+    @Option( name = "-R", aliases = { "--report-dir" }, usage = "Write reports here.\nDefault: <workspace>/reports" )
     private File reports = new File( "vman-workspace/reports" );
 
-    @Option( name = "-s", aliases = "--version-suffix", usage = "A suffix to append to each POM's version" )
+    @Option( name = "-s", aliases = "--version-suffix", usage = "A suffix to append to each POM's version.\nProperty file equivalent: version-suffix" )
     private String versionSuffix;
 
-    @Option( name = "--strict", usage = "Change ONLY the dependencies, plugins, and parents that are listed in BOMs and toolchain POM" )
+    @Option( name = "--strict", usage = "Change ONLY the dependencies, plugins, and parents that are listed in BOMs and toolchain POM\nDefault: false\nProperty file equivalent: strict" )
     private boolean strict = false;
 
-    @Option( name = "-S", aliases = { "--settings" }, usage = "Maven settings.xml file." )
+    @Option( name = "-S", aliases = { "--settings" }, usage = "Maven settings.xml file.\nProperty file equivalent: settings" )
     private File settings;
 
-    @Option( name = "-t", aliases = "--toolchain", usage = "Toolchain POM URL, containing standard plugin versions in the build/pluginManagement section, "
-        + "and plugin injections in the regular build/plugins section." )
+    @Option( name = "-t", aliases = "--toolchain", usage = "Toolchain POM URL, containing standard plugin versions in the build/pluginManagement section, and plugin injections in the regular build/plugins section.\nProperty file equivalent: toolchain" )
     private String toolchain;
 
-    @Option( name = "-W", aliases = { "--workspace" }, usage = "Backup original files here up before modifying." )
+    @Option( name = "-W", aliases = { "--workspace" }, usage = "Backup original files here up before modifying.\nDefault: vman-workspace" )
     private File workspace = new File( "vman-workspace" );
 
-    @Option( name = "-L", aliases = { "--local-repo", "--local-repository" }, usage = "Local repository directory." )
+    @Option( name = "-L", aliases = { "--local-repo", "--local-repository" }, usage = "Local repository directory.\nDefault: <workspace>/local-repository\nProperty file equivalent: local-repository" )
     private File localRepository;
 
     @Option( name = "-Z", aliases = { "--no-system-exit" }, usage = "Don't call System.exit(..) with the return value (for embedding/testing)." )
@@ -151,8 +149,6 @@ public class Cli
     public static final String CAPTURE_POM_PROPERTY = "capture-pom";
 
     public static final String STRICT_MODE_PROPERTY = "strict";
-
-    public static final String INJECT_BOMS_PROPERTY = "inject-boms";
 
     public static final String MODIFICATIONS = "modifications";
 
@@ -409,7 +405,7 @@ public class Cli
             System.out.println();
         }
 
-        System.out.println( "\n\nNOTE: To ADD any of these modifiers to the standard list, use the notation '--modifications=+<modifier-id>' (prefixed with '+').\n\nThe standard modifiers are: " );
+        System.out.println( "\n\nNOTE: To ADD any of these modifiers to the standard list, use the notation '--modifications=+<modifier-id>' (prefixed with '+') or for the properties file use 'modifications=+...'.\n\nThe standard modifiers are: " );
         for ( final String key : ProjectModder.STANDARD_MODIFICATIONS )
         {
             System.out.printf( "\n  - %s", key );
@@ -624,13 +620,13 @@ public class Cli
 
     /**
      * Try to load bootstrap configuration using the following order or preference:
-     * 
+     *
      * 1. configured file (using -B option)
      * 2. default file ($HOME/.vman.boot.properties)
      * 3. embedded resource (classpath:bootstrap.properties)
-     * 
+     *
      * @return The configuration file referenced by the bootstrap properties, or null if no bootstrap properties is found.
-     * 
+     *
      * @throws VManException In cases where the specified bootstrap properties file is unreadable.
      */
     private File loadBootstrapConfig()
@@ -731,11 +727,14 @@ public class Cli
             System.err.println();
         }
 
-        parser.printUsage( System.err );
         System.err.println( "Usage: $0 [OPTIONS] [<target-path>]" );
         System.err.println();
         System.err.println();
-        System.err.println( parser.printExample( ExampleMode.ALL ) );
+        // If we are running under a Linux shell COLUMNS might be available for the width
+        // of the terminal.
+        parser.setUsageWidth
+            ((System.getenv("COLUMNS") == null ? 100 : Integer.valueOf(System.getenv("COLUMNS"))));
+        parser.printUsage( System.err );
         System.err.println();
     }
 
