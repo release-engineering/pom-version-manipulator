@@ -26,6 +26,20 @@ import static com.redhat.rcm.version.util.InputUtils.readProperties;
 import static org.apache.commons.io.IOUtils.closeQuietly;
 import static org.apache.commons.lang.StringUtils.join;
 
+import org.apache.log4j.Logger;
+import org.apache.maven.mae.MAEException;
+import org.codehaus.plexus.util.StringUtils;
+import org.kohsuke.args4j.Argument;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.ExampleMode;
+import org.kohsuke.args4j.Option;
+
+import com.redhat.rcm.version.mgr.VersionManager;
+import com.redhat.rcm.version.mgr.mod.ProjectModder;
+import com.redhat.rcm.version.mgr.session.VersionManagerSession;
+import com.redhat.rcm.version.util.InputUtils;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -69,8 +83,8 @@ public class Cli
     @Option( name = "-B", aliases = { "--bootstrap" }, usage = "Bootstrap properties to read for location of VMan configuration." )
     private File bootstrapConfig;
 
-    @Option( name = "-C", aliases = "--config", usage = "Load default configuration for BOMs, toolchain, removedPluginsList, etc. from this file.\nDefault: $HOME/.vman.properties" )
-    private File config;
+    @Option( name = "-C", aliases = "--config", usage = "Load default configuration for BOMs, toolchain, removedPluginsList, etc. from this file/url." )
+    private String configuration;
 
     @Option( name = "-e", usage = "POM exclude path pattern (glob)" )
     private String pomExcludePattern;
@@ -472,6 +486,13 @@ public class Cli
     private void loadConfiguration()
         throws VManException
     {
+        File config = null;
+
+        if (configuration != null)
+        {
+            config = InputUtils.getFile ( configuration, workspace );
+        }
+
         if ( config == null )
         {
             config = loadBootstrapConfig();
@@ -877,15 +898,4 @@ public class Cli
     {
         this.versionSuffix = versionSuffix;
     }
-
-    protected File getConfig()
-    {
-        return config;
-    }
-
-    protected void setConfig( final File config )
-    {
-        this.config = config;
-    }
-
 }

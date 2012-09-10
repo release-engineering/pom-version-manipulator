@@ -287,6 +287,26 @@ public class CliTest
     }
 
     @Test
+    public void modifySinglePom_HTTPConfigProperties()
+        throws Exception
+    {
+        System.out.println( "Single POM test (with http config properties)..." );
+
+        final File srcPom = getResourceFile( "rwx-parent-0.2.1.pom" );
+        final File bom = getResourceFile( "bom.xml" );
+
+        final File pom = new File( repo, srcPom.getName() );
+        copyFile( srcPom, pom );
+
+        final String[] args = { "-Z", "-C", "http://localhost/vman.properties", pom.getPath() };
+
+        Cli.main( args );
+        assertExitValue();
+
+        System.out.println( "\n\n" );
+    }
+
+    @Test
     public void modifySinglePom_ConfigProperties_FromBootstrapPath()
         throws Exception
     {
