@@ -97,13 +97,15 @@ You can override any of the options in your .vman.properties file on the command
      -L (--local-repo,
          --local-repository) FILE           : Local repository directory.
                                               Default: <workspace>/local-repository
+                                              Property file equivalent: local-repository
 
      -P (--preserve)                        : Write changed POMs back to original input files
                                               Default: false
 
-     --strict                               : Change ONLY the dependencies, plugins, and parents that are
-                                              listed in BOMs and toolchain POM
+     --strict                               : Change ONLY the dependencies, plugins, and parents that are listed in BOMs and
+                                              toolchain POM
                                               Default: false
+                                              Property file equivalent: strict
 
      -Z (--no-system-exit)                  : Don't call System.exit(..) with the return value (for embedding/testing).
                                               Default: false
@@ -113,10 +115,12 @@ You can override any of the options in your .vman.properties file on the command
                                               plugins section.
 
      -b (--boms) FILE                       : File containing a list of BOM URLs to use for standardizing dependencies
+                                              Property file equivalent: boms
 
      -r (--rm-plugins,
          --removed-plugins) VAL             : List of plugins (format: <groupId:artifactId>[,<groupId:artifactId>]) to
                                               REMOVE if found
+                                              Property file equivalent: removed-plugins
 
      -O (--capture-output,
          --capture-pom) FILE                : Write captured (missing) definitions to this POM location.
@@ -127,11 +131,14 @@ You can override any of the options in your .vman.properties file on the command
 
      -E VAL                                 : POM module exclude list (format: <groupId:artifactId>[,<groupId:artifactId>])
 
-     -M (--enable-modifications) VAL        : List of modifications to enable for this execution (see --help-modifications for more information).
+     -M (--enable-modifications) VAL        : List of modifications to enable for this execution (see --help-modifications
+                                              for more information).
 
      -m (--remote-repository) VAL           : Maven remote repository from which load missing parent POMs.
+                                              Property file equivalent: remote-repository.
 
      -S (--settings) FILE                   : Maven settings.xml file.
+                                              Property file equivalent: settings
 
      -H (--help-modifications)              : Print the list of available modifications and quit
 
