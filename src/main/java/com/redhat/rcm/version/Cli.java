@@ -38,6 +38,7 @@ import org.kohsuke.args4j.Option;
 import com.redhat.rcm.version.mgr.VersionManager;
 import com.redhat.rcm.version.mgr.mod.ProjectModder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
+import com.redhat.rcm.version.util.InputUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -70,8 +71,8 @@ public class Cli
     @Option( name = "-B", aliases = { "--bootstrap" }, usage = "Bootstrap properties to read for location of VMan configuration." )
     private File bootstrapConfig;
 
-    @Option( name = "-C", aliases = "--config", usage = "Load default configuration for BOMs, toolchain, removedPluginsList, etc. from this file." )
-    private File config;
+    @Option( name = "-C", aliases = "--config", usage = "Load default configuration for BOMs, toolchain, removedPluginsList, etc. from this file/url." )
+    private String configuration;
 
     @Option( name = "-e", usage = "POM exclude path pattern (glob)" )
     private String pomExcludePattern;
@@ -476,6 +477,13 @@ public class Cli
     private void loadConfiguration()
         throws VManException
     {
+        File config = null;
+
+        if (configuration != null)
+        {
+            config = InputUtils.getFile ( configuration, workspace );
+        }
+
         if ( config == null )
         {
             config = loadBootstrapConfig();
@@ -878,15 +886,4 @@ public class Cli
     {
         this.versionSuffix = versionSuffix;
     }
-
-    protected File getConfig()
-    {
-        return config;
-    }
-
-    protected void setConfig( final File config )
-    {
-        this.config = config;
-    }
-
 }

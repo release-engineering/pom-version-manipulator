@@ -81,8 +81,8 @@ You can override any of the options in your .vman.properties file on the command
      target                                 : POM file (or directory tree containing POM files) to modify.
                                               Default: pom.xml
 
-     -C (--config) FILE                     : Load default configuration for BOMs, toolchain, removedPluginsList,
-                                              etc. from this file.
+     -C (--config) FILE/URL                 : Load default configuration for BOMs, toolchain, removedPluginsList,
+                                              etc. from this file/url.
                                               Default: $HOME/.vman.properties
 
      -W (--workspace) FILE                  : Backup original files here up before modifying.
@@ -219,9 +219,9 @@ If any dependency or plugin versions have NOT been captured in the BOMs or toolc
 
 Additionally, the plugin listings in the capture-POM are directly consumable by the meadin-roller tool, which creates self-contained, monolithic versions of the plugins used in MEAD builds (to avoid dependency overlap with the actual projects being built).
 
-KNOWN BUGS
-----------
+KNOWN ISSUES
+------------
 
 * Currently, VMan cannot preserve CDATA sections in POM files.
-* Additionally, some users have reported injected newlines being added using the Windows (\r\n) format, instead of
-the operating-system-dependent line ending.
+* Additionally, some users have reported injected newlines being added using the Windows (\r\n) format, instead of the operating-system-dependent line ending.
+* Dependency management blocks within plugins are not currently adjusted. The workaround is to use properties for the versions and use the property mapping plugin to adjust the versions.
