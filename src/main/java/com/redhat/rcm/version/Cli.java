@@ -254,7 +254,7 @@ public class Cli
 
         loadAndNormalizeModifications();
 
-        printConfig();
+        LOGGER.info( "modifications = " + join( modders, " " ) );
 
         final VersionManagerSession session =
             new VersionManagerSession( workspace,
@@ -342,11 +342,6 @@ public class Cli
         }
 
         return 0;
-    }
-
-    private void printConfig()
-    {
-        LOGGER.info( "modifications = " + join( modders, " " ) );
     }
 
     private static void printModders()
@@ -470,7 +465,6 @@ public class Cli
         }
 
         modders = mods;
-
     }
 
     private void loadConfiguration()

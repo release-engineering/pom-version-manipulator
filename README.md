@@ -53,7 +53,7 @@ Once you've specified this file ($HOME/.vman.properties), VMan should pickup you
 default configuration and execute the basic management process without requiring
 any additional command-line options.
 
-**Note: The bom order is important - those appearing first take precedence.
+**Note: The bom order is important - those appearing first take precedence.**
 
 **2. Execute VMan**
 
@@ -166,8 +166,10 @@ The optional ones are:
 
 In order to add optional modifier to the standard list use either
 
-*  On the command line `--modifications=+<modifier-id>` (prefixed with '+').
+*  On the command line `--modifications=+<modifier-id> +<modifier-id>` (prefixed with '+').
 *  Or in the properties file `modifications = +property`.
+
+Note that if the modifier is not prefixed by a '+' this will override the standard list.
 
 #### Property Modification
 The property modification allows an injected BOM to override version properties using
