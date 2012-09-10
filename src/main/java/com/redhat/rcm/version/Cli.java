@@ -26,20 +26,6 @@ import static com.redhat.rcm.version.util.InputUtils.readProperties;
 import static org.apache.commons.io.IOUtils.closeQuietly;
 import static org.apache.commons.lang.StringUtils.join;
 
-import org.apache.log4j.Logger;
-import org.apache.maven.mae.MAEException;
-import org.codehaus.plexus.util.StringUtils;
-import org.kohsuke.args4j.Argument;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
-import org.kohsuke.args4j.ExampleMode;
-import org.kohsuke.args4j.Option;
-
-import com.redhat.rcm.version.mgr.VersionManager;
-import com.redhat.rcm.version.mgr.mod.ProjectModder;
-import com.redhat.rcm.version.mgr.session.VersionManagerSession;
-import com.redhat.rcm.version.util.InputUtils;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -71,6 +57,7 @@ import org.kohsuke.args4j.Option;
 import com.redhat.rcm.version.mgr.VersionManager;
 import com.redhat.rcm.version.mgr.mod.ProjectModder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
+import com.redhat.rcm.version.util.InputUtils;
 
 public class Cli
 {
@@ -267,15 +254,8 @@ public class Cli
         LOGGER.info( "modifications = " + join( modders, " " ) );
 
         final VersionManagerSession session =
-            new VersionManagerSession( workspace,
-                                       reports,
-                                       versionSuffix,
-                                       removedPlugins,
-                                       modders,
-                                       preserveFiles,
-                                       strict,
-                                       relocatedCoords,
-                                       propertyMappings );
+            new VersionManagerSession( workspace, reports, versionSuffix, removedPlugins, modders, preserveFiles,
+                                       strict, relocatedCoords, propertyMappings );
 
         if ( remoteRepository != null )
         {
@@ -305,7 +285,8 @@ public class Cli
             return -2;
         }
 
-        if ( session.getErrors().isEmpty() )
+        if ( session.getErrors()
+                    .isEmpty() )
         {
             LOGGER.info( "Modifying POM(s).\n\nTarget:\n\t" + target + "\n\nBOMs:\n\t"
                 + StringUtils.join( boms.iterator(), "\n\t" ) + "\n\nWorkspace:\n\t" + workspace + "\n\nReports:\n\t"
@@ -375,7 +356,8 @@ public class Cli
         final List<String> lines = new ArrayList<String>();
         for ( final String key : keys )
         {
-            final String description = modders.get( key ).getDescription();
+            final String description = modders.get( key )
+                                              .getDescription();
             lines.clear();
             final BreakIterator iter = BreakIterator.getLineInstance();
             iter.setText( description );
@@ -444,7 +426,9 @@ public class Cli
         boolean loadStandards = modders == null;
         if ( modders != null )
         {
-            if ( !modders.isEmpty() && modders.iterator().next().startsWith( "+" ) )
+            if ( !modders.isEmpty() && modders.iterator()
+                                              .next()
+                                              .startsWith( "+" ) )
             {
                 loadStandards = true;
             }
@@ -459,7 +443,8 @@ public class Cli
                 {
                     if ( key.length() > 1 )
                     {
-                        mods.add( key.substring( 1 ).trim() );
+                        mods.add( key.substring( 1 )
+                                     .trim() );
                     }
                 }
                 else
@@ -482,9 +467,9 @@ public class Cli
     {
         File config = null;
 
-        if (configuration != null)
+        if ( configuration != null )
         {
-            config = InputUtils.getFile ( configuration, workspace );
+            config = InputUtils.getFile( configuration, workspace );
         }
 
         if ( config == null )
@@ -634,14 +619,14 @@ public class Cli
     }
 
     /**
-     * Try to load bootstrap configuration using the following order or preference:
-     *
+     * Try to load bootstrap configuration using the following order or preference: 
      * 1. configured file (using -B option)
-     * 2. default file ($HOME/.vman.boot.properties)
+     * 2. default file ($HOME/.vman.boot.properties) 
      * 3. embedded resource (classpath:bootstrap.properties)
-     *
-     * @return The configuration file referenced by the bootstrap properties, or null if no bootstrap properties is found.
-     *
+     * 
+     * @return The configuration file referenced by the bootstrap properties, or null if no bootstrap properties is
+     *         found.
+     *         
      * @throws VManException In cases where the specified bootstrap properties file is unreadable.
      */
     private File loadBootstrapConfig()
@@ -689,8 +674,7 @@ public class Cli
                 catch ( final VManException e )
                 {
                     LOGGER.error( "Failed to download configuration from: " + configLocation + ". Reason: "
-                                      + e.getMessage(),
-                                  e );
+                                      + e.getMessage(), e );
                     throw e;
                 }
             }
@@ -747,8 +731,7 @@ public class Cli
         System.err.println();
         // If we are running under a Linux shell COLUMNS might be available for the width
         // of the terminal.
-        parser.setUsageWidth
-            ((System.getenv("COLUMNS") == null ? 100 : Integer.valueOf(System.getenv("COLUMNS"))));
+        parser.setUsageWidth( ( System.getenv( "COLUMNS" ) == null ? 100 : Integer.valueOf( System.getenv( "COLUMNS" ) ) ) );
         parser.printUsage( System.err );
         System.err.println();
     }
