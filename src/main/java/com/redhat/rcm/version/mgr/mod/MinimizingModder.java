@@ -31,7 +31,6 @@ import java.util.Collections;
 
 @Component( role = ProjectModder.class, hint = "minimize" )
 public class MinimizingModder
-    extends RepoRemovalModder
     implements ProjectModder
 {
 
@@ -42,14 +41,12 @@ public class MinimizingModder
     @Override
     public boolean inject( final Project project, final VersionManagerSession session )
     {
-        boolean changed = super.inject( project, session );
+        boolean changed = false;
         final Model model = project.getModel();
 
-        if ( model.getReporting() != null )
-        {
-            model.setReporting( null );
-            changed = true;
-        }
+        changed = (new ReportingRemovalModder().inject( project, session ));
+        changed = (new RepoRemovalModder().inject( project, session )) || changed;
+        changed = (new ExtensionsRemovalModder().inject( project, session )) || changed;
 
         if ( model.getDevelopers() != null )
         {
