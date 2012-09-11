@@ -166,15 +166,20 @@ The optional ones are:
 
     minimize                 Remove all original site-production and
                              infrastructural elements of the POM (mainly useful
-                             for re-release of a project by a third party).
+                             for re-release of a project by a third party). Note - this
+                             also includes the repo, extensions and reporting removal modders.
 
     property                 Change property mappings to use those declared in the
                              supplied BOM file(s).
 
-In order to add optional modifier to the standard list use either
+    extensions-removal       Remove extensions from the POM.
 
-*  On the command line `--modifications=+<modifier-id> +<modifier-id>` (prefixed with '+').
-*  Or in the properties file `modifications = +property`.
+    reporting-removal        Remove reporting elements from the POM.
+
+In order to add optional modifiers to the standard list use either
+
+*  On the command line `--modifications=+<modifier-id>,+<modifier-id>` (prefixed with '+').
+*  Or in the properties file `modifications = +property,+property`
 
 Note that if the modifier is not prefixed by a '+' this will override the standard list.
 

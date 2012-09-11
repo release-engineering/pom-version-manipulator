@@ -1,16 +1,16 @@
 /*
- *  Copyright (C) 2011 John Casey.
- *  
+ *  Copyright (C) 2012 John Casey.
+ *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Affero General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU Affero General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -19,26 +19,26 @@ package com.redhat.rcm.version.mgr.mod;
 
 import java.util.Collections;
 
+import org.apache.maven.model.Extension;
 import org.apache.maven.model.Model;
-import org.apache.maven.model.Repository;
 import org.codehaus.plexus.component.annotations.Component;
 
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
-@Component( role = ProjectModder.class, hint = "repo-removal" )
-public class RepoRemovalModder
+@Component( role = ProjectModder.class, hint = "extensions-removal" )
+public class ExtensionsRemovalModder
     implements ProjectModder
 {
 
     public String getDescription()
     {
-        return "Remove <repositories/> and <pluginRepostories/> elements from the POM (this is a Maven best practice).";
+        return "Remove <extensions/> elements from the POM.";
     }
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * @see com.redhat.rcm.version.mgr.mod.ProjectModder#inject(com.redhat.rcm.version.model.Project,
      *      com.redhat.rcm.version.mgr.session.VersionManagerSession)
      */
@@ -46,17 +46,12 @@ public class RepoRemovalModder
     public boolean inject( final Project project, final VersionManagerSession session )
     {
         final Model model = project.getModel();
-
         boolean changed = false;
-        if ( model.getRepositories() != null && !model.getRepositories().isEmpty() )
-        {
-            model.setRepositories( Collections.<Repository>emptyList() );
-            changed = true;
-        }
 
-        if ( model.getPluginRepositories() != null && !model.getPluginRepositories().isEmpty() )
+        if ( model.getBuild () != null && model.getBuild().getExtensions() != null &&
+             !model.getBuild().getExtensions().isEmpty())
         {
-            model.setPluginRepositories( Collections.<Repository>emptyList() );
+            model.getBuild().setExtensions(Collections.<Extension>emptyList());
             changed = true;
         }
 
