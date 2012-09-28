@@ -195,7 +195,8 @@ public class ToolchainModder
             }
             else
             {
-                final FullProjectKey relocation = session.getRelocation( new FullProjectKey( parent ) );
+                final FullProjectKey fullParentKey = new FullProjectKey( parent );
+                final FullProjectKey relocation = session.getRelocation( fullParentKey );
                 if ( relocation != null )
                 {
                     LOGGER.info( "Relocating parent: " + parent + " to: " + relocation );
@@ -211,7 +212,7 @@ public class ToolchainModder
 
                 final VersionlessProjectKey vpk = new VersionlessProjectKey( parent );
 
-                if ( vtk.equals( vpk ) )
+                if ( vtk.equals( vpk ) && !toolchainKey.equals( fullParentKey ) )
                 {
                     parent.setVersion( toolchainKey.getVersion() );
                     changed = true;

@@ -32,23 +32,25 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
+import java.io.File;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
+import org.apache.maven.project.MavenProject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.redhat.rcm.version.fixture.LoggingFixture;
+import com.redhat.rcm.version.mgr.mod.VersionSuffixModder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
-
-import java.io.File;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 
 public class VersionSuffixManagementTest
     extends AbstractVersionManagerTest
@@ -95,7 +97,8 @@ public class VersionSuffixManagementTest
         Project project = result.get( key );
 
         assertThat( "Parent POM cannot be found in result map: " + key, project, notNullValue() );
-        assertThat( "Parent has wrong version!", project.getModel().getVersion(), equalTo( key.getVersion() ) );
+        assertThat( "Parent has wrong version!", project.getModel()
+                                                        .getVersion(), equalTo( key.getVersion() ) );
 
         key = new FullProjectKey( "test", "child", "1" + SUFFIX );
         project = result.get( key );
@@ -116,14 +119,16 @@ public class VersionSuffixManagementTest
         Project project = result.get( key );
 
         assertThat( "Parent POM cannot be found in result map: " + key, project, notNullValue() );
-        assertThat( "Parent has wrong version!", project.getModel().getVersion(), equalTo( key.getVersion() ) );
+        assertThat( "Parent has wrong version!", project.getModel()
+                                                        .getVersion(), equalTo( key.getVersion() ) );
 
         key = new FullProjectKey( "test", "child", "1" + SUFFIX );
         project = result.get( key );
 
         assertThat( "Child POM was not modified!", project, notNullValue() );
 
-        final Parent parent = project.getModel().getParent();
+        final Parent parent = project.getModel()
+                                     .getParent();
         assertThat( parent, notNullValue() );
         assertThat( parent.getVersion(), equalTo( "1" + SUFFIX ) );
     }
@@ -141,14 +146,16 @@ public class VersionSuffixManagementTest
         Project project = result.get( key );
 
         assertThat( "Parent POM cannot be found in result map: " + key, project, notNullValue() );
-        assertThat( "Parent has wrong version!", project.getModel().getVersion(), equalTo( key.getVersion() ) );
+        assertThat( "Parent has wrong version!", project.getModel()
+                                                        .getVersion(), equalTo( key.getVersion() ) );
 
         key = new FullProjectKey( "test", "child", "2" + SUFFIX );
         project = result.get( key );
 
         assertThat( "Child POM cannot be found in result map: " + key, project, notNullValue() );
         assertParent( project.getModel(), null, null, "1" + SUFFIX, true );
-        assertThat( "Child has wrong version!", project.getModel().getVersion(), equalTo( key.getVersion() ) );
+        assertThat( "Child has wrong version!", project.getModel()
+                                                       .getVersion(), equalTo( key.getVersion() ) );
     }
 
     @Test
@@ -160,19 +167,21 @@ public class VersionSuffixManagementTest
 
         assertParent( original, null, null, "1.0", true );
 
-        final File srcPom = getResourceFile( TEST_POMS + path );
-        final String toolchain = getResourceFile( TOOLCHAIN_PATH ).getAbsolutePath();
+        final File toolchain = getResourceFile( TOOLCHAIN_PATH );
 
-        final File pom = new File( repo, srcPom.getName() );
-        copyFile( srcPom, pom );
+        final Model toolchainModel = loadModel( toolchain );
+
+        final MavenProject toolchainProject = new MavenProject( toolchainModel );
+        toolchainProject.setOriginalModel( toolchainModel );
 
         final VersionManagerSession session = newVersionManagerSession( workspace, reports, SUFFIX );
+        session.setToolchain( toolchain, toolchainProject );
 
-        final Set<File> modified = vman.modifyVersions( pom, null, toolchain, session );
-        assertNoErrors( session );
+        final Project project = new Project( original );
 
-        final Set<Model> changedModels = loadModels( modified );
-        assertThat( "POM: " + path + " was modified!", changedModels.size(), equalTo( 0 ) );
+        final boolean changed = new VersionSuffixModder().inject( project, session );
+
+        assertThat( "POM: " + path + " was modified!", changed, equalTo( false ) );
     }
 
     @Test
@@ -187,7 +196,8 @@ public class VersionSuffixManagementTest
         final Project project =
             adjustSingle( "Adjust a POM with an independent version that inherits from the toolchain.", path );
 
-        assertThat( "Modified POM has wrong version!", project.getModel().getVersion(), equalTo( "1.0.1" + SUFFIX ) );
+        assertThat( "Modified POM has wrong version!", project.getModel()
+                                                              .getVersion(), equalTo( "1.0.1" + SUFFIX ) );
     }
 
     // Everything in the system should have a toolchain ancestor...
@@ -220,7 +230,8 @@ public class VersionSuffixManagementTest
             adjustSingle( "Adjust a POM with an independent version, a parent NOT in the "
                 + "current workspace, and without the toolchain in its ancestry.", path );
 
-        assertThat( "Modified POM has wrong version!", project.getModel().getVersion(), equalTo( "1.0" + SUFFIX ) );
+        assertThat( "Modified POM has wrong version!", project.getModel()
+                                                              .getVersion(), equalTo( "1.0" + SUFFIX ) );
     }
 
     @Test
@@ -234,7 +245,8 @@ public class VersionSuffixManagementTest
 
         final Project project = adjustSingle( "Adjust the version of POM without a parent.", path );
 
-        assertThat( "Modified POM has wrong version!", project.getModel().getVersion(), equalTo( "1.0" + SUFFIX ) );
+        assertThat( "Modified POM has wrong version!", project.getModel()
+                                                              .getVersion(), equalTo( "1.0" + SUFFIX ) );
     }
 
     private Project adjustSingle( final String description, final String pomPath )
@@ -253,19 +265,22 @@ public class VersionSuffixManagementTest
             final VersionManagerSession session = newVersionManagerSession( workspace, reports, SUFFIX );
 
             final File remoteRepo = getResourceFile( TEST_POMS + "repo" );
-            session.setRemoteRepository( remoteRepo.toURI().normalize().toURL().toExternalForm() );
+            session.setRemoteRepository( remoteRepo.toURI()
+                                                   .normalize()
+                                                   .toURL()
+                                                   .toExternalForm() );
 
             final Set<File> modified =
                 vman.modifyVersions( pom,
                                      Collections.singletonList( getResourceFile( PARENT_VERSION_BOM ).getAbsolutePath() ),
-                                     toolchain,
-                                     session );
+                                     toolchain, session );
             assertNoErrors( session );
 
             final Set<Model> changedModels = loadModels( modified );
             assertThat( "POM: " + pomPath + " was not modified!", changedModels.size(), equalTo( 1 ) );
 
-            final Model model = changedModels.iterator().next();
+            final Model model = changedModels.iterator()
+                                             .next();
             dumpModel( model );
 
             return new Project( pom, model );
@@ -299,13 +314,15 @@ public class VersionSuffixManagementTest
             final VersionManagerSession session = newVersionManagerSession( workspace, reports, SUFFIX );
 
             final File remoteRepo = getResourceFile( TEST_POMS + "repo" );
-            session.setRemoteRepository( remoteRepo.toURI().normalize().toURL().toExternalForm() );
+            session.setRemoteRepository( remoteRepo.toURI()
+                                                   .normalize()
+                                                   .toURL()
+                                                   .toExternalForm() );
 
             final Set<File> modified =
                 vman.modifyVersions( pom,
                                      Collections.singletonList( getResourceFile( PARENT_VERSION_BOM ).getAbsolutePath() ),
-                                     toolchain,
-                                     session );
+                                     toolchain, session );
             assertNoErrors( session );
 
             for ( final File file : modified )
@@ -344,36 +361,40 @@ public class VersionSuffixManagementTest
         {
             if ( groupId != null )
             {
-                assertThat( "Parent has wrong groupId.", model.getParent().getGroupId(), equalTo( groupId ) );
+                assertThat( "Parent has wrong groupId.", model.getParent()
+                                                              .getGroupId(), equalTo( groupId ) );
             }
 
             if ( artifactId != null )
             {
-                assertThat( "Parent has wrong artifactId.", model.getParent().getArtifactId(), equalTo( artifactId ) );
+                assertThat( "Parent has wrong artifactId.", model.getParent()
+                                                                 .getArtifactId(), equalTo( artifactId ) );
             }
 
             if ( version != null )
             {
-                assertThat( "Parent has wrong version.", model.getParent().getVersion(), equalTo( version ) );
+                assertThat( "Parent has wrong version.", model.getParent()
+                                                              .getVersion(), equalTo( version ) );
             }
         }
         else
         {
             if ( groupId != null )
             {
-                assertThat( "Parent has wrong groupId.", model.getParent().getGroupId(), not( equalTo( groupId ) ) );
+                assertThat( "Parent has wrong groupId.", model.getParent()
+                                                              .getGroupId(), not( equalTo( groupId ) ) );
             }
 
             if ( artifactId != null )
             {
-                assertThat( "Parent has wrong artifactId.",
-                            model.getParent().getArtifactId(),
-                            not( equalTo( artifactId ) ) );
+                assertThat( "Parent has wrong artifactId.", model.getParent()
+                                                                 .getArtifactId(), not( equalTo( artifactId ) ) );
             }
 
             if ( version != null )
             {
-                assertThat( "Parent has wrong version.", model.getParent().getVersion(), not( equalTo( version ) ) );
+                assertThat( "Parent has wrong version.", model.getParent()
+                                                              .getVersion(), not( equalTo( version ) ) );
             }
         }
     }

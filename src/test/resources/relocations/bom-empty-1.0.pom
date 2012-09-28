@@ -1,0 +1,9 @@
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.test</groupId>
+  <artifactId>bom-empty</artifactId>
+  <version>1.0</version>
+
+  <packaging>pom</packaging>
+
+</project>
