@@ -22,6 +22,20 @@ import static org.apache.commons.io.IOUtils.closeQuietly;
 import static org.apache.commons.io.IOUtils.copy;
 import static org.apache.commons.lang.StringUtils.isEmpty;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -36,20 +50,6 @@ import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.log4j.Logger;
 
 import com.redhat.rcm.version.VManException;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
 
 public final class InputUtils
 {
@@ -103,7 +103,9 @@ public final class InputUtils
     public static Map<String, String> readClasspathProperties( final String resource )
         throws VManException
     {
-        final InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream( resource );
+        final InputStream is = Thread.currentThread()
+                                     .getContextClassLoader()
+                                     .getResourceAsStream( resource );
         if ( is == null )
         {
             return null;
@@ -174,7 +176,9 @@ public final class InputUtils
 
     private static String propCleanup( final String value )
     {
-        return value.replace( "\\:", ":" ).replace( "\\=", "=" ).trim();
+        return value.replace( "\\:", ":" )
+                    .replace( "\\=", "=" )
+                    .trim();
     }
 
     public static File[] getFiles( final List<String> boms, final File downloadsDir )
@@ -199,6 +203,12 @@ public final class InputUtils
     public static File getFile( final String location, final File downloadsDir )
         throws VManException
     {
+        return getFile( location, downloadsDir, false );
+    }
+
+    public static File getFile( final String location, final File downloadsDir, final boolean deleteExisting )
+        throws VManException
+    {
         if ( client == null )
         {
             final DefaultHttpClient hc = new DefaultHttpClient();
@@ -210,7 +220,8 @@ public final class InputUtils
             if ( proxyHost != null && proxyPort > 0 )
             {
                 final HttpHost proxy = new HttpHost( proxyHost, proxyPort );
-                hc.getParams().setParameter( ConnRouteParams.DEFAULT_PROXY, proxy );
+                hc.getParams()
+                  .setParameter( ConnRouteParams.DEFAULT_PROXY, proxy );
             }
 
             client = hc;
@@ -231,7 +242,8 @@ public final class InputUtils
                     final AuthScope scope = new AuthScope( url.getHost(), url.getPort() );
                     final Credentials creds = new UsernamePasswordCredentials( userpass );
 
-                    client.getCredentialsProvider().setCredentials( scope, creds );
+                    client.getCredentialsProvider()
+                          .setCredentials( scope, creds );
                 }
             }
             catch ( final MalformedURLException e )
@@ -241,6 +253,11 @@ public final class InputUtils
             }
 
             final File downloaded = new File( downloadsDir, new File( location ).getName() );
+            if ( deleteExisting && downloaded.exists() )
+            {
+                downloaded.delete();
+            }
+
             if ( !downloaded.exists() )
             {
                 final HttpGet get = new HttpGet( location );
@@ -248,10 +265,12 @@ public final class InputUtils
                 try
                 {
                     final HttpResponse response = client.execute( get );
-                    final int code = response.getStatusLine().getStatusCode();
+                    final int code = response.getStatusLine()
+                                             .getStatusCode();
                     if ( code == 200 )
                     {
-                        final InputStream in = response.getEntity().getContent();
+                        final InputStream in = response.getEntity()
+                                                       .getContent();
                         out = new FileOutputStream( downloaded );
 
                         copy( in, out );
@@ -259,12 +278,10 @@ public final class InputUtils
                     else
                     {
                         LOGGER.info( String.format( "Received status: '%s' while downloading: %s",
-                                                    response.getStatusLine(),
-                                                    location ) );
+                                                    response.getStatusLine(), location ) );
 
                         throw new VManException( "Received status: '%s' while downloading: %s",
-                                                 response.getStatusLine(),
-                                                 location );
+                                                 response.getStatusLine(), location );
                     }
                 }
                 catch ( final ClientProtocolException e )

@@ -131,7 +131,7 @@ public class Cli
 
     private static final File DEFAULT_CONFIG_FILE = new File( System.getProperty( "user.home" ), ".vman.properties" );
 
-    static final String BOOTSTRAP_PROPERTIES = "bootstrap.properties";
+    static final String BOOTSTRAP_PROPERTIES = "vman.boot.properties";
 
     public static final String REMOTE_REPOSITORY_PROPERTY = "remote-repository";
 
@@ -667,7 +667,9 @@ public class Cli
                 LOGGER.info( "Reading configuration from: " + configLocation );
                 try
                 {
-                    final File file = getFile( configLocation, new File( System.getProperty( "java.io.tmpdir" ) ) );
+                    final File file =
+                        getFile( configLocation, new File( System.getProperty( "java.io.tmpdir" ) ), true );
+
                     LOGGER.info( "...downloaded to file: " + file );
                     return file;
                 }
