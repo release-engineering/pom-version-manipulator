@@ -17,21 +17,22 @@
 
 package com.redhat.rcm.version.testutil;
 
-import com.redhat.rcm.version.mgr.mod.ProjectModder;
-import com.redhat.rcm.version.mgr.session.VersionManagerSession;
-
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
+
+import com.redhat.rcm.version.mgr.mod.ProjectModder;
+import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
 public final class SessionBuilder
 {
-    public static final Set<String> STANDARD =
-        new HashSet<String>( Arrays.asList( ProjectModder.STANDARD_MODIFICATIONS ) );
+    public static final List<String> STANDARD =
+        new ArrayList<String>( Arrays.asList( ProjectModder.STANDARD_MODIFICATIONS ) );
 
     private final File workspace;
 
@@ -41,7 +42,7 @@ public final class SessionBuilder
 
     private Collection<String> removedPlugins = new HashSet<String>();
 
-    private Set<String> modders = STANDARD;
+    private List<String> modders = STANDARD;
 
     private boolean preserveFiles = false;
 
@@ -66,15 +67,8 @@ public final class SessionBuilder
 
     public VersionManagerSession build()
     {
-        return new VersionManagerSession( workspace,
-                                          reports,
-                                          versionSuffix,
-                                          removedPlugins,
-                                          modders,
-                                          preserveFiles,
-                                          strict,
-                                          coordinateRelocations,
-                                          propertyMappings );
+        return new VersionManagerSession( workspace, reports, versionSuffix, removedPlugins, modders, preserveFiles,
+                                          strict, coordinateRelocations, propertyMappings );
     }
 
     public SessionBuilder withVersionSuffix( final String versionSuffix )
@@ -89,7 +83,7 @@ public final class SessionBuilder
         return this;
     }
 
-    public SessionBuilder withModders( final Set<String> modders )
+    public SessionBuilder withModders( final List<String> modders )
     {
         this.modders = modders;
         return this;

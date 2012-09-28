@@ -21,6 +21,19 @@ package com.redhat.rcm.version.testutil;
 import static junit.framework.Assert.fail;
 import static org.apache.commons.io.FileUtils.copyFile;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.model.Model;
@@ -33,18 +46,6 @@ import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.mod.ProjectModder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.net.URL;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-
 public final class TestProjectUtils
 {
 
@@ -55,7 +56,8 @@ public final class TestProjectUtils
     public static VersionManagerSession newVersionManagerSession( final File workspace, final File reports,
                                                                   final String suffix )
     {
-        return new SessionBuilder( workspace, reports ).withVersionSuffix( suffix ).build();
+        return new SessionBuilder( workspace, reports ).withVersionSuffix( suffix )
+                                                       .build();
     }
 
     public static VersionManagerSession newVersionManagerSession( final File workspace, final File reports,
@@ -75,7 +77,7 @@ public final class TestProjectUtils
     public static VersionManagerSession newVersionManagerSession( final File workspace, final File reports,
                                                                   final String suffix,
                                                                   final Collection<String> removedPlugins,
-                                                                  final Set<String> modders )
+                                                                  final List<String> modders )
     {
         return new SessionBuilder( workspace, reports ).withVersionSuffix( suffix )
                                                        .withRemovedPlugins( removedPlugins )
@@ -85,7 +87,9 @@ public final class TestProjectUtils
 
     public static File getResourceFile( final String path )
     {
-        final URL resource = Thread.currentThread().getContextClassLoader().getResource( path );
+        final URL resource = Thread.currentThread()
+                                   .getContextClassLoader()
+                                   .getResource( path );
         if ( resource == null )
         {
             fail( "Resource not found: " + path );

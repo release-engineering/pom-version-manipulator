@@ -31,6 +31,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,13 +76,74 @@ public final class InputUtils
     public static File readFileProperty( final Properties props, final String property, final File downloadsDir )
         throws VManException
     {
+        return readFileProperty( props, property, downloadsDir, false );
+    }
+
+    public static File readFileProperty( final Properties props, final String property, final File downloadsDir,
+                                         final boolean deleteExisting )
+        throws VManException
+    {
         final String val = props.getProperty( property );
         if ( val != null )
         {
-            return getFile( val, downloadsDir );
+            return getFile( val, downloadsDir, deleteExisting );
         }
 
         return null;
+    }
+
+    public static Map<String, String> readPropertiesList( final List<String> propertiesLocations,
+                                                          final File downloadsDir, final boolean deleteExisting )
+        throws VManException
+    {
+        if ( propertiesLocations == null )
+        {
+            return null;
+        }
+
+        final Map<String, String> result = new HashMap<String, String>();
+        for ( final String propertiesLocation : propertiesLocations )
+        {
+            final File properties = getFile( propertiesLocation, downloadsDir, deleteExisting );
+            String content;
+            try
+            {
+                content = readFileToString( properties );
+            }
+            catch ( final IOException e )
+            {
+                throw new VManException( "Failed to load properties file: %s. Error: %s", e, properties, e.getMessage() );
+            }
+
+            final Map<String, String> props = parseProperties( content );
+            for ( final Map.Entry<String, String> entry : props.entrySet() )
+            {
+                if ( !result.containsKey( entry.getKey() ) )
+                {
+                    result.put( entry.getKey(), entry.getValue() );
+                }
+            }
+        }
+
+        return result;
+    }
+
+    public static Map<String, String> readProperties( final String propertiesLocation, final File downloadsDir,
+                                                      final boolean deleteExisting )
+        throws VManException
+    {
+        final File properties = getFile( propertiesLocation, downloadsDir, deleteExisting );
+        String content;
+        try
+        {
+            content = readFileToString( properties );
+        }
+        catch ( final IOException e )
+        {
+            throw new VManException( "Failed to load properties file: %s. Error: %s", e, properties, e.getMessage() );
+        }
+
+        return parseProperties( content );
     }
 
     public static Map<String, String> readProperties( final File properties )
@@ -181,14 +243,20 @@ public final class InputUtils
                     .trim();
     }
 
-    public static File[] getFiles( final List<String> boms, final File downloadsDir )
+    public static File[] getFiles( final List<String> locations, final File downloadsDir )
         throws VManException
     {
-        final List<File> result = new ArrayList<File>( boms.size() );
+        return getFiles( locations, downloadsDir, false );
+    }
 
-        for ( final String bom : boms )
+    public static File[] getFiles( final List<String> locations, final File downloadsDir, final boolean deleteExisting )
+        throws VManException
+    {
+        final List<File> result = new ArrayList<File>( locations.size() );
+
+        for ( final String bom : locations )
         {
-            final File bomFile = getFile( bom, downloadsDir );
+            final File bomFile = getFile( bom, downloadsDir, deleteExisting );
             if ( bomFile != null )
             {
                 result.add( bomFile );

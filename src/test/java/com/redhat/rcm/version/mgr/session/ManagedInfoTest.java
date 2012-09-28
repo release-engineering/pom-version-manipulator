@@ -20,6 +20,9 @@ package com.redhat.rcm.version.mgr.session;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
+import java.io.File;
+import java.util.Collections;
+
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.DependencyManagement;
@@ -31,9 +34,6 @@ import org.junit.Test;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.fixture.LoggingFixture;
 import com.redhat.rcm.version.testutil.SessionBuilder;
-
-import java.io.File;
-import java.util.Collections;
 
 public class ManagedInfoTest
 {
@@ -60,11 +60,8 @@ public class ManagedInfoTest
         final SessionBuilder sb = new SessionBuilder( null );
         final VersionManagerSession session = sb.build();
         final ManagedInfo info =
-            new ManagedInfo( session,
-                             Collections.<String> emptyList(),
-                             Collections.<String> emptySet(),
-                             Collections.<String, String> emptyMap(),
-                             Collections.<String, String> emptyMap() );
+            new ManagedInfo( session, Collections.<String> emptyList(), Collections.<String> emptyList(),
+                             Collections.<String, String> emptyMap(), Collections.<String, String> emptyMap() );
 
         final Dependency dep1 = new Dependency();
         dep1.setGroupId( "org.foo" );

@@ -20,6 +20,18 @@ package com.redhat.rcm.version.mgr.session;
 
 import static com.redhat.rcm.version.util.InputUtils.parseProperties;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+
 import org.apache.log4j.Logger;
 import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.FullProjectKey;
@@ -36,17 +48,6 @@ import org.apache.maven.project.MavenProject;
 import com.redhat.rcm.version.Cli;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.model.Project;
-
-import java.io.File;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
 
 class ManagedInfo
 {
@@ -81,10 +82,10 @@ class ManagedInfo
 
     private final Set<VersionlessProjectKey> currentProjectKeys = new LinkedHashSet<VersionlessProjectKey>();
 
-    private final Set<String> modderKeys = new HashSet<String>();
+    private final List<String> modderKeys = new ArrayList<String>();
 
     ManagedInfo( final VersionManagerSession session, final Collection<String> removedPlugins,
-                 final Set<String> modderKeys, final Map<String, String> relocatedCoords,
+                 final List<String> modderKeys, final Map<String, String> relocatedCoords,
                  final Map<String, String> propertyMappings )
     {
         this.relocatedCoords = new CoordinateRelocations( relocatedCoords, session );
@@ -151,9 +152,11 @@ class ManagedInfo
 
         startBomMap( bom, project.getGroupId(), project.getArtifactId(), project.getVersion() );
 
-        if ( project.getDependencyManagement() != null && project.getDependencyManagement().getDependencies() != null )
+        if ( project.getDependencyManagement() != null && project.getDependencyManagement()
+                                                                 .getDependencies() != null )
         {
-            for ( final Dependency dep : project.getDependencyManagement().getDependencies() )
+            for ( final Dependency dep : project.getDependencyManagement()
+                                                .getDependencies() )
             {
                 mapDependency( bom, dep );
             }
@@ -259,7 +262,7 @@ class ManagedInfo
         return removedPlugins;
     }
 
-    void setModderKeys( final Set<String> modderKeys )
+    void setModderKeys( final List<String> modderKeys )
     {
         if ( modderKeys == null )
         {
@@ -272,7 +275,7 @@ class ManagedInfo
         }
     }
 
-    Set<String> getModderKeys()
+    List<String> getModderKeys()
     {
         return modderKeys;
     }

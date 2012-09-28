@@ -18,6 +18,18 @@
 
 package com.redhat.rcm.version.mgr.session;
 
+import java.io.File;
+import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.ProjectKey;
@@ -35,18 +47,6 @@ import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.model.ProjectAncestryGraph;
 import com.redhat.rcm.version.util.ActivityLog;
-
-import java.io.File;
-import java.net.MalformedURLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class VersionManagerSession
     extends SimpleProjectToolsSession
@@ -86,7 +86,7 @@ public class VersionManagerSession
     private final boolean strict;
 
     public VersionManagerSession( final File workspace, final File reports, final String versionSuffix,
-                                  final Collection<String> removedPlugins, final Set<String> modderKeys,
+                                  final Collection<String> removedPlugins, final List<String> modderKeys,
                                   final boolean preserveFiles, final boolean strict,
                                   final Map<String, String> relocatedCoords, final Map<String, String> propertyMappings )
     {
@@ -502,7 +502,7 @@ public class VersionManagerSession
         return managedInfo.isCurrentProject( new FullProjectKey( parent ) );
     }
 
-    public Set<String> getModderKeys()
+    public List<String> getModderKeys()
     {
         return managedInfo.getModderKeys();
     }

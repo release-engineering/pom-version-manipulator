@@ -20,9 +20,9 @@ package com.redhat.rcm.version;
 
 import static com.redhat.rcm.version.util.InputUtils.getFile;
 import static com.redhat.rcm.version.util.InputUtils.readClasspathProperties;
-import static com.redhat.rcm.version.util.InputUtils.readFileProperty;
 import static com.redhat.rcm.version.util.InputUtils.readListProperty;
 import static com.redhat.rcm.version.util.InputUtils.readProperties;
+import static com.redhat.rcm.version.util.InputUtils.readPropertiesList;
 import static org.apache.commons.io.IOUtils.closeQuietly;
 import static org.apache.commons.lang.StringUtils.join;
 
@@ -40,11 +40,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.apache.maven.mae.MAEException;
@@ -168,7 +166,7 @@ public class Cli
 
     private List<String> removedPlugins;
 
-    private Set<String> modders;
+    private List<String> modders;
 
     private Map<String, String> relocatedCoords;
 
@@ -419,10 +417,17 @@ public class Cli
         if ( modifications != null )
         {
             final String[] ls = modifications.split( "\\s*,\\s*" );
-            modders = new HashSet<String>( Arrays.asList( ls ) );
+            modders = new ArrayList<String>();
+            for ( final String modder : ls )
+            {
+                if ( !modders.contains( modder ) )
+                {
+                    modders.add( modder );
+                }
+            }
         }
 
-        final Set<String> mods = new HashSet<String>();
+        final List<String> mods = new ArrayList<String>();
         boolean loadStandards = modders == null;
         if ( modders != null )
         {
@@ -497,20 +502,20 @@ public class Cli
                 LOGGER.info( "Loading configuration from: " + config + ":\n\n" + sWriter );
 
                 final File downloadsDir = VersionManagerSession.getDownloadsDir( workspace );
-                final File relocations = readFileProperty( props, RELOCATIONS_PROPERTY, downloadsDir );
+                final List<String> relocations = readListProperty( props, RELOCATIONS_PROPERTY );
                 if ( relocations != null )
                 {
-                    relocatedCoords = readProperties( relocations );
+                    relocatedCoords = readPropertiesList( relocations, downloadsDir, true );
                 }
                 else
                 {
                     relocatedCoords = new HashMap<String, String>();
                 }
 
-                final File propertyMappings = readFileProperty( props, PROPERTY_MAPPINGS_PROPERTY, downloadsDir );
+                final List<String> mappingsLocations = readListProperty( props, PROPERTY_MAPPINGS_PROPERTY );
                 if ( propertyMappings != null )
                 {
-                    this.propertyMappings = readProperties( propertyMappings );
+                    this.propertyMappings = readPropertiesList( mappingsLocations, downloadsDir, true );
                 }
                 else
                 {
@@ -528,7 +533,7 @@ public class Cli
                     LOGGER.info( "modifications from properties: '" + join( lst, " " ) + "'" );
                     if ( lst != null )
                     {
-                        modders = modders == null ? new HashSet<String>() : new HashSet<String>( modders );
+                        modders = modders == null ? new ArrayList<String>() : new ArrayList<String>( modders );
                         modders.addAll( lst );
                     }
                 }

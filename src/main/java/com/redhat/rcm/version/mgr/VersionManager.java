@@ -20,6 +20,19 @@ package com.redhat.rcm.version.mgr;
 
 import static com.redhat.rcm.version.util.PomUtils.writeModifiedPom;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.log4j.Logger;
 import org.apache.maven.mae.MAEException;
 import org.apache.maven.mae.app.AbstractMAEApplication;
@@ -45,19 +58,6 @@ import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.mgr.verify.ProjectVerifier;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.report.Report;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 @Component( role = VersionManager.class )
 public class VersionManager
@@ -142,8 +142,9 @@ public class VersionManager
         final DirectoryScanner scanner = new DirectoryScanner();
         scanner.setBasedir( dir );
 
-        final String[] initExcludes =
-            new String[] { session.getWorkspace().getName() + "/**", session.getReports().getName() + "/**" };
+        final String[] initExcludes = new String[] { session.getWorkspace()
+                                                            .getName() + "/**", session.getReports()
+                                                                                       .getName() + "/**" };
 
         final String[] excludePattern =
             pomExcludePattern == null ? new String[] {} : pomExcludePattern.split( "\\s*,\\s*" );
@@ -220,7 +221,8 @@ public class VersionManager
         final Set<File> result = modVersions( pom.getParentFile(), session, true, pom );
         if ( !result.isEmpty() )
         {
-            final File out = result.iterator().next();
+            final File out = result.iterator()
+                                   .next();
 
             LOGGER.info( "Modified POM versions.\n\n\tTop POM: " + out + "\n\tBOMs:\t"
                 + ( boms == null ? "-NONE-" : StringUtils.join( boms.iterator(), "\n\t\t" ) ) + "\n\tPOM Backups: "
@@ -285,11 +287,13 @@ public class VersionManager
                 }
                 else
                 {
-                    groupId = ( m.getGroupId() == null ? m.getParent().getGroupId() : m.getGroupId() );
+                    groupId = ( m.getGroupId() == null ? m.getParent()
+                                                          .getGroupId() : m.getGroupId() );
                 }
 
                 final String v = pomExcludedModules.get( groupId );
-                if ( v != null && m.getArtifactId().equals( v ) )
+                if ( v != null && m.getArtifactId()
+                                   .equals( v ) )
                 {
                     i.remove();
                 }
@@ -312,7 +316,7 @@ public class VersionManager
         {
             LOGGER.info( "Modifying '" + project.getKey() + "'..." );
 
-            final Set<String> modderKeys = session.getModderKeys();
+            final List<String> modderKeys = session.getModderKeys();
 
             boolean changed = false;
             if ( modders != null )
@@ -383,8 +387,9 @@ public class VersionManager
         {
             capturer.captureMissing( session );
 
-            LOGGER.warn( "\n\n\n\nMissing version information has been logged to:\n\n\t"
-                + session.getCapturePom().getAbsolutePath() + "\n\n\n\n" );
+            LOGGER.warn( "\n\n\n\nMissing version information has been logged to:\n\n\t" + session.getCapturePom()
+                                                                                                  .getAbsolutePath()
+                + "\n\n\n\n" );
         }
 
         return result;
@@ -400,7 +405,8 @@ public class VersionManager
         if ( backupDir != null )
         {
             String path = pom.getParent();
-            path = path.substring( basedir.getPath().length() );
+            path = path.substring( basedir.getPath()
+                                          .length() );
 
             final File dir = new File( backupDir, path );
             if ( !dir.exists() && !dir.mkdirs() )
@@ -412,16 +418,14 @@ public class VersionManager
             backup = new File( dir, pom.getName() );
             try
             {
-                session.getLog( pom ).add( "Writing: %s\nTo backup: %s", pom, backup );
+                session.getLog( pom )
+                       .add( "Writing: %s\nTo backup: %s", pom, backup );
                 FileUtils.copyFile( pom, backup );
             }
             catch ( final IOException e )
             {
-                session.addError( new VManException( "Error making backup of POM: %s.\n\tTarget: %s\n\tReason: %s",
-                                                     e,
-                                                     pom,
-                                                     backup,
-                                                     e.getMessage() ) );
+                session.addError( new VManException( "Error making backup of POM: %s.\n\tTarget: %s\n\tReason: %s", e,
+                                                     pom, backup, e.getMessage() ) );
                 return null;
             }
         }
