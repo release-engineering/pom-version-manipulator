@@ -18,6 +18,15 @@
 
 package com.redhat.rcm.version.mgr.mod;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.log4j.Logger;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
@@ -34,15 +43,6 @@ import org.codehaus.plexus.component.annotations.Component;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 @Component( role = ProjectModder.class, hint = "toolchain-realignment" )
 public class ToolchainModder
     implements ProjectModder
@@ -52,6 +52,7 @@ public class ToolchainModder
 
     private final InjectionMerger merger = new InjectionMerger();
 
+    @Override
     public String getDescription()
     {
         return "Forcibly realign POM build section to use plugins declared in the supplied toolchain POM (if present).";
@@ -141,7 +142,8 @@ public class ToolchainModder
                 }
 
                 final Plugin managedPlugin = session.getManagedPlugin( pluginKey );
-                if ( managedPlugin != null && !managedPlugin.getVersion().equals( plugin.getVersion() ) )
+                if ( managedPlugin != null && !managedPlugin.getVersion()
+                                                            .equals( plugin.getVersion() ) )
                 {
                     plugin.setVersion( managedPlugin.getVersion() );
                     changed = true;
@@ -193,6 +195,17 @@ public class ToolchainModder
             }
             else
             {
+                final FullProjectKey relocation = session.getRelocation( new FullProjectKey( parent ) );
+                if ( relocation != null )
+                {
+                    LOGGER.info( "Relocating parent: " + parent + " to: " + relocation );
+
+                    parent.setGroupId( relocation.getGroupId() );
+                    parent.setArtifactId( relocation.getArtifactId() );
+                    parent.setVersion( relocation.getVersion() );
+                    changed = true;
+                }
+
                 final VersionlessProjectKey vtk =
                     new VersionlessProjectKey( toolchainKey.getGroupId(), toolchainKey.getArtifactId() );
 
@@ -201,6 +214,7 @@ public class ToolchainModder
                 if ( vtk.equals( vpk ) )
                 {
                     parent.setVersion( toolchainKey.getVersion() );
+                    changed = true;
                 }
             }
         }

@@ -1,0 +1,20 @@
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.test</groupId>
+    <artifactId>old-parent</artifactId>
+    <version>1.0</version>
+  </parent>
+  
+  <artifactId>relocate-parent</artifactId>
+  
+  <build>
+      <plugins>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>rat-maven-plugin</artifactId>
+          <version>1.0-alpha-3</version>
+        </plugin>
+      </plugins>
+  </build>
+</project>

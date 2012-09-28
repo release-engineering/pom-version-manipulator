@@ -20,6 +20,10 @@ package com.redhat.rcm.version.mgr.mod;
 
 import static com.redhat.rcm.version.mgr.mod.Interpolations.interpolate;
 
+import java.io.File;
+import java.util.Iterator;
+import java.util.Set;
+
 import org.apache.log4j.Logger;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.mae.project.key.FullProjectKey;
@@ -34,16 +38,13 @@ import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.model.ReadOnlyDependency;
 
-import java.io.File;
-import java.util.Iterator;
-import java.util.Set;
-
 @Component( role = ProjectModder.class, hint = "bom-realignment" )
 public class BomModder
     implements ProjectModder
 {
     private static final Logger LOGGER = Logger.getLogger( BomModder.class );
 
+    @Override
     public String getDescription()
     {
         return "Forcibly realign dependencies to use those declared in the supplied BOM file(s). Inject supplied BOM(s) into the project root POM.";
@@ -61,7 +62,8 @@ public class BomModder
         if ( model.getDependencies() != null )
         {
             LOGGER.info( "Processing dependencies for '" + project.getKey() + "'..." );
-            for ( final Iterator<Dependency> it = model.getDependencies().iterator(); it.hasNext(); )
+            for ( final Iterator<Dependency> it = model.getDependencies()
+                                                       .iterator(); it.hasNext(); )
             {
                 final Dependency dep = it.next();
                 final DepModResult depResult = modifyDep( dep, model, project, pom, session, false );
@@ -84,7 +86,8 @@ public class BomModder
             if ( model.getDependencyManagement() != null && dm.getDependencies() != null )
             {
                 LOGGER.info( "Processing dependencyManagement for '" + project.getKey() + "'..." );
-                for ( final Iterator<Dependency> it = dm.getDependencies().iterator(); it.hasNext(); )
+                for ( final Iterator<Dependency> it = dm.getDependencies()
+                                                        .iterator(); it.hasNext(); )
                 {
                     final Dependency dep = it.next();
                     final DepModResult depResult = modifyDep( dep, model, project, pom, session, true );
@@ -127,7 +130,8 @@ public class BomModder
                 dep.setScope( Artifact.SCOPE_IMPORT );
 
                 changed = true;
-                dm.getDependencies().add( insertCounter++, dep );
+                dm.getDependencies()
+                  .add( insertCounter++, dep );
 
                 LOGGER.info( "Injecting BOM " + dep.toString() + " into " + model );
             }
@@ -151,7 +155,8 @@ public class BomModder
             dep.setVersion( interpolate( d.getVersion(), project ) );
         }
 
-        if ( dep.getExclusions() != null && !dep.getExclusions().isEmpty() )
+        if ( dep.getExclusions() != null && !dep.getExclusions()
+                                                .isEmpty() )
         {
             for ( final Exclusion ex : dep.getExclusions() )
             {
@@ -184,8 +189,7 @@ public class BomModder
             LOGGER.info( "NOT CHANGING version for interdependency from current project set: " + key );
 
             session.getLog( pom )
-                   .add( "NOT changing version for: %s%s. This is an interdependency in the current project set.",
-                         key,
+                   .add( "NOT changing version for: %s%s. This is an interdependency in the current project set.", key,
                          isManaged ? " [MANAGED]" : "" );
 
             return result;
@@ -209,13 +213,12 @@ public class BomModder
             LOGGER.info( "No relocation available for: " + key );
         }
 
-        String version = dep.getVersion();
+        String version = d.getVersion();
 
         if ( version == null )
         {
-            session.getLog( pom ).add( "NOT changing version for: %s%s. Version is inherited.",
-                                       key,
-                                       isManaged ? " [MANAGED]" : "" );
+            session.getLog( pom )
+                   .add( "NOT changing version for: %s%s. Version is inherited.", key, isManaged ? " [MANAGED]" : "" );
             return result;
         }
 
@@ -227,7 +230,8 @@ public class BomModder
         if ( version != null || !session.isStrict() )
         {
             d.setVersion( null );
-            if ( isManaged && ( dep.getScope() == null || dep.getExclusions() == null || dep.getExclusions().isEmpty() ) )
+            if ( isManaged && ( dep.getScope() == null || dep.getExclusions() == null || dep.getExclusions()
+                                                                                            .isEmpty() ) )
             {
                 result = DepModResult.DELETED;
             }

@@ -22,19 +22,27 @@ import static com.redhat.rcm.version.testutil.TestProjectUtils.getResourceFile;
 import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModel;
 import static com.redhat.rcm.version.testutil.TestProjectUtils.newVersionManagerSession;
 import static com.redhat.rcm.version.testutil.VManAssertions.assertNormalizedToBOMs;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Repository;
+import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.FileUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -50,16 +58,11 @@ import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.testutil.SessionBuilder;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
 public class BOMManagementTest
     extends AbstractVersionManagerTest
 {
+
+    private static final String TEST_DIR = "relocations/";
 
     @Rule
     public TestName name = new TestName();
@@ -148,7 +151,10 @@ public class BOMManagementTest
         final Repository resolve = new Repository();
 
         resolve.setId( "vman" );
-        resolve.setUrl( remoteRepo.toURI().normalize().toURL().toExternalForm() );
+        resolve.setUrl( remoteRepo.toURI()
+                                  .normalize()
+                                  .toURL()
+                                  .toExternalForm() );
 
         final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
         session.setResolveRepositories( resolve );
@@ -177,7 +183,10 @@ public class BOMManagementTest
         final Repository resolve = new Repository();
 
         resolve.setId( "vman" );
-        resolve.setUrl( remoteRepo.toURI().normalize().toURL().toExternalForm() );
+        resolve.setUrl( remoteRepo.toURI()
+                                  .normalize()
+                                  .toURL()
+                                  .toExternalForm() );
 
         final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
         session.setResolveRepositories( resolve );
@@ -256,8 +265,7 @@ public class BOMManagementTest
         final String g = "org.commonjava.rwx";
 
         final Set<Dependency> skipped =
-            assertNormalizedToBOMs( modified,
-                                    Collections.singleton( bom ),
+            assertNormalizedToBOMs( modified, Collections.singleton( bom ),
                                     new VersionlessProjectKey( g, "rwx-parent" ),
                                     new VersionlessProjectKey( g, "rwx-core" ),
                                     new VersionlessProjectKey( g, "rwx-bindings" ),
@@ -437,7 +445,8 @@ public class BOMManagementTest
         assertNotNull( modified );
         assertThat( modified.size(), equalTo( 1 ) );
 
-        final File out = modified.iterator().next();
+        final File out = modified.iterator()
+                                 .next();
         vman.generateReports( reports, session );
 
         final String result = FileUtils.fileRead( out );
@@ -445,6 +454,138 @@ public class BOMManagementTest
         assertFalse( result.contains( "<groupId>commons-lang</groupId>" ) );
 
         System.out.println( "\n\n" );
+    }
+
+    @Test
+    public void modifySinglePomWithRelocations_InBom()
+        throws IOException, ProjectToolsException
+    {
+        final Model original = loadModel( TEST_DIR + "relocate-dep.pom" );
+
+        final String bomPath = "bom-dep-1.0.pom";
+        final Model bomModel = loadModel( TEST_DIR + bomPath );
+        final MavenProject bomProject = new MavenProject( bomModel );
+        bomProject.setOriginalModel( bomModel );
+
+        assertThat( original.getDependencies(), notNullValue() );
+        assertThat( original.getDependencies()
+                            .size(), equalTo( 1 ) );
+
+        Dependency dep = original.getDependencies()
+                                 .get( 0 );
+        assertThat( dep.getArtifactId(), equalTo( "old-dep" ) );
+        assertThat( dep.getVersion(), equalTo( "1.0" ) );
+
+        final VersionManagerSession session =
+            new SessionBuilder( workspace, reports ).withCoordinateRelocation( "org.test:old-dep:1.0",
+                                                                               "org.test:new-dep:1.1" )
+                                                    .withStrict( true )
+                                                    .build();
+
+        session.addBOM( getResourceFile( TEST_DIR + bomPath ), bomProject );
+
+        final Project project = new Project( original );
+
+        final boolean changed = new BomModder().inject( project, session );
+        assertThat( changed, equalTo( true ) );
+
+        final Model model = project.getModel();
+        assertThat( model.getDependencies(), notNullValue() );
+        assertThat( model.getDependencies()
+                         .size(), equalTo( 1 ) );
+
+        dep = model.getDependencies()
+                   .get( 0 );
+        assertThat( dep.getArtifactId(), equalTo( "new-dep" ) );
+        assertThat( dep.getVersion(), nullValue() );
+    }
+
+    @Test
+    public void modifySinglePomWithRelocations_NotInBom_NonStrictMode()
+        throws IOException, ProjectToolsException
+    {
+        final Model original = loadModel( TEST_DIR + "relocate-dep.pom" );
+
+        final String bomPath = "bom-empty-1.0.pom";
+        final Model bomModel = loadModel( TEST_DIR + bomPath );
+        final MavenProject bomProject = new MavenProject( bomModel );
+        bomProject.setOriginalModel( bomModel );
+
+        assertThat( original.getDependencies(), notNullValue() );
+        assertThat( original.getDependencies()
+                            .size(), equalTo( 1 ) );
+
+        Dependency dep = original.getDependencies()
+                                 .get( 0 );
+        assertThat( dep.getArtifactId(), equalTo( "old-dep" ) );
+        assertThat( dep.getVersion(), equalTo( "1.0" ) );
+
+        final VersionManagerSession session =
+            new SessionBuilder( workspace, reports ).withCoordinateRelocation( "org.test:old-dep:1.0",
+                                                                               "org.test:new-dep:1.1" )
+                                                    .withStrict( false )
+                                                    .build();
+
+        session.addBOM( getResourceFile( TEST_DIR + bomPath ), bomProject );
+
+        final Project project = new Project( original );
+
+        final boolean changed = new BomModder().inject( project, session );
+        assertThat( changed, equalTo( true ) );
+
+        final Model model = project.getModel();
+        assertThat( model.getDependencies(), notNullValue() );
+        assertThat( model.getDependencies()
+                         .size(), equalTo( 1 ) );
+
+        dep = model.getDependencies()
+                   .get( 0 );
+        assertThat( dep.getArtifactId(), equalTo( "new-dep" ) );
+        assertThat( dep.getVersion(), nullValue() );
+    }
+
+    @Test
+    public void modifySinglePomWithRelocations_NotInBom_StrictMode()
+        throws IOException, ProjectToolsException
+    {
+        final Model original = loadModel( TEST_DIR + "relocate-dep.pom" );
+
+        final String bomPath = "bom-empty-1.0.pom";
+        final Model bomModel = loadModel( TEST_DIR + bomPath );
+        final MavenProject bomProject = new MavenProject( bomModel );
+        bomProject.setOriginalModel( bomModel );
+
+        assertThat( original.getDependencies(), notNullValue() );
+        assertThat( original.getDependencies()
+                            .size(), equalTo( 1 ) );
+
+        Dependency dep = original.getDependencies()
+                                 .get( 0 );
+        assertThat( dep.getArtifactId(), equalTo( "old-dep" ) );
+        assertThat( dep.getVersion(), equalTo( "1.0" ) );
+
+        final VersionManagerSession session =
+            new SessionBuilder( workspace, reports ).withCoordinateRelocation( "org.test:old-dep:1.0",
+                                                                               "org.test:new-dep:1.1" )
+                                                    .withStrict( true )
+                                                    .build();
+
+        session.addBOM( getResourceFile( TEST_DIR + bomPath ), bomProject );
+
+        final Project project = new Project( original );
+
+        final boolean changed = new BomModder().inject( project, session );
+        assertThat( changed, equalTo( true ) );
+
+        final Model model = project.getModel();
+        assertThat( model.getDependencies(), notNullValue() );
+        assertThat( model.getDependencies()
+                         .size(), equalTo( 1 ) );
+
+        dep = model.getDependencies()
+                   .get( 0 );
+        assertThat( dep.getArtifactId(), equalTo( "new-dep" ) );
+        assertThat( dep.getVersion(), equalTo( "1.1" ) );
     }
 
     @Test
@@ -469,9 +610,11 @@ public class BOMManagementTest
 
         assertNoErrors( session );
 
-        assertThat( model.getDependencies().size(), equalTo( 1 ) );
+        assertThat( model.getDependencies()
+                         .size(), equalTo( 1 ) );
 
-        final Dependency dep = model.getDependencies().get( 0 );
+        final Dependency dep = model.getDependencies()
+                                    .get( 0 );
 
         assertThat( dep.getGroupId(), equalTo( "new.group.id" ) );
         assertThat( dep.getArtifactId(), equalTo( "new-artifact" ) );
@@ -502,9 +645,11 @@ public class BOMManagementTest
 
         assertNoErrors( session );
 
-        assertThat( model.getDependencies().size(), equalTo( 1 ) );
+        assertThat( model.getDependencies()
+                         .size(), equalTo( 1 ) );
 
-        final Dependency dep = model.getDependencies().get( 0 );
+        final Dependency dep = model.getDependencies()
+                                    .get( 0 );
 
         assertThat( dep.getGroupId(), equalTo( "new.group.id" ) );
         assertThat( dep.getArtifactId(), equalTo( "new-artifact" ) );
@@ -540,10 +685,15 @@ public class BOMManagementTest
         final Model capture = loadModel( pom );
 
         assertThat( capture.getDependencyManagement(), notNullValue() );
-        assertThat( capture.getDependencyManagement().getDependencies(), notNullValue() );
-        assertThat( capture.getDependencyManagement().getDependencies().size(), equalTo( 1 ) );
+        assertThat( capture.getDependencyManagement()
+                           .getDependencies(), notNullValue() );
+        assertThat( capture.getDependencyManagement()
+                           .getDependencies()
+                           .size(), equalTo( 1 ) );
 
-        final Dependency dep = capture.getDependencyManagement().getDependencies().get( 0 );
+        final Dependency dep = capture.getDependencyManagement()
+                                      .getDependencies()
+                                      .get( 0 );
 
         assertThat( dep.getGroupId(), equalTo( "group.id" ) );
         assertThat( dep.getArtifactId(), equalTo( "some-artifact" ) );
@@ -563,7 +713,8 @@ public class BOMManagementTest
 
         final Model model = loadModel( pom );
 
-        final VersionManagerSession session = new SessionBuilder( workspace, reports ).withStrict( false ).build();
+        final VersionManagerSession session = new SessionBuilder( workspace, reports ).withStrict( false )
+                                                                                      .build();
 
         final File capturePom = tempFolder.newFile( "capture.pom" );
         session.setCapturePom( capturePom );
@@ -579,10 +730,15 @@ public class BOMManagementTest
         final Model capture = loadModel( pom );
 
         assertThat( capture.getDependencyManagement(), notNullValue() );
-        assertThat( capture.getDependencyManagement().getDependencies(), notNullValue() );
-        assertThat( capture.getDependencyManagement().getDependencies().size(), equalTo( 1 ) );
+        assertThat( capture.getDependencyManagement()
+                           .getDependencies(), notNullValue() );
+        assertThat( capture.getDependencyManagement()
+                           .getDependencies()
+                           .size(), equalTo( 1 ) );
 
-        final Dependency dep = capture.getDependencyManagement().getDependencies().get( 0 );
+        final Dependency dep = capture.getDependencyManagement()
+                                      .getDependencies()
+                                      .get( 0 );
 
         assertThat( dep.getGroupId(), equalTo( "group.id" ) );
         assertThat( dep.getArtifactId(), equalTo( "some-artifact" ) );
@@ -606,10 +762,15 @@ public class BOMManagementTest
         final Model model = loadModel( pom );
 
         assertThat( model.getDependencyManagement(), notNullValue() );
-        assertThat( model.getDependencyManagement().getDependencies(), notNullValue() );
-        assertThat( model.getDependencyManagement().getDependencies().size(), equalTo( 1 ) );
+        assertThat( model.getDependencyManagement()
+                         .getDependencies(), notNullValue() );
+        assertThat( model.getDependencyManagement()
+                         .getDependencies()
+                         .size(), equalTo( 1 ) );
 
-        Dependency dep = model.getDependencyManagement().getDependencies().get( 0 );
+        Dependency dep = model.getDependencyManagement()
+                              .getDependencies()
+                              .get( 0 );
 
         assertThat( dep.getGroupId(), equalTo( "group.id" ) );
         assertThat( dep.getArtifactId(), equalTo( "some-bom" ) );
@@ -617,7 +778,8 @@ public class BOMManagementTest
         assertThat( dep.getType(), equalTo( "pom" ) );
         assertThat( dep.getScope(), equalTo( "import" ) );
 
-        final VersionManagerSession session = new SessionBuilder( workspace, reports ).withStrict( true ).build();
+        final VersionManagerSession session = new SessionBuilder( workspace, reports ).withStrict( true )
+                                                                                      .build();
 
         session.setCurrentProjects( Collections.singleton( model ) );
 
@@ -628,11 +790,16 @@ public class BOMManagementTest
         assertNoErrors( session );
 
         assertThat( model.getDependencyManagement(), notNullValue() );
-        assertThat( model.getDependencyManagement().getDependencies(), notNullValue() );
-        assertThat( model.getDependencyManagement().getDependencies().size(), equalTo( 3 ) );
+        assertThat( model.getDependencyManagement()
+                         .getDependencies(), notNullValue() );
+        assertThat( model.getDependencyManagement()
+                         .getDependencies()
+                         .size(), equalTo( 3 ) );
 
         int idx = 0;
-        dep = model.getDependencyManagement().getDependencies().get( idx++ );
+        dep = model.getDependencyManagement()
+                   .getDependencies()
+                   .get( idx++ );
 
         assertThat( dep.getGroupId(), equalTo( "group" ) );
         assertThat( dep.getArtifactId(), equalTo( "bom-min" ) );
@@ -640,7 +807,9 @@ public class BOMManagementTest
         assertThat( dep.getType(), equalTo( "pom" ) );
         assertThat( dep.getScope(), equalTo( "import" ) );
 
-        dep = model.getDependencyManagement().getDependencies().get( idx++ );
+        dep = model.getDependencyManagement()
+                   .getDependencies()
+                   .get( idx++ );
 
         assertThat( dep.getGroupId(), equalTo( "group" ) );
         assertThat( dep.getArtifactId(), equalTo( "bom-min2" ) );
@@ -648,7 +817,9 @@ public class BOMManagementTest
         assertThat( dep.getType(), equalTo( "pom" ) );
         assertThat( dep.getScope(), equalTo( "import" ) );
 
-        dep = model.getDependencyManagement().getDependencies().get( idx++ );
+        dep = model.getDependencyManagement()
+                   .getDependencies()
+                   .get( idx++ );
 
         assertThat( dep.getGroupId(), equalTo( "group.id" ) );
         assertThat( dep.getArtifactId(), equalTo( "some-bom" ) );

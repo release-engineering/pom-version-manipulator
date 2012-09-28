@@ -37,6 +37,13 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.model.Build;
@@ -61,13 +68,6 @@ import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.testutil.PluginMatcher;
 import com.redhat.rcm.version.testutil.SessionBuilder;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class ToolchainManagementTest
     extends AbstractVersionManagerTest
@@ -103,6 +103,45 @@ public class ToolchainManagementTest
     public void teardown()
     {
         LoggingFixture.flushLogging();
+    }
+
+    @Test
+    public void relocateParent()
+        throws Throwable
+    {
+        final String path = "relocate-parent.pom";
+        final Model original = loadModel( TOOLCHAIN_TEST_POMS + path );
+
+        final String toolchainPath = EMPTY_TOOLCHAIN_PATH;
+        final Model toolchainModel = loadModel( toolchainPath );
+        final MavenProject toolchainProject = new MavenProject( toolchainModel );
+        toolchainProject.setOriginalModel( toolchainModel );
+
+        Parent parent = original.getParent();
+        assertThat( parent, notNullValue() );
+        assertThat( parent.getArtifactId(), equalTo( "old-parent" ) );
+        assertThat( parent.getVersion(), equalTo( "1.0" ) );
+
+        final Project project = new Project( original );
+        final SessionBuilder builder =
+            new SessionBuilder( workspace, reports ).withCoordinateRelocation( "org.test:old-parent:1.0",
+                                                                               "org.test:new-parent:2.0" );
+
+        final VersionManagerSession session = builder.build();
+        session.setToolchain( new File( toolchainPath ), toolchainProject );
+
+        final boolean changed = new ToolchainModder().inject( project, session );
+
+        dumpModel( project.getModel() );
+
+        assertThat( changed, equalTo( true ) );
+        assertNoErrors( session );
+
+        parent = project.getModel()
+                        .getParent();
+        assertThat( parent, notNullValue() );
+        assertThat( parent.getArtifactId(), equalTo( "new-parent" ) );
+        assertThat( parent.getVersion(), equalTo( "2.0" ) );
     }
 
     @Test
@@ -306,9 +345,7 @@ public class ToolchainManagementTest
         assertPluginManagementPlugins( original, -1 );
 
         final Project project =
-            adjustSingle( "Remove banned plugin from the build section in a POM",
-                          path,
-                          toolchainPath,
+            adjustSingle( "Remove banned plugin from the build section in a POM", path, toolchainPath,
                           Collections.singletonList( "org.apache.maven.plugins:maven-checkstyle-plugin" ) );
 
         assertBuildPlugins( project.getModel(), -1 );
@@ -328,9 +365,7 @@ public class ToolchainManagementTest
         assertBuildPlugins( original, -1 );
 
         final Project project =
-            adjustSingle( "Remove banned plugin from the pluginManagement section in a POM",
-                          path,
-                          toolchainPath,
+            adjustSingle( "Remove banned plugin from the pluginManagement section in a POM", path, toolchainPath,
                           Collections.singletonList( "org.apache.maven.plugins:maven-checkstyle-plugin" ) );
 
         assertBuildPlugins( project.getModel(), -1 );
@@ -350,9 +385,7 @@ public class ToolchainManagementTest
         assertPluginManagementPlugins( original, -1 );
 
         final Project project =
-            adjustSingle( "Remove banned plugin from the reporting section in a POM",
-                          path,
-                          toolchainPath,
+            adjustSingle( "Remove banned plugin from the reporting section in a POM", path, toolchainPath,
                           Collections.singletonList( "org.apache.maven.plugins:maven-checkstyle-plugin" ) );
 
         assertReportPlugins( project.getModel(), -1 );
@@ -396,9 +429,8 @@ public class ToolchainManagementTest
 
         final Model original = loadModel( TOOLCHAIN_TEST_POMS + path );
 
-        assertBuildPlugins( original,
-                            1,
-                            mavenPlugin( "maven-source-plugin" ).version( "2.1.2" ).execution( "other-source-jar" ) );
+        assertBuildPlugins( original, 1, mavenPlugin( "maven-source-plugin" ).version( "2.1.2" )
+                                                                             .execution( "other-source-jar" ) );
 
         assertPluginManagementPlugins( original, -1 );
 
@@ -406,9 +438,8 @@ public class ToolchainManagementTest
             adjustSingle( "Inject plugin execution into POM not inheriting from "
                 + "toolchain that already has another execution of the plugin", path, toolchainPath );
 
-        assertBuildPlugins( project.getModel(),
-                            1,
-                            mavenPlugin( "maven-source-plugin" ).version( null ).execution( "other-source-jar" ) );
+        assertBuildPlugins( project.getModel(), 1, mavenPlugin( "maven-source-plugin" ).version( null )
+                                                                                       .execution( "other-source-jar" ) );
 
         assertPluginManagementPlugins( project.getModel(), -1 );
 
@@ -429,9 +460,8 @@ public class ToolchainManagementTest
 
         final Model original = loadModel( TOOLCHAIN_TEST_POMS + path );
 
-        assertBuildPlugins( original,
-                            1,
-                            mavenPlugin( "maven-source-plugin" ).version( "2.1.2" ).execution( "create-source-jar" ) );
+        assertBuildPlugins( original, 1, mavenPlugin( "maven-source-plugin" ).version( "2.1.2" )
+                                                                             .execution( "create-source-jar" ) );
 
         assertPluginManagementPlugins( original, -1 );
 
@@ -439,9 +469,8 @@ public class ToolchainManagementTest
             adjustSingle( "Leave existing plugin execution in POM not inheriting from "
                 + "toolchain when it collides with the injected one", path, toolchainPath );
 
-        assertBuildPlugins( project.getModel(),
-                            1,
-                            mavenPlugin( "maven-source-plugin" ).version( null ).execution( "create-source-jar" ) );
+        assertBuildPlugins( project.getModel(), 1, mavenPlugin( "maven-source-plugin" ).version( null )
+                                                                                       .execution( "create-source-jar" ) );
 
         assertPluginManagementPlugins( project.getModel(), -1 );
 
@@ -739,7 +768,10 @@ public class ToolchainManagementTest
             final VersionManagerSession session = newVersionManagerSession( workspace, reports, null, removedPlugins );
 
             final File remoteRepo = getResourceFile( TOOLCHAIN_TEST_POMS + "repo" );
-            session.setRemoteRepository( remoteRepo.toURI().normalize().toURL().toExternalForm() );
+            session.setRemoteRepository( remoteRepo.toURI()
+                                                   .normalize()
+                                                   .toURL()
+                                                   .toExternalForm() );
 
             final Set<File> modified = vman.modifyVersions( pom, null, toolchain, session );
             assertNoErrors( session );
@@ -747,7 +779,8 @@ public class ToolchainManagementTest
             final Set<Model> changedModels = loadModels( modified );
             assertThat( "POM: " + pomPath + " was not modified!", changedModels.size(), equalTo( 1 ) );
 
-            final Model model = changedModels.iterator().next();
+            final Model model = changedModels.iterator()
+                                             .next();
             dumpModel( model );
 
             return new Project( pom, model );
@@ -776,7 +809,10 @@ public class ToolchainManagementTest
             final VersionManagerSession session = newVersionManagerSession( workspace, reports, null, removedPlugins );
 
             final File remoteRepo = getResourceFile( TOOLCHAIN_TEST_POMS + "repo" );
-            session.setRemoteRepository( remoteRepo.toURI().normalize().toURL().toExternalForm() );
+            session.setRemoteRepository( remoteRepo.toURI()
+                                                   .normalize()
+                                                   .toURL()
+                                                   .toExternalForm() );
 
             final Set<File> modified = vman.modifyVersions( pom, null, toolchain, session );
             assertNoErrors( session );
@@ -813,36 +849,40 @@ public class ToolchainManagementTest
         {
             if ( groupId != null )
             {
-                assertThat( "Parent has wrong groupId.", model.getParent().getGroupId(), equalTo( groupId ) );
+                assertThat( "Parent has wrong groupId.", model.getParent()
+                                                              .getGroupId(), equalTo( groupId ) );
             }
 
             if ( artifactId != null )
             {
-                assertThat( "Parent has wrong artifactId.", model.getParent().getArtifactId(), equalTo( artifactId ) );
+                assertThat( "Parent has wrong artifactId.", model.getParent()
+                                                                 .getArtifactId(), equalTo( artifactId ) );
             }
 
             if ( version != null )
             {
-                assertThat( "Parent has wrong version.", model.getParent().getVersion(), equalTo( version ) );
+                assertThat( "Parent has wrong version.", model.getParent()
+                                                              .getVersion(), equalTo( version ) );
             }
         }
         else
         {
             if ( groupId != null )
             {
-                assertThat( "Parent has wrong groupId.", model.getParent().getGroupId(), not( equalTo( groupId ) ) );
+                assertThat( "Parent has wrong groupId.", model.getParent()
+                                                              .getGroupId(), not( equalTo( groupId ) ) );
             }
 
             if ( artifactId != null )
             {
-                assertThat( "Parent has wrong artifactId.",
-                            model.getParent().getArtifactId(),
-                            not( equalTo( artifactId ) ) );
+                assertThat( "Parent has wrong artifactId.", model.getParent()
+                                                                 .getArtifactId(), not( equalTo( artifactId ) ) );
             }
 
             if ( version != null )
             {
-                assertThat( "Parent has wrong version.", model.getParent().getVersion(), not( equalTo( version ) ) );
+                assertThat( "Parent has wrong version.", model.getParent()
+                                                              .getVersion(), not( equalTo( version ) ) );
             }
         }
     }
@@ -863,7 +903,8 @@ public class ToolchainManagementTest
     private void assertPluginManagementPlugins( final Model model, final int pluginCount,
                                                 final PluginMatcher... pluginCheckSet )
     {
-        if ( pluginCount < 1 && ( model.getBuild() == null || model.getBuild().getPluginManagement() == null ) )
+        if ( pluginCount < 1 && ( model.getBuild() == null || model.getBuild()
+                                                                   .getPluginManagement() == null ) )
         {
             return;
         }
@@ -904,14 +945,15 @@ public class ToolchainManagementTest
                     {
                         final List<PluginExecution> executions = plugin.getExecutions();
                         assertThat( executions, notNullValue() );
-                        assertThat( executions.size(), equalTo( checks.eids().size() ) );
+                        assertThat( executions.size(), equalTo( checks.eids()
+                                                                      .size() ) );
 
                         for ( final PluginExecution pe : executions )
                         {
-                            assertThat( "Plugin execution: " + pe.getId() + " not allowed!",
-                                        checks.eids(),
+                            assertThat( "Plugin execution: " + pe.getId() + " not allowed!", checks.eids(),
                                         hasItem( pe.getId() ) );
-                            checks.eids().remove( pe.getId() );
+                            checks.eids()
+                                  .remove( pe.getId() );
                         }
 
                         for ( final String eid : checks.eids() )
@@ -926,7 +968,8 @@ public class ToolchainManagementTest
         {
             if ( pluginContainer != null && pluginContainer.getPlugins() != null )
             {
-                assertThat( "There should be no plugins!", pluginContainer.getPlugins().size(), equalTo( 0 ) );
+                assertThat( "There should be no plugins!", pluginContainer.getPlugins()
+                                                                          .size(), equalTo( 0 ) );
             }
         }
     }
@@ -966,14 +1009,15 @@ public class ToolchainManagementTest
                     {
                         final List<ReportSet> reportSets = plugin.getReportSets();
                         assertThat( reportSets, notNullValue() );
-                        assertThat( reportSets.size(), equalTo( checks.eids().size() ) );
+                        assertThat( reportSets.size(), equalTo( checks.eids()
+                                                                      .size() ) );
 
                         for ( final ReportSet rs : reportSets )
                         {
-                            assertThat( "Plugin execution: " + rs.getId() + " not allowed!",
-                                        checks.eids(),
+                            assertThat( "Plugin execution: " + rs.getId() + " not allowed!", checks.eids(),
                                         hasItem( rs.getId() ) );
-                            checks.eids().remove( rs.getId() );
+                            checks.eids()
+                                  .remove( rs.getId() );
                         }
 
                         for ( final String eid : checks.eids() )
@@ -988,7 +1032,8 @@ public class ToolchainManagementTest
         {
             if ( reporting != null && reporting.getPlugins() != null )
             {
-                assertThat( "There should be no report plugins!", reporting.getPlugins().size(), equalTo( 0 ) );
+                assertThat( "There should be no report plugins!", reporting.getPlugins()
+                                                                           .size(), equalTo( 0 ) );
             }
         }
     }
