@@ -243,8 +243,12 @@ public class BomModder
 
         if ( version == null )
         {
-            // log this dependency as missing from the BOM(s) to can be captured and added.
-            session.addMissingDependency( project, dep );
+            // if we're in strict mode and this is a BOM, don't add it to the missing list.
+            if ( !session.isStrict() || !"pom".equals( dep.getType() ) || !"import".equals( dep.getScope() ) )
+            {
+                // log this dependency as missing from the BOM(s) to can be captured and added.
+                session.addMissingDependency( project, dep );
+            }
         }
 
         return result;
