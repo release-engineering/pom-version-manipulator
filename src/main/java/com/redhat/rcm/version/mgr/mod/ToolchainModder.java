@@ -219,6 +219,10 @@ public class ToolchainModder
                 }
             }
         }
+        else
+        {
+            LOGGER.info( "Toolchain not specified. Skipping toolchain-parent injection..." );
+        }
 
         return changed;
     }

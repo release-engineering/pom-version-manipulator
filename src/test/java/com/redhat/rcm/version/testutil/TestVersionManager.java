@@ -17,13 +17,14 @@
 
 package com.redhat.rcm.version.testutil;
 
+import java.util.List;
+
 import org.apache.maven.mae.MAEException;
 import org.codehaus.plexus.component.annotations.Component;
 
+import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.VersionManager;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
-
-import java.util.List;
 
 @Component( role = TestVersionManager.class )
 public class TestVersionManager
@@ -50,10 +51,10 @@ public class TestVersionManager
     }
 
     @Override
-    public boolean configureSession( final List<String> boms, final String toolchain,
-                                     final VersionManagerSession session )
+    public void configureSession( final List<String> boms, final String toolchain, final VersionManagerSession session )
+        throws VManException
     {
-        return super.configureSession( boms, toolchain, session );
+        super.configureSession( boms, toolchain, session );
     }
 
 }

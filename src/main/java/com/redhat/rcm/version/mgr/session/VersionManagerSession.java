@@ -75,7 +75,7 @@ public class VersionManagerSession
 
     private final String versionSuffix;
 
-    private File settingsXml;
+    private String settingsXml;
 
     private File capturePom;
 
@@ -456,12 +456,12 @@ public class VersionManagerSession
         return managedInfo.isCurrentProject( new VersionlessProjectKey( parent ) );
     }
 
-    public void setSettingsXml( final File settingsXml )
+    public void setSettingsXml( final String settingsXml )
     {
         this.settingsXml = settingsXml;
     }
 
-    public File getSettingsXml()
+    public String getSettingsXml()
     {
         return settingsXml;
     }

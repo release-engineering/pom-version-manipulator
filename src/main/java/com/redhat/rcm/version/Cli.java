@@ -39,6 +39,7 @@ import java.text.BreakIterator;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -110,8 +111,8 @@ public class Cli
     @Option( name = "--strict", usage = "Change ONLY the dependencies, plugins, and parents that are listed in BOMs and toolchain POM\nDefault: false\nProperty file equivalent: strict" )
     private boolean strict = false;
 
-    @Option( name = "-S", aliases = { "--settings" }, usage = "Maven settings.xml file.\nProperty file equivalent: settings" )
-    private File settings;
+    @Option( name = "-S", aliases = { "--settings" }, usage = "Maven settings.xml file/URL.\nProperty file equivalent: settings" )
+    private String settings;
 
     @Option( name = "-t", aliases = "--toolchain", usage = "Toolchain POM URL, containing standard plugin versions in the build/pluginManagement section, and plugin injections in the regular build/plugins section.\nProperty file equivalent: toolchain" )
     private String toolchain;
@@ -497,6 +498,16 @@ public class Cli
                 props.load( is );
 
                 final StringWriter sWriter = new StringWriter();
+                for ( final Enumeration<?> e = props.propertyNames(); e.hasMoreElements(); )
+                {
+                    final String key = (String) e.nextElement();
+                    sWriter.write( "  " );
+                    sWriter.write( key );
+                    sWriter.write( " = " );
+                    sWriter.write( props.getProperty( key ) );
+                    sWriter.write( "\n" );
+                }
+
                 props.list( new PrintWriter( sWriter ) );
 
                 LOGGER.info( "Loading configuration from: " + config + ":\n\n" + sWriter );
@@ -584,7 +595,7 @@ public class Cli
                     final String s = props.getProperty( SETTINGS_PROPERTY );
                     if ( s != null )
                     {
-                        settings = new File( s );
+                        settings = s;
                     }
                 }
 

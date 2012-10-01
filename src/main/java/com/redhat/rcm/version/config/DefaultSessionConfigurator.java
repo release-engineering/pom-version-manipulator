@@ -21,6 +21,9 @@ package com.redhat.rcm.version.config;
 import static com.redhat.rcm.version.util.InputUtils.getFile;
 import static com.redhat.rcm.version.util.InputUtils.getFiles;
 
+import java.io.File;
+import java.util.List;
+
 import org.apache.log4j.Logger;
 import org.apache.maven.execution.DefaultMavenExecutionRequest;
 import org.apache.maven.execution.MavenExecutionRequest;
@@ -39,9 +42,6 @@ import org.codehaus.plexus.component.annotations.Requirement;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
-
-import java.io.File;
-import java.util.List;
 
 @Component( role = SessionConfigurator.class )
 public class DefaultSessionConfigurator
@@ -96,7 +96,7 @@ public class DefaultSessionConfigurator
             executionRequest = new DefaultMavenExecutionRequest();
         }
 
-        final File settingsXml = session.getSettingsXml();
+        final File settingsXml = getFile( session.getSettingsXml(), session.getDownloads() );
 
         final DefaultSettingsBuildingRequest req = new DefaultSettingsBuildingRequest();
         req.setUserSettingsFile( settingsXml );
@@ -116,9 +116,7 @@ public class DefaultSessionConfigurator
         }
         catch ( final MavenExecutionRequestPopulationException e )
         {
-            throw new VManException( "Failed to initialize system using settings from: %s. Reason: %s",
-                                     e,
-                                     settingsXml,
+            throw new VManException( "Failed to initialize system using settings from: %s. Reason: %s", e, settingsXml,
                                      e.getMessage() );
         }
     }
@@ -136,8 +134,7 @@ public class DefaultSessionConfigurator
             }
             catch ( final ProjectToolsException e )
             {
-                session.addError( e );
-                return;
+                throw new VManException( "Error building toolchain: %s", e, e.getMessage() );
             }
 
             session.setToolchain( toolchainFile, project );
@@ -158,8 +155,7 @@ public class DefaultSessionConfigurator
             }
             catch ( final ProjectToolsException e )
             {
-                session.addError( e );
-                return;
+                throw new VManException( "Error building BOM: %s", e, e.getMessage() );
             }
 
             if ( projects != null )

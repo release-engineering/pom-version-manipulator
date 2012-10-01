@@ -24,7 +24,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -138,7 +137,10 @@ public class VersionManager
     public Set<File> modifyVersions( final File dir, final String pomNamePattern, final String pomExcludePattern,
                                      final List<String> boms, final String toolchain,
                                      final VersionManagerSession session )
+        throws VManException
     {
+        configureSession( boms, toolchain, session );
+
         final DirectoryScanner scanner = new DirectoryScanner();
         scanner.setBasedir( dir );
 
@@ -160,11 +162,6 @@ public class VersionManager
         scanner.setIncludes( includes );
 
         scanner.scan();
-
-        if ( !configureSession( boms, toolchain, session ) )
-        {
-            return Collections.emptySet();
-        }
 
         final List<File> pomFiles = new ArrayList<File>();
         final String[] includedSubpaths = scanner.getIncludedFiles();
@@ -203,7 +200,10 @@ public class VersionManager
 
     public Set<File> modifyVersions( File pom, final List<String> boms, final String toolchain,
                                      final VersionManagerSession session )
+        throws VManException
     {
+        configureSession( boms, toolchain, session );
+
         try
         {
             pom = pom.getCanonicalFile();
@@ -211,11 +211,6 @@ public class VersionManager
         catch ( final IOException e )
         {
             pom = pom.getAbsoluteFile();
-        }
-
-        if ( !configureSession( boms, toolchain, session ) )
-        {
-            return Collections.emptySet();
         }
 
         final Set<File> result = modVersions( pom.getParentFile(), session, true, pom );
@@ -232,21 +227,11 @@ public class VersionManager
         return result;
     }
 
-    protected boolean configureSession( final List<String> boms, final String toolchain,
-                                        final VersionManagerSession session )
+    protected void configureSession( final List<String> boms, final String toolchain,
+                                     final VersionManagerSession session )
+        throws VManException
     {
-        boolean result = true;
-        try
-        {
-            sessionConfigurator.configureSession( boms, toolchain, session );
-        }
-        catch ( final VManException e )
-        {
-            session.addError( e );
-            result = false;
-        }
-
-        return result;
+        sessionConfigurator.configureSession( boms, toolchain, session );
     }
 
     private Set<File> modVersions( final File basedir, final VersionManagerSession session, final boolean preserveDirs,

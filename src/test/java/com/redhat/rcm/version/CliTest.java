@@ -28,6 +28,15 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
+
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 import org.junit.Before;
@@ -40,15 +49,6 @@ import org.junit.rules.TestName;
 import com.redhat.rcm.version.fixture.LoggingFixture;
 import com.redhat.rcm.version.mgr.VersionManager;
 import com.redhat.rcm.version.testutil.HttpTestService;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
 
 public class CliTest
 {
@@ -179,7 +179,10 @@ public class CliTest
         final File remoteRepo = new File( repo, "repo" );
 
         final Properties props = new Properties();
-        props.setProperty( Cli.REMOTE_REPOSITORY_PROPERTY, remoteRepo.toURI().normalize().toURL().toExternalForm() );
+        props.setProperty( Cli.REMOTE_REPOSITORY_PROPERTY, remoteRepo.toURI()
+                                                                     .normalize()
+                                                                     .toURL()
+                                                                     .toExternalForm() );
         props.setProperty( Cli.BOMS_LIST_PROPERTY, bom.getAbsolutePath() );
 
         final File config = new File( repo, "vman.properties" );
@@ -293,7 +296,6 @@ public class CliTest
         System.out.println( "Single POM test (with http config properties)..." );
 
         final File srcPom = getResourceFile( "rwx-parent-0.2.1.pom" );
-        final File bom = getResourceFile( "bom.xml" );
 
         final File pom = new File( repo, srcPom.getName() );
         copyFile( srcPom, pom );
@@ -352,7 +354,8 @@ public class CliTest
         final File config = writeConfig( props );
 
         final HttpTestService http =
-            new HttpTestService( Collections.singletonMap( "/bootstrap.properties", config.toURI().toURL() ) );
+            new HttpTestService( Collections.singletonMap( "/bootstrap.properties", config.toURI()
+                                                                                          .toURL() ) );
         try
         {
             String baseUrl = null;
@@ -435,7 +438,8 @@ public class CliTest
         final File config = writeConfig( props );
 
         final HttpTestService http =
-            new HttpTestService( Collections.singletonMap( "/bootstrap.properties", config.toURI().toURL() ) );
+            new HttpTestService( Collections.singletonMap( "/bootstrap.properties", config.toURI()
+                                                                                          .toURL() ) );
         try
         {
             String baseUrl = null;
@@ -582,7 +586,9 @@ public class CliTest
 
     private File getResourceFile( final String path )
     {
-        final URL resource = Thread.currentThread().getContextClassLoader().getResource( path );
+        final URL resource = Thread.currentThread()
+                                   .getContextClassLoader()
+                                   .getResource( path );
         if ( resource == null )
         {
             fail( "Resource not found: " + path );

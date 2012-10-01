@@ -281,7 +281,7 @@ public class BOMManagementTest
 
     @Test
     public void modifyCompleteRepositoryVersions()
-        throws IOException
+        throws Exception
     {
         System.out.println( "Complete repository test..." );
 
@@ -297,7 +297,7 @@ public class BOMManagementTest
 
     @Test
     public void modifyRepositoryVersionsWithoutChangingTheRest()
-        throws IOException
+        throws Exception
     {
         System.out.println( "Repository POM non-interference test..." );
 
@@ -328,7 +328,7 @@ public class BOMManagementTest
 
     @Test
     public void modifyPartialRepositoryVersions()
-        throws IOException
+        throws Exception
     {
         System.out.println( "Partial repository test..." );
 
@@ -344,7 +344,7 @@ public class BOMManagementTest
 
     @Test
     public void modifyCompleteRepositoryVersions_UsingTwoBoms()
-        throws IOException
+        throws Exception
     {
         System.out.println( "Complete repository test..." );
 
@@ -361,7 +361,7 @@ public class BOMManagementTest
 
     @Test
     public void modifyPartialRepositoryVersions_UsingTwoBoms()
-        throws IOException
+        throws Exception
     {
         System.out.println( "Partial repository test..." );
 
@@ -378,7 +378,7 @@ public class BOMManagementTest
 
     @Test
     public void modifySinglePom()
-        throws IOException
+        throws Exception
     {
         System.out.println( "Single POM test..." );
 
@@ -406,7 +406,7 @@ public class BOMManagementTest
 
     @Test
     public void modifySinglePomUsingInterpolatedBOM()
-        throws IOException
+        throws Exception
     {
         System.out.println( "Single POM test (interpolated BOM)..." );
 
@@ -427,7 +427,7 @@ public class BOMManagementTest
 
     @Test
     public void modifySinglePomWithRelocations()
-        throws IOException
+        throws Exception
     {
         System.out.println( "Single POM test (with relocations)..." );
 

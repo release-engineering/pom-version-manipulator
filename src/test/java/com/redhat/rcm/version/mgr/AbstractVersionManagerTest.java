@@ -22,20 +22,21 @@ import static com.redhat.rcm.version.testutil.TestProjectUtils.getResourceFile;
 import static com.redhat.rcm.version.testutil.TestProjectUtils.newVersionManagerSession;
 import static junit.framework.Assert.fail;
 
-import org.apache.maven.mae.MAEException;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
-
-import com.redhat.rcm.version.fixture.LoggingFixture;
-import com.redhat.rcm.version.mgr.session.VersionManagerSession;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.List;
+
+import org.apache.maven.mae.MAEException;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
+
+import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.fixture.LoggingFixture;
+import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
 public abstract class AbstractVersionManagerTest
 {
@@ -104,7 +105,8 @@ public abstract class AbstractVersionManagerTest
         if ( errors != null && !errors.isEmpty() )
         {
             final StringBuilder sb = new StringBuilder();
-            sb.append( errors.size() ).append( "errors encountered\n\n" );
+            sb.append( errors.size() )
+              .append( "errors encountered\n\n" );
 
             int idx = 1;
             for ( final Throwable error : errors )
@@ -112,7 +114,10 @@ public abstract class AbstractVersionManagerTest
                 final StringWriter sw = new StringWriter();
                 error.printStackTrace( new PrintWriter( sw ) );
 
-                sb.append( "\n" ).append( idx ).append( ".  " ).append( sw.toString() );
+                sb.append( "\n" )
+                  .append( idx )
+                  .append( ".  " )
+                  .append( sw.toString() );
                 idx++;
             }
 
@@ -128,14 +133,11 @@ public abstract class AbstractVersionManagerTest
     }
 
     protected VersionManagerSession modifyRepo( final boolean useToolchain, final String... boms )
+        throws VManException
     {
         final VersionManagerSession session = createVersionManagerSession();
 
-        vman.modifyVersions( repo,
-                             "**/*.pom",
-                             "",
-                             Arrays.asList( boms ),
-                             useToolchain ? getToolchainPath() : null,
+        vman.modifyVersions( repo, "**/*.pom", "", Arrays.asList( boms ), useToolchain ? getToolchainPath() : null,
                              session );
         assertNoErrors( session );
         vman.generateReports( reports, session );
