@@ -65,7 +65,6 @@ public class DefaultSessionConfigurator
 
     @Override
     public void configureSession( final List<String> boms, final String toolchain, final VersionManagerSession session )
-        throws VManException
     {
         if ( session.getSettingsXml() != null )
         {
@@ -88,7 +87,6 @@ public class DefaultSessionConfigurator
     }
 
     private void loadSettings( final VersionManagerSession session )
-        throws VManException
     {
         MavenExecutionRequest executionRequest = session.getExecutionRequest();
         if ( executionRequest == null )
@@ -96,7 +94,16 @@ public class DefaultSessionConfigurator
             executionRequest = new DefaultMavenExecutionRequest();
         }
 
-        final File settingsXml = getFile( session.getSettingsXml(), session.getDownloads() );
+        File settingsXml;
+        try
+        {
+            settingsXml = getFile( session.getSettingsXml(), session.getDownloads() );
+        }
+        catch ( final VManException e )
+        {
+            session.addError( e );
+            return;
+        }
 
         final DefaultSettingsBuildingRequest req = new DefaultSettingsBuildingRequest();
         req.setUserSettingsFile( settingsXml );
@@ -112,19 +119,29 @@ public class DefaultSessionConfigurator
         }
         catch ( final SettingsBuildingException e )
         {
-            throw new VManException( "Failed to build settings from: %s. Reason: %s", e, settingsXml, e.getMessage() );
+            session.addError( new VManException( "Failed to build settings from: %s. Reason: %s", e, settingsXml,
+                                                 e.getMessage() ) );
         }
         catch ( final MavenExecutionRequestPopulationException e )
         {
-            throw new VManException( "Failed to initialize system using settings from: %s. Reason: %s", e, settingsXml,
-                                     e.getMessage() );
+            session.addError( new VManException( "Failed to initialize system using settings from: %s. Reason: %s", e,
+                                                 settingsXml, e.getMessage() ) );
         }
     }
 
     private void loadToolchain( final String toolchain, final VersionManagerSession session )
-        throws VManException
     {
-        final File toolchainFile = getFile( toolchain, session.getDownloads() );
+        File toolchainFile;
+        try
+        {
+            toolchainFile = getFile( toolchain, session.getDownloads() );
+        }
+        catch ( final VManException e )
+        {
+            session.addError( e );
+            return;
+        }
+
         if ( toolchainFile != null )
         {
             MavenProject project;
@@ -134,7 +151,8 @@ public class DefaultSessionConfigurator
             }
             catch ( final ProjectToolsException e )
             {
-                throw new VManException( "Error building toolchain: %s", e, e.getMessage() );
+                session.addError( new VManException( "Error building toolchain: %s", e, e.getMessage() ) );
+                return;
             }
 
             session.setToolchain( toolchainFile, project );
@@ -142,11 +160,19 @@ public class DefaultSessionConfigurator
     }
 
     private void loadBOMs( final List<String> boms, final VersionManagerSession session )
-        throws VManException
     {
         if ( !session.hasDependencyMap() )
         {
-            final File[] bomFiles = getFiles( boms, session.getDownloads() );
+            File[] bomFiles;
+            try
+            {
+                bomFiles = getFiles( boms, session.getDownloads() );
+            }
+            catch ( final VManException e )
+            {
+                session.addError( e );
+                return;
+            }
 
             List<MavenProject> projects;
             try
@@ -155,7 +181,8 @@ public class DefaultSessionConfigurator
             }
             catch ( final ProjectToolsException e )
             {
-                throw new VManException( "Error building BOM: %s", e, e.getMessage() );
+                session.addError( new VManException( "Error building BOM: %s", e, e.getMessage() ) );
+                return;
             }
 
             if ( projects != null )
@@ -165,7 +192,14 @@ public class DefaultSessionConfigurator
                     final File bom = project.getFile();
 
                     LOGGER.info( "Adding BOM to session: " + bom + "; " + project );
-                    session.addBOM( bom, project );
+                    try
+                    {
+                        session.addBOM( bom, project );
+                    }
+                    catch ( final VManException e )
+                    {
+                        session.addError( e );
+                    }
                 }
             }
         }

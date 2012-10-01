@@ -18,17 +18,17 @@
 
 package com.redhat.rcm.version.mgr.session;
 
+import java.io.File;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.apache.log4j.Logger;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 
 import com.redhat.rcm.version.VManException;
-
-import java.io.File;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 public class CoordinateRelocations
 {
@@ -69,8 +69,8 @@ public class CoordinateRelocations
 
         if ( parts.length > 2 )
         {
-            LOGGER.warn( "Ignoring relocation key parts: '" + src.substring( key.getId().length() ) + "' for: '" + key
-                + "'." );
+            LOGGER.warn( "Ignoring relocation key parts: '" + src.substring( key.getId()
+                                                                                .length() ) + "' for: '" + key + "'." );
         }
 
         return key;
@@ -97,8 +97,8 @@ public class CoordinateRelocations
 
         if ( parts.length > 3 )
         {
-            LOGGER.warn( "Ignoring relocation value parts: '" + src.substring( key.getId().length() ) + "' for: '"
-                + key + "'." );
+            LOGGER.warn( "Ignoring relocation value parts: '" + src.substring( key.getId()
+                                                                                  .length() ) + "' for: '" + key + "'." );
         }
 
         return key;
@@ -124,24 +124,27 @@ public class CoordinateRelocations
         final Map<VersionlessProjectKey, FullProjectKey> relocatedCoords =
             new HashMap<VersionlessProjectKey, FullProjectKey>();
 
-        for ( final Map.Entry<String, String> entry : relocations.entrySet() )
+        if ( relocations != null )
         {
-            LOGGER.info( "Processing relocation of: '" + entry.getKey() + "' to: '" + entry.getValue() + "'." );
-            try
+            for ( final Map.Entry<String, String> entry : relocations.entrySet() )
             {
-                final VersionlessProjectKey key = toVersionlessCoord( entry.getKey() );
-                final FullProjectKey val = toFullCoord( entry.getValue() );
+                LOGGER.info( "Processing relocation of: '" + entry.getKey() + "' to: '" + entry.getValue() + "'." );
+                try
+                {
+                    final VersionlessProjectKey key = toVersionlessCoord( entry.getKey() );
+                    final FullProjectKey val = toFullCoord( entry.getValue() );
 
-                LOGGER.info( "Adding relocation from: " + key + " to: " + val );
-                relocatedCoords.put( key, val );
-            }
-            catch ( final VManException e )
-            {
-                LOGGER.warn( "NOT adding relocation from: '" + entry.getKey() + "' to: '" + entry.getValue()
-                    + "'. Error: " + e.getMessage() );
-                session.addError( e );
-            }
+                    LOGGER.info( "Adding relocation from: " + key + " to: " + val );
+                    relocatedCoords.put( key, val );
+                }
+                catch ( final VManException e )
+                {
+                    LOGGER.warn( "NOT adding relocation from: '" + entry.getKey() + "' to: '" + entry.getValue()
+                        + "'. Error: " + e.getMessage() );
+                    session.addError( e );
+                }
 
+            }
         }
         this.relocatedCoords.putAll( relocatedCoords );
 

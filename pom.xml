@@ -28,7 +28,8 @@
   <artifactId>pom-version-manipulator</artifactId>
   <version>1.2.0-SNAPSHOT</version>
 
-  <name>Red Hat Artifact-Version Manipulator</name>
+  <name>POM Artifact-Version Manipulator</name>
+  <description>Tool used to standardize dependency, plugin, and parent versions to a single set of reference POMs...along with other, related standardizations.</description>
   
   <developers>
     <developer>
@@ -196,8 +197,36 @@
   </dependencies>
   
   <build>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>false</filtering>
+      </resource>
+      <resource>
+        <directory>src/main/java-filtered</directory>
+        <filtering>true</filtering>
+        <targetPath>../generated-sources/filtered</targetPath>
+      </resource>
+    </resources>
     <pluginManagement>
       <plugins>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>buildnumber-maven-plugin</artifactId>
+          <version>1.1</version>
+          <executions>
+            <execution>
+              <id>buildnumbers</id>
+              <goals>
+                <goal>create</goal>
+              </goals>
+              <configuration>
+                <shortRevisionLength>7</shortRevisionLength>
+                <timestampFormat>{0,date,yyyy-MM-dd HH:mm Z}</timestampFormat>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
         <plugin>
           <groupId>org.codehaus.plexus</groupId>
           <artifactId>plexus-component-metadata</artifactId>
@@ -209,6 +238,25 @@
                 <goal>generate-metadata</goal>
                 <goal>generate-test-metadata</goal>
               </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>build-helper-maven-plugin</artifactId>
+          <version>1.7</version>
+          <executions>
+            <execution>
+              <id>add-filtered-sources</id>
+              <phase>generate-resources</phase>
+              <goals>
+                <goal>add-source</goal>
+              </goals>
+              <configuration>
+                <sources>
+                  <source>${project.build.directory}/generated-sources/filtered</source>
+                </sources>
+              </configuration>
             </execution>
           </executions>
         </plugin>
@@ -254,6 +302,14 @@
       </plugins>
     </pluginManagement>
     <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>buildnumber-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+      </plugin>
       <plugin>
         <groupId>org.codehaus.plexus</groupId>
         <artifactId>plexus-component-metadata</artifactId>

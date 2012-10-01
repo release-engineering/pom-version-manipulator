@@ -57,7 +57,7 @@ class ManagedInfo
 
     private static final String MAPPINGS_KEY = "mapping";
 
-    private final Set<FullProjectKey> bomCoords = new LinkedHashSet<FullProjectKey>();
+    private final List<FullProjectKey> bomCoords = new ArrayList<FullProjectKey>();
 
     private final CoordinateRelocations relocatedCoords;
 
@@ -148,7 +148,14 @@ class ManagedInfo
     void addBOM( final File bom, final MavenProject project )
         throws VManException
     {
-        bomCoords.add( new FullProjectKey( project.getGroupId(), project.getArtifactId(), project.getVersion() ) );
+        final FullProjectKey key =
+            new FullProjectKey( project.getGroupId(), project.getArtifactId(), project.getVersion() );
+        if ( bomCoords.contains( key ) )
+        {
+            return;
+        }
+
+        bomCoords.add( key );
 
         startBomMap( bom, project.getGroupId(), project.getArtifactId(), project.getVersion() );
 
@@ -200,7 +207,7 @@ class ManagedInfo
         return relocatedCoords.getRelocation( key );
     }
 
-    Set<FullProjectKey> getBomCoords()
+    List<FullProjectKey> getBomCoords()
     {
         return bomCoords;
     }

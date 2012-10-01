@@ -18,6 +18,13 @@
 
 package com.redhat.rcm.version;
 
+import static com.redhat.rcm.version.stats.VersionInfo.APP_BUILDER;
+import static com.redhat.rcm.version.stats.VersionInfo.APP_COMMIT_ID;
+import static com.redhat.rcm.version.stats.VersionInfo.APP_DESCRIPTION;
+import static com.redhat.rcm.version.stats.VersionInfo.APP_NAME;
+import static com.redhat.rcm.version.stats.VersionInfo.APP_TIMESTAMP;
+import static com.redhat.rcm.version.stats.VersionInfo.APP_VERSION;
+import static com.redhat.rcm.version.util.InputUtils.getClasspathResource;
 import static com.redhat.rcm.version.util.InputUtils.getFile;
 import static com.redhat.rcm.version.util.InputUtils.readClasspathProperties;
 import static com.redhat.rcm.version.util.InputUtils.readListProperty;
@@ -35,18 +42,32 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.MalformedURLException;
+import java.net.URL;
 import java.text.BreakIterator;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.log4j.AppenderSkeleton;
+import org.apache.log4j.Category;
+import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.FileAppender;
+import org.apache.log4j.Layout;
+import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
+import org.apache.log4j.spi.Configurator;
+import org.apache.log4j.spi.LoggerRepository;
 import org.apache.maven.mae.MAEException;
+import org.apache.maven.mae.project.key.FullProjectKey;
 import org.codehaus.plexus.util.StringUtils;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
@@ -84,6 +105,9 @@ public class Cli
     @Option( name = "-H", aliases = { "--help-modifications" }, usage = "Print the list of available modifications and quit" )
     private boolean helpModders = false;
 
+    @Option( name = "-L", aliases = { "--local-repo", "--local-repository" }, usage = "Local repository directory.\nDefault: <workspace>/local-repository\nProperty file equivalent: local-repository" )
+    private File localRepository;
+
     @Option( name = "-m", aliases = "--remote-repository", usage = "Maven remote repository from which load missing parent POMs.\nProperty file equivalent: remote-repository." )
     private String remoteRepository;
 
@@ -117,11 +141,14 @@ public class Cli
     @Option( name = "-t", aliases = "--toolchain", usage = "Toolchain POM URL, containing standard plugin versions in the build/pluginManagement section, and plugin injections in the regular build/plugins section.\nProperty file equivalent: toolchain" )
     private String toolchain;
 
+    @Option( name = "-T", aliases = "--test-config", usage = "Test-load the configuration given, and print diagnostic information" )
+    private boolean testConfig;
+
+    @Option( name = "-v", aliases = "--version", usage = "Show version information and quit." )
+    private boolean showVersion;
+
     @Option( name = "-W", aliases = { "--workspace" }, usage = "Backup original files here up before modifying.\nDefault: vman-workspace" )
     private File workspace = new File( "vman-workspace" );
-
-    @Option( name = "-L", aliases = { "--local-repo", "--local-repository" }, usage = "Local repository directory.\nDefault: <workspace>/local-repository\nProperty file equivalent: local-repository" )
-    private File localRepository;
 
     @Option( name = "-Z", aliases = { "--no-system-exit" }, usage = "Don't call System.exit(..) with the return value (for embedding/testing)." )
     private boolean noSystemExit;
@@ -173,7 +200,15 @@ public class Cli
 
     private Map<String, String> propertyMappings;
 
+    private String bootstrapLocation;
+
+    private String configLocation;
+
+    private boolean bootstrapRead;
+
     private static int exitValue = Integer.MIN_VALUE;
+
+    private File logFile = new File( "vman.log" );
 
     public static int exitValue()
     {
@@ -198,6 +233,14 @@ public class Cli
             else if ( cli.helpModders )
             {
                 printModders();
+            }
+            else if ( cli.showVersion )
+            {
+                printVersionInfo();
+            }
+            else if ( cli.testConfig )
+            {
+                cli.testConfigAndPrintDiags();
             }
             else
             {
@@ -233,50 +276,158 @@ public class Cli
     {
     }
 
+    private void testConfigAndPrintDiags()
+    {
+        configureLogging();
+
+        VersionManagerSession session = null;
+        final List<VManException> errors = new ArrayList<VManException>();
+        try
+        {
+            session = initSession();
+        }
+        catch ( final VManException e )
+        {
+            errors.add( e );
+        }
+
+        if ( session != null )
+        {
+            try
+            {
+                vman.configureSession( boms, toolchain, session );
+            }
+            catch ( final VManException e )
+            {
+                errors.add( e );
+            }
+        }
+
+        final FullProjectKey toolchainKey = session == null ? null : session.getToolchainKey();
+        final List<FullProjectKey> bomCoords = session == null ? null : session.getBomCoords();
+
+        final LinkedHashMap<String, Object> map = new LinkedHashMap<String, Object>();
+        map.put( "Bootstrap location:", bootstrapLocation );
+        map.put( "Bootstrap read?", bootstrapRead );
+        map.put( "Config location:", configLocation );
+        map.put( "", "" );
+        map.put( " ", "" );
+        map.put( "Toolchain location:", toolchain );
+        map.put( "Toolchain:", toolchainKey );
+        map.put( "    ", "" );
+        map.put( "BOM locations:", boms );
+        map.put( "BOMs:", bomCoords );
+        map.put( "  ", "" );
+        map.put( "   ", "" );
+        map.put( "Settings.xml:", settings );
+        map.put( "Remote repo:", remoteRepository );
+
+        System.out.println( "Version information:\n-------------------------------------------------\n\n" );
+        printVersionInfo();
+        System.out.printf( "Diagnostics:\n-------------------------------------------------\n\n" );
+        int max = 0;
+        for ( final String key : map.keySet() )
+        {
+            max = Math.max( max, key.length() );
+        }
+
+        final StringBuilder indent = new StringBuilder();
+        for ( int i = 0; i < max + 4; i++ )
+        {
+            indent.append( ' ' );
+        }
+
+        final int descMax = 75 - max;
+        final String fmt = "%-" + max + "s    %-" + descMax + "s\n";
+        for ( final Map.Entry<String, Object> entry : map.entrySet() )
+        {
+            final Object value = entry.getValue();
+
+            String val = value == null ? "-NONE-" : String.valueOf( value );
+            if ( value instanceof Collection<?> )
+            {
+                final Collection<?> coll = ( (Collection<?>) value );
+                if ( coll.isEmpty() )
+                {
+                    val = "-NONE-";
+                }
+                else
+                {
+                    val = join( coll, "\n" + indent ) + "\n";
+                }
+            }
+
+            System.out.printf( fmt, entry.getKey(), val );
+        }
+
+        System.out.println();
+        System.out.printf( "Errors:\n-------------------------------------------------\n%s\n\n",
+                           errors.isEmpty() ? "-NONE" : join( errors, "\n\n" ) );
+        System.out.println();
+    }
+
+    private void configureLogging()
+    {
+        System.out.println( "\n\nNOTE: See " + logFile + " for console output.\n" );
+
+        final Configurator log4jConfigurator = new Configurator()
+        {
+            @Override
+            public void doConfigure( final URL notUsed, final LoggerRepository repo )
+            {
+                final Layout layout = new PatternLayout( "%5p [%t] (%F:%L) - %m%n" );
+
+                AppenderSkeleton appender;
+                try
+                {
+                    appender = new FileAppender( layout, logFile.getAbsolutePath() );
+                }
+                catch ( final IOException e )
+                {
+                    appender = new ConsoleAppender( layout );
+                }
+
+                appender.setThreshold( Level.ALL );
+
+                final Level level = Level.INFO;
+
+                repo.setThreshold( level );
+
+                repo.getRootLogger()
+                    .removeAllAppenders();
+
+                repo.getRootLogger()
+                    .setLevel( level );
+
+                repo.getRootLogger()
+                    .addAppender( appender );
+
+                @SuppressWarnings( "unchecked" )
+                final List<Logger> loggers = Collections.list( repo.getCurrentLoggers() );
+
+                for ( final Logger logger : loggers )
+                {
+                    logger.setLevel( level );
+                }
+
+                @SuppressWarnings( "unchecked" )
+                final List<Category> cats = Collections.list( repo.getCurrentCategories() );
+                for ( final Category cat : cats )
+                {
+                    cat.setLevel( level );
+                }
+            }
+        };
+
+        log4jConfigurator.doConfigure( null, LogManager.getLoggerRepository() );
+    }
+
     public int run()
         throws MAEException, VManException, MalformedURLException
     {
-        loadConfiguration();
+        configureLogging();
 
-        if ( boms == null && bomList != null )
-        {
-            loadBomList();
-        }
-
-        if ( removedPlugins == null && removedPluginsList != null )
-        {
-            loadRemovedPlugins();
-        }
-
-        loadAndNormalizeModifications();
-
-        LOGGER.info( "modifications = " + join( modders, " " ) );
-
-        final VersionManagerSession session =
-            new VersionManagerSession( workspace, reports, versionSuffix, removedPlugins, modders, preserveFiles,
-                                       strict, relocatedCoords, propertyMappings );
-
-        if ( remoteRepository != null )
-        {
-            session.setRemoteRepository( remoteRepository );
-        }
-
-        if ( settings != null )
-        {
-            session.setSettingsXml( settings );
-        }
-
-        if ( localRepository == null )
-        {
-            localRepository = new File( workspace, "local-repository" );
-        }
-
-        session.setLocalRepositoryDirectory( localRepository );
-
-        if ( capturePom != null )
-        {
-            session.setCapturePom( capturePom );
-        }
+        final VersionManagerSession session = initSession();
 
         if ( boms == null || boms.isEmpty() )
         {
@@ -334,29 +485,132 @@ public class Cli
         return 0;
     }
 
+    private VersionManagerSession initSession()
+        throws VManException
+    {
+        loadConfiguration();
+
+        if ( boms == null && bomList != null )
+        {
+            loadBomList();
+        }
+
+        if ( removedPlugins == null && removedPluginsList != null )
+        {
+            loadRemovedPlugins();
+        }
+
+        loadAndNormalizeModifications();
+
+        LOGGER.info( "modifications = " + join( modders, " " ) );
+
+        final VersionManagerSession session =
+            new VersionManagerSession( workspace, reports, versionSuffix, removedPlugins, modders, preserveFiles,
+                                       strict, relocatedCoords, propertyMappings );
+
+        if ( remoteRepository != null )
+        {
+            try
+            {
+                session.setRemoteRepository( remoteRepository );
+            }
+            catch ( final MalformedURLException e )
+            {
+                throw new VManException( "Cannot initialize remote repository: %s. Error: %s", e, remoteRepository,
+                                         e.getMessage() );
+            }
+        }
+
+        if ( settings != null )
+        {
+            session.setSettingsXml( settings );
+        }
+
+        if ( localRepository == null )
+        {
+            localRepository = new File( workspace, "local-repository" );
+        }
+
+        session.setLocalRepositoryDirectory( localRepository );
+
+        if ( capturePom != null )
+        {
+            session.setCapturePom( capturePom );
+        }
+
+        return session;
+    }
+
+    private static void printVersionInfo()
+    {
+        final StringBuilder sb = new StringBuilder();
+        sb.append( APP_NAME )
+          .append( "\n\n" )
+          .append( APP_DESCRIPTION )
+          .append( "\n\n" );
+
+        final LinkedHashMap<String, Object> map = new LinkedHashMap<String, Object>();
+        map.put( "Built By:", APP_BUILDER );
+        map.put( "Commit ID:", APP_COMMIT_ID );
+        map.put( "Built On:", APP_TIMESTAMP );
+        map.put( "Version:", APP_VERSION );
+
+        sb.append( formatHelpMap( map, "\n" ) );
+        sb.append( "\n\n" );
+
+        System.out.println( sb.toString() );
+    }
+
     private static void printModders()
     {
         final Map<String, ProjectModder> modders = vman.getModders();
+
         final List<String> keys = new ArrayList<String>( modders.keySet() );
         Collections.sort( keys );
 
-        int max = 0;
+        final LinkedHashMap<String, Object> props = new LinkedHashMap<String, Object>();
         for ( final String key : keys )
         {
-            max = Math.max( max, key.length() );
+            props.put( key, modders.get( key )
+                                   .getDescription() );
         }
 
         final StringBuilder sb = new StringBuilder();
         sb.append( "The following project modifications are available: " );
+        sb.append( formatHelpMap( props, "\n\n" ) );
+
+        sb.append( "\n\nNOTE: To ADD any of these modifiers to the standard list, use the notation '--modifications=+<modifier-id>' (prefixed with '+') or for the properties file use 'modifications=+...'.\n\nThe standard modifiers are: " );
+
+        for ( final String key : ProjectModder.STANDARD_MODIFICATIONS )
+        {
+            sb.append( String.format( "\n  - %s", key ) );
+        }
+
+        sb.append( "\n\n" );
+
+        System.out.println( sb );
+    }
+
+    private static String formatHelpMap( final LinkedHashMap<String, Object> map, final String itemSeparator )
+    {
+        int max = 0;
+        for ( final String key : map.keySet() )
+        {
+            max = Math.max( max, key.length() );
+        }
 
         final int descMax = 75 - max;
-        final String fmt = "%-" + max + "s    %-" + descMax + "s\n";
+        final String fmt = "%-" + max + "s    %-" + descMax + "s" + itemSeparator;
+
+        final StringWriter sw = new StringWriter();
+        final PrintWriter pw = new PrintWriter( sw );
 
         final List<String> lines = new ArrayList<String>();
-        for ( final String key : keys )
+        for ( final Map.Entry<String, Object> entry : map.entrySet() )
         {
-            final String description = modders.get( key )
-                                              .getDescription();
+            final String key = entry.getKey();
+            final String description = entry.getValue() == null ? "-NONE-" : String.valueOf( entry.getValue() );
+
             lines.clear();
             final BreakIterator iter = BreakIterator.getLineInstance();
             iter.setText( description );
@@ -383,25 +637,17 @@ public class Cli
                 lines.add( currentLine.toString() );
             }
 
-            System.out.printf( fmt, key, lines.get( 0 ) );
+            pw.printf( fmt, key, lines.isEmpty() ? "" : lines.get( 0 ) );
             if ( lines.size() > 1 )
             {
                 for ( int i = 1; i < lines.size(); i++ )
                 {
-                    System.out.printf( fmt, "", lines.get( i ) );
+                    pw.printf( fmt, "", lines.get( i ) );
                 }
             }
-
-            System.out.println();
         }
 
-        System.out.println( "\n\nNOTE: To ADD any of these modifiers to the standard list, use the notation '--modifications=+<modifier-id>' (prefixed with '+') or for the properties file use 'modifications=+...'.\n\nThe standard modifiers are: " );
-        for ( final String key : ProjectModder.STANDARD_MODIFICATIONS )
-        {
-            System.out.printf( "\n  - %s", key );
-        }
-        System.out.println();
-        System.out.println();
+        return sw.toString();
     }
 
     private void loadRemovedPlugins()
@@ -485,6 +731,7 @@ public class Cli
 
         if ( config == null )
         {
+            configLocation = DEFAULT_CONFIG_FILE.getAbsolutePath();
             config = DEFAULT_CONFIG_FILE;
         }
 
@@ -632,6 +879,10 @@ public class Cli
                 closeQuietly( is );
             }
         }
+        else
+        {
+            configLocation = "command-line";
+        }
     }
 
     /**
@@ -654,12 +905,20 @@ public class Cli
             if ( DEFAULT_BOOTSTRAP_CONFIG.exists() && DEFAULT_BOOTSTRAP_CONFIG.canRead() )
             {
                 LOGGER.info( "Reading bootstrap info from: " + DEFAULT_BOOTSTRAP_CONFIG );
+                bootstrapLocation = "file:" + DEFAULT_BOOTSTRAP_CONFIG.getAbsolutePath();
+
                 bootProps = readProperties( DEFAULT_BOOTSTRAP_CONFIG );
             }
             else
             {
                 LOGGER.info( "Reading bootstrap info from classpath resource: " + BOOTSTRAP_PROPERTIES );
-                bootProps = readClasspathProperties( BOOTSTRAP_PROPERTIES );
+                final URL resource = getClasspathResource( BOOTSTRAP_PROPERTIES );
+                if ( resource != null )
+                {
+                    bootstrapLocation = "classpath:" + resource;
+
+                    bootProps = readClasspathProperties( BOOTSTRAP_PROPERTIES );
+                }
             }
         }
         else
@@ -671,13 +930,17 @@ public class Cli
             else
             {
                 LOGGER.info( "Reading bootstrap info from: " + bootstrapConfig );
+                bootstrapLocation = "file:" + bootstrapConfig.getAbsolutePath();
+
                 bootProps = readProperties( bootstrapConfig );
             }
         }
 
+        bootstrapRead = bootProps != null;
+
         if ( bootProps != null )
         {
-            final String configLocation = bootProps.get( BOOT_CONFIG_PROPERTY );
+            configLocation = bootProps.get( BOOT_CONFIG_PROPERTY );
             if ( configLocation != null )
             {
                 LOGGER.info( "Reading configuration from: " + configLocation );

@@ -162,6 +162,13 @@ public final class InputUtils
         return parseProperties( content );
     }
 
+    public static URL getClasspathResource( final String resource )
+    {
+        return Thread.currentThread()
+                     .getContextClassLoader()
+                     .getResource( resource );
+    }
+
     public static Map<String, String> readClasspathProperties( final String resource )
         throws VManException
     {

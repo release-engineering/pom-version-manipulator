@@ -17,8 +17,6 @@
 
 package com.redhat.rcm.version.mgr.session;
 
-import org.apache.log4j.Logger;
-
 import java.io.File;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -27,6 +25,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.apache.log4j.Logger;
 
 public class PropertyMappings
 {
@@ -61,19 +61,22 @@ public class PropertyMappings
     {
         final Pattern pattern = Pattern.compile( EXPRESSION_PATTERN );
 
-        for ( final Map.Entry<String, String> entry : newMappings.entrySet() )
+        if ( newMappings != null )
         {
-            String val = entry.getValue();
-            final Matcher matcher = pattern.matcher( val );
+            for ( final Map.Entry<String, String> entry : newMappings.entrySet() )
+            {
+                String val = entry.getValue();
+                final Matcher matcher = pattern.matcher( val );
 
-            if ( matcher.matches() )
-            {
-                val = matcher.group( 1 );
-                expressions.put( entry.getKey(), val );
-            }
-            else
-            {
-                mappings.put( entry.getKey(), val );
+                if ( matcher.matches() )
+                {
+                    val = matcher.group( 1 );
+                    expressions.put( entry.getKey(), val );
+                }
+                else
+                {
+                    mappings.put( entry.getKey(), val );
+                }
             }
         }
     }

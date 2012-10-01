@@ -22,7 +22,7 @@ import static com.redhat.rcm.version.mgr.mod.Interpolations.interpolate;
 
 import java.io.File;
 import java.util.Iterator;
-import java.util.Set;
+import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.apache.maven.artifact.Artifact;
@@ -107,7 +107,7 @@ public class BomModder
         // NOTE: Inject BOMs directly, but ONLY if the parent project is NOT in
         // the current projects list. (If the parent is a current project, we
         // want to inject the BOMs there instead.)
-        final Set<FullProjectKey> bomCoords = session.getBomCoords();
+        final List<FullProjectKey> bomCoords = session.getBomCoords();
         if ( !session.isCurrentProject( project.getParent() ) && bomCoords != null && !bomCoords.isEmpty() )
         {
             if ( dm == null )

@@ -227,11 +227,16 @@ public class VersionManager
         return result;
     }
 
-    protected void configureSession( final List<String> boms, final String toolchain,
-                                     final VersionManagerSession session )
+    public void configureSession( final List<String> boms, final String toolchain, final VersionManagerSession session )
         throws VManException
     {
         sessionConfigurator.configureSession( boms, toolchain, session );
+
+        final List<Throwable> errors = session.getErrors();
+        if ( errors != null && !errors.isEmpty() )
+        {
+            throw new MultiVManException( "Failed to configure session.", errors );
+        }
     }
 
     private Set<File> modVersions( final File basedir, final VersionManagerSession session, final boolean preserveDirs,

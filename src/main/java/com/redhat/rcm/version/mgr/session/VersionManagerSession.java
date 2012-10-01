@@ -271,7 +271,7 @@ public class VersionManagerSession
         return managedInfo.getMappedDependenciesByBom();
     }
 
-    public Set<FullProjectKey> getBomCoords()
+    public List<FullProjectKey> getBomCoords()
     {
         return managedInfo.getBomCoords();
     }
