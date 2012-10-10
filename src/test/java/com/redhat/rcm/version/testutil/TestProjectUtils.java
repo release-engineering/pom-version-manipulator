@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Red Hat, Inc.
+ * Copyright (c) 2012 Red Hat, Inc.
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -51,6 +51,13 @@ public final class TestProjectUtils
 
     private TestProjectUtils()
     {
+    }
+
+    public static VersionManagerSession newVersionManagerSession( final File workspace, final File reports,
+                                                                  final String suffix, final String modifier)
+    {
+        return new SessionBuilder( workspace, reports ).withVersionSuffix( suffix ).
+                        withVersionModifier( modifier ).build();
     }
 
     public static VersionManagerSession newVersionManagerSession( final File workspace, final File reports,

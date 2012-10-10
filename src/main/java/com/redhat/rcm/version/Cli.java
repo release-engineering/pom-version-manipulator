@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Red Hat, Inc.
+ * Copyright (c) 2012 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -105,6 +105,9 @@ public class Cli
     @Option( name = "-H", aliases = { "--help-modifications" }, usage = "Print the list of available modifications and quit" )
     private boolean helpModders = false;
 
+    @Option( name = "--console", usage = "Log information to console instead of <workspace>/vman.log.\n" )
+    private boolean console;
+
     @Option( name = "-L", aliases = { "--local-repo", "--local-repository" }, usage = "Local repository directory.\nDefault: <workspace>/local-repository\nProperty file equivalent: local-repository" )
     private File localRepository;
 
@@ -131,6 +134,9 @@ public class Cli
 
     @Option( name = "-s", aliases = "--version-suffix", usage = "A suffix to append to each POM's version.\nProperty file equivalent: version-suffix" )
     private String versionSuffix;
+
+    @Option( name = "--version-modifier", usage = "Change each POM's version using pattern:replacement format.\nProperty file equivalent: version-modifier" )
+    private String versionModifier;
 
     @Option( name = "--strict", usage = "Change ONLY the dependencies, plugins, and parents that are listed in BOMs and toolchain POM\nDefault: false\nProperty file equivalent: strict" )
     private boolean strict = false;
@@ -162,6 +168,8 @@ public class Cli
     public static final String REMOTE_REPOSITORY_PROPERTY = "remote-repository";
 
     public static final String VERSION_SUFFIX_PROPERTY = "version-suffix";
+
+    public static final String VERSION_MODIFIER_PROPERTY = "version-modifier";
 
     public static final String TOOLCHAIN_PROPERTY = "toolchain";
 
@@ -206,9 +214,9 @@ public class Cli
 
     private boolean bootstrapRead;
 
-    private static int exitValue = Integer.MIN_VALUE;
+    private File logFile = new File ( workspace, "vman.log" );
 
-    private File logFile = new File( "vman.log" );
+    private static int exitValue = Integer.MIN_VALUE;
 
     public static int exitValue()
     {
@@ -368,7 +376,15 @@ public class Cli
 
     private void configureLogging()
     {
+        if (console)
+        {
+            return;
+        }
+
         System.out.println( "\n\nNOTE: See " + logFile + " for console output.\n" );
+
+        // Clear the logfile for the next run.
+        logFile.delete();
 
         final Configurator log4jConfigurator = new Configurator()
         {
@@ -505,7 +521,7 @@ public class Cli
         LOGGER.info( "modifications = " + join( modders, " " ) );
 
         final VersionManagerSession session =
-            new VersionManagerSession( workspace, reports, versionSuffix, removedPlugins, modders, preserveFiles,
+            new VersionManagerSession( workspace, reports, versionSuffix, versionModifier, removedPlugins, modders, preserveFiles,
                                        strict, relocatedCoords, propertyMappings );
 
         if ( remoteRepository != null )
@@ -828,6 +844,15 @@ public class Cli
                     }
                 }
 
+                if ( versionModifier == null )
+                {
+                    versionModifier = props.getProperty( VERSION_MODIFIER_PROPERTY );
+                    if ( versionModifier != null )
+                    {
+                        versionModifier = versionModifier.trim();
+                    }
+                }
+
                 if ( remoteRepository == null )
                 {
                     remoteRepository = props.getProperty( REMOTE_REPOSITORY_PROPERTY );
@@ -886,14 +911,14 @@ public class Cli
     }
 
     /**
-     * Try to load bootstrap configuration using the following order or preference: 
+     * Try to load bootstrap configuration using the following order or preference:
      * 1. configured file (using -B option)
-     * 2. default file ($HOME/.vman.boot.properties) 
+     * 2. default file ($HOME/.vman.boot.properties)
      * 3. embedded resource (classpath:bootstrap.properties)
-     * 
+     *
      * @return The configuration file referenced by the bootstrap properties, or null if no bootstrap properties is
      *         found.
-     *         
+     *
      * @throws VManException In cases where the specified bootstrap properties file is unreadable.
      */
     private File loadBootstrapConfig()

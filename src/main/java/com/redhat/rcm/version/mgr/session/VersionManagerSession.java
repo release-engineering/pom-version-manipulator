@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Red Hat, Inc.
+ * Copyright (c) 2012 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -85,7 +85,10 @@ public class VersionManagerSession
 
     private final boolean strict;
 
-    public VersionManagerSession( final File workspace, final File reports, final String versionSuffix,
+    private final String versionModifier;
+
+    public VersionManagerSession( final File workspace, final File reports, 
+                                  final String versionSuffix, final String versionModifier,
                                   final Collection<String> removedPlugins, final List<String> modderKeys,
                                   final boolean preserveFiles, final boolean strict,
                                   final Map<String, String> relocatedCoords, final Map<String, String> propertyMappings )
@@ -93,6 +96,7 @@ public class VersionManagerSession
         this.workspace = workspace;
         this.reports = reports;
         this.versionSuffix = versionSuffix;
+        this.versionModifier = versionModifier;
         this.strict = strict;
 
         backups = new File( workspace, "backups" );
@@ -122,6 +126,11 @@ public class VersionManagerSession
     public String getVersionSuffix()
     {
         return versionSuffix;
+    }
+
+    public String getVersionModifier()
+    {
+        return versionModifier;
     }
 
     public FullProjectKey getRelocation( final ProjectKey key )
