@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2012 John Casey.
+ *  Copyright (c) 2012 Red Hat, Inc.
  *  
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as published by
@@ -39,6 +39,8 @@ public final class SessionBuilder
     private final File reports;
 
     private String versionSuffix = "-rebuild-1";
+    
+    private String versionModifier = ":";
 
     private Collection<String> removedPlugins = new HashSet<String>();
 
@@ -67,13 +69,19 @@ public final class SessionBuilder
 
     public VersionManagerSession build()
     {
-        return new VersionManagerSession( workspace, reports, versionSuffix, removedPlugins, modders, preserveFiles,
+        return new VersionManagerSession( workspace, reports, versionSuffix, versionModifier, removedPlugins, modders, preserveFiles,
                                           strict, coordinateRelocations, propertyMappings );
     }
 
     public SessionBuilder withVersionSuffix( final String versionSuffix )
     {
         this.versionSuffix = versionSuffix;
+        return this;
+    }
+
+    public SessionBuilder withVersionModifier( final String versionModifier )
+    {
+        this.versionModifier = versionModifier;
         return this;
     }
 
