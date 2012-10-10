@@ -154,7 +154,7 @@ public class VersionManager
         final String[] excludes = Arrays.copyOf( initExcludes, initExcludes.length + excludePattern.length );
 
         System.arraycopy( excludePattern, 0, excludes, initExcludes.length, excludePattern.length );
-
+        
         scanner.setExcludes( excludes );
         scanner.addDefaultExcludes();
 

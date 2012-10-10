@@ -81,6 +81,9 @@ You can override any of the options in your .vman.properties file on the command
      target                                 : POM file (or directory tree containing POM files) to modify.
                                               Default: pom.xml
 
+     -B (--bootstrap) FILE                  : Bootstrap properties to read for location of VMan configuration.
+
+
      -C (--config) FILE/URL                 : Load default configuration for BOMs, toolchain, removedPluginsList,
                                               etc. from this file/url.
                                               Default: $HOME/.vman.properties
@@ -127,6 +130,9 @@ You can override any of the options in your .vman.properties file on the command
 
      -s (--version-suffix) VAL              : A suffix to append to each POM's version
 
+     --version-modifier VAL                 : Change each POM's version using pattern:replacement format.
+                                              Property file equivalent: version-modifier
+
      -e VAL                                 : POM file path exclude pattern (glob)
 
      -E VAL                                 : POM module exclude list (format: <groupId:artifactId>[,<groupId:artifactId>])
@@ -140,9 +146,15 @@ You can override any of the options in your .vman.properties file on the command
      -S (--settings) FILE                   : Maven settings.xml file.
                                               Property file equivalent: settings
 
+     --console                              : Log information to console instead of <workspace>/vman.log.
+
+     -T (--test-config)                     : Test-load the configuration given, and print diagnostic information
+
      -H (--help-modifications)              : Print the list of available modifications and quit
 
      -h (--help)                            : Print this message and quit
+
+     -v (--version)                         : Show version information and quit.
 
 
 ### MODIFICATIONS
@@ -173,6 +185,8 @@ The optional ones are:
                              supplied BOM file(s).
 
     extensions-removal       Remove extensions from the POM.
+
+    version-modifier         Change the POM's versions using the format 'pattern:replacement'.
 
     reporting-removal        Remove reporting elements from the POM.
 

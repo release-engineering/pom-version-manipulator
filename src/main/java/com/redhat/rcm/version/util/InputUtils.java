@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2012 John Casey.
+ *  Copyright (C) 2012 Red Hat, Inc.
  *  
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as published by
@@ -378,6 +378,8 @@ public final class InputUtils
         }
         else
         {
+            LOGGER.info( "Using local file: '" + location + "'..." );
+
             result = new File( location );
         }
 
