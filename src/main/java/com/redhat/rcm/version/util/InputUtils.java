@@ -335,11 +335,27 @@ public final class InputUtils
 
             if ( !downloaded.exists() )
             {
-                final HttpGet get = new HttpGet( location );
+                HttpGet get = new HttpGet( location );
                 OutputStream out = null;
                 try
                 {
-                    final HttpResponse response = client.execute( get );
+                    HttpResponse response = client.execute( get );
+                    // Work around for scenario where we are loading from a server
+                    // that does a refresh e.g. gitweb
+                    if (response.containsHeader( "Cache-control" ))
+                    {
+                        LOGGER.info( "Waiting for server to generate cache..." );
+                        try
+                        {
+                            Thread.sleep (5000);
+                        }
+                        catch ( InterruptedException e )
+                        {
+                        }
+                        get.abort();
+                        get = new HttpGet( location );
+                        response = client.execute( get );
+                    }
                     final int code = response.getStatusLine()
                                              .getStatusCode();
                     if ( code == 200 )
