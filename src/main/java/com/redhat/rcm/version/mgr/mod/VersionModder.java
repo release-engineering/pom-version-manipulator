@@ -18,12 +18,6 @@
 
 package com.redhat.rcm.version.mgr.mod;
 
-import org.apache.log4j.Logger;
-import org.apache.maven.mae.project.ProjectToolsException;
-import org.apache.maven.mae.project.key.ProjectKey;
-import org.apache.maven.mae.project.key.VersionlessProjectKey;
-import org.apache.maven.model.Model;
-import org.apache.maven.model.Parent;
 import org.codehaus.plexus.component.annotations.Component;
 
 import com.redhat.rcm.version.VManException;
@@ -32,10 +26,9 @@ import com.redhat.rcm.version.model.Project;
 
 
 @Component( role = ProjectModder.class, hint = "version" )
-public class VersionModder
-    implements ProjectModder
+public class VersionModder extends AbstractVersionModder
 {
-    protected static final Logger LOGGER = Logger.getLogger( VersionModder.class );
+    private String []versionModifier;
 
     @Override
     public String getDescription()
@@ -44,107 +37,38 @@ public class VersionModder
     }
 
     @Override
-    public boolean inject( final Project project, final VersionManagerSession session )
+    protected String getActionDescription ()
     {
-        boolean changed = false;
+        return "Replacing " + versionModifier[1] + " with " + versionModifier[0];
+    }
 
-        if ( session.getVersionModifier() != null )
+    @Override
+    protected boolean verifyVersion (String version)
+    {
+        return (version.indexOf(versionModifier[0]) != -1) && !isTemplateVersion(version);
+    }
+
+    @Override
+    protected String replaceVersion (String version)
+    {
+        return (version.replace(versionModifier[0], versionModifier[1]));
+    }
+
+    @Override
+    protected boolean initialiseModder (final Project project, final VersionManagerSession session)
+    {
+        boolean result = (session.getVersionModifier() != null);
+
+        if (result)
         {
-            final String []versionModifier = session.getVersionModifier().split( ":" );
+            versionModifier = session.getVersionModifier().split( ":" );
+
             if (versionModifier.length != 2)
             {
                 LOGGER.error("Invalid version modifier size - should be two");
                 session.addError(new VManException ("Invalid version modifier size. Should be 'pattern:replacement'."));
             }
-
-            final Model model = project.getModel();
-            final Parent parent = project.getParent();
-
-            if ( model.getVersion() != null && model.getVersion().indexOf(versionModifier[0]) != -1)
-            {
-                LOGGER.info( "Replacing " + versionModifier[1] + " in: " + model.getVersion() + " with '" +
-                    versionModifier[0] + "' for: " + model.getId() );
-                model.setVersion( model.getVersion().replace(versionModifier[0], versionModifier[1]));
-                changed = true;
-            }
-
-            if ( parent != null )
-            {
-                final ProjectKey tk = session.getToolchainKey();
-                final VersionlessProjectKey vpk = new VersionlessProjectKey( parent );
-                final String version = session.getArtifactVersion( vpk );
-
-                // if the parent references a project in the current vman modification session...
-                if ( session.inCurrentSession( parent ) )
-                {
-                    LOGGER.info( "Parent: '" + parent.getId() + "' is current session (for: " + model.getId() + ")" );
-                    // and if the parent ref's version doesn't end with the suffix we're using here...
-                    if ( parent.getVersion().indexOf(versionModifier[0]) != -1)
-                    {
-                        LOGGER.info( "Replacing " + versionModifier[1] + " in: " + parent.getVersion() + " with '" +
-                           versionModifier[0] + "' for: " + model.getId() );
-                        parent.setVersion( parent.getVersion().replace(versionModifier[0], versionModifier[1]));
-                        changed = true;
-                    }
-                }
-                // otherwise, if we're not using a toolchain POM or our parent references the
-                // toolchain POM already, don't mess with the rest of this stuff.
-                else if ( tk == null || new VersionlessProjectKey( tk ).equals( vpk ) )
-                {
-                    LOGGER.info( "Toolchain key: '" + tk + "' is null, or parent: '" + parent.getId()
-                        + "' is already set to toolchain for: " + model.getId() + ". Nothing to do.." );
-                    // NOP.
-                }
-                // if we do have a toolchain POM, and the parent ref for this project isn't listed in
-                // a BOM (I know, that's weird)...
-                else if ( version == null )
-                {
-                    // note it in the session that this parent POM hasn't been captured in our info.
-                    session.addMissingParent( project );
-                    if ( !session.isStrict() &&  parent.getVersion().indexOf(versionModifier[0]) != -1)
-                    {
-                        // if we're not operating in strict mode, and the parent isn't in the current
-                        // VMan session, AND the parent ref version doesn't
-                        // end with the suffix we're using, append it and assume that the parent POM
-                        // will be VMan-ized and built using the same configuration.
-                        if ( parent.getVersion().indexOf(versionModifier[0]) != -1)
-                        {
-                            LOGGER.info( "Replacing " + versionModifier[1] + " in: " + parent.getVersion() + " with '" +
-                               versionModifier[0] + "' for: " + model.getId() );
-                            parent.setVersion( parent.getVersion().replace(versionModifier[0], versionModifier[1]));
-                            changed = true;
-                        }
-                    }
-                    else
-                    {
-                        LOGGER.info( "NOT replacing snapshot for parent version: '" + parent.getVersion()
-                            + "' for: " + model.getId()
-                            + "; either we're operating in strict mode, or the parent version is correct." );
-                    }
-                }
-                // if we're using a different version of a parent listed in our BOMs
-                else if ( !parent.getVersion().equals( version ) )
-                {
-                    LOGGER.info( "Adjusting parent version to: '" + version + "' (was: '" + parent.getVersion()
-                        + "') for parent: '" + parent.getId() + "' in POM: " + model.getId() );
-
-                    // adjust the parent version to match the BOM.
-                    parent.setVersion( version );
-                    changed = true;
-                }
-            }
-
         }
-
-        try
-        {
-            project.updateCoord();
-        }
-        catch ( final ProjectToolsException e )
-        {
-            session.addError( e );
-        }
-
-        return changed;
+        return result;
     }
 }
