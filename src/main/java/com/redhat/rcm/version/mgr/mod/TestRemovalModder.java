@@ -18,14 +18,19 @@
 
 package com.redhat.rcm.version.mgr.mod;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
+import org.apache.maven.model.Activation;
+import org.apache.maven.model.ActivationProperty;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
+import org.apache.maven.model.Profile;
 import org.codehaus.plexus.component.annotations.Component;
 
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
@@ -36,6 +41,8 @@ public class TestRemovalModder
     implements ProjectModder
 {
     private static final Logger LOGGER = Logger.getLogger( TestRemovalModder.class );
+
+    public static final String TEST_DEPS_PROFILE_ID = "_testDependencies";
 
     @Override
     public String getDescription()
@@ -49,34 +56,59 @@ public class TestRemovalModder
         final Model model = project.getModel();
         boolean changed = false;
         final Set<VersionlessProjectKey> removedTests = session.getRemovedTests();
-        final VersionlessProjectKey projectkey = new VersionlessProjectKey 
-                        (project.getGroupId(), project.getArtifactId());
+        final VersionlessProjectKey projectkey =
+            new VersionlessProjectKey( project.getGroupId(), project.getArtifactId() );
 
-        if (removedTests.contains(projectkey))
+        if ( removedTests.contains( projectkey ) )
         {
             if ( model.getDependencies() != null )
             {
+                final List<Dependency> movedDeps = new ArrayList<Dependency>();
+
                 for ( final Iterator<Dependency> it = model.getDependencies()
-                                .iterator(); it.hasNext(); )
+                                                           .iterator(); it.hasNext(); )
                 {
                     final Dependency dep = it.next();
-                    if (dep.getScope() != null && dep.getScope().equals( "test" ))
+                    if ( dep.getScope() != null && dep.getScope()
+                                                      .equals( "test" ) )
                     {
-                        LOGGER.info( "Removing scoped test dependency " + dep.toString() + " for '" + project.getKey() + "'..." );
+                        LOGGER.info( "Removing scoped test dependency " + dep.toString() + " for '" + project.getKey()
+                            + "'..." );
+                        movedDeps.add( dep );
                         it.remove();
                     }
                 }
+
+                if ( !movedDeps.isEmpty() )
+                {
+                    final Profile profile = new Profile();
+                    profile.setId( TEST_DEPS_PROFILE_ID );
+                    profile.setDependencies( movedDeps );
+
+                    final ActivationProperty actProp = new ActivationProperty();
+                    actProp.setName( "maven.test.skip" );
+                    actProp.setValue( "!true" );
+
+                    final Activation act = new Activation();
+                    act.setProperty( actProp );
+
+                    profile.setActivation( act );
+
+                    model.addProfile( profile );
+                }
             }
+
             Properties props = model.getProperties();
-            
+
             LOGGER.info( "Injecting new maven.skip.test property..." );
-            if (props == null)
+            if ( props == null )
             {
                 props = new Properties();
             }
-            props.put("maven.skip.test", "true");
+
+            props.put( "maven.skip.test", "true" );
             model.setProperties( props );
-            
+
             changed = true;
         }
         return changed;

@@ -20,6 +20,7 @@ package com.redhat.rcm.version.mgr.mod;
 import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModel;
 import static com.redhat.rcm.version.testutil.TestProjectUtils.newVersionManagerSession;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -28,13 +29,18 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.maven.model.Activation;
+import org.apache.maven.model.ActivationProperty;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
+import org.apache.maven.model.Profile;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.redhat.rcm.version.fixture.LoggingFixture;
 import com.redhat.rcm.version.model.Project;
 
 public class TestRemovalTest
@@ -48,6 +54,12 @@ public class TestRemovalTest
 
     @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();
+
+    @BeforeClass
+    public static void logging()
+    {
+        LoggingFixture.setupLogging();
+    }
 
     @Before
     public void setupDirs()
@@ -73,28 +85,60 @@ public class TestRemovalTest
     public void testRemoveTest()
         throws Exception
     {
-        final Model model = loadModel( "bom-of-boms/repo/test/bom-child2/1/bom-child2-1.pom");
+        final Model model = loadModel( "test-removal/pom-test-deps.xml" );
 
-        assertThat( model.getProperties().size(), equalTo (0));
-        
-        final boolean changed = new TestRemovalModder().inject( new Project( model ),
-            newVersionManagerSession
-            ( workspace, reports, null, Collections.<String> emptyList(), 
-              Collections.singletonList( "test:bom-child2" ) ) );
+        assertThat( model.getProperties()
+                         .size(), equalTo( 0 ) );
+
+        final boolean changed =
+            new TestRemovalModder().inject( new Project( model ),
+                                            newVersionManagerSession( workspace, reports, null,
+                                                                      Collections.<String> emptyList(),
+                                                                      Collections.singletonList( "test:pom-test-deps" ) ) );
 
         assertThat( changed, equalTo( true ) );
-        assertThat( model.getProperties().size(), equalTo(1));
-        
-        List<Dependency> dep = model.getDependencies();
-        for (Dependency d : dep)
+        assertThat( model.getProperties()
+                         .size(), equalTo( 1 ) );
+
+        final List<Dependency> dep = model.getDependencies();
+        for ( final Dependency d : dep )
         {
             // Don't need to test groupId as there is only a single artifact with the GAV of 
             // junit in that pom.
-            if (d.getArtifactId().equals( "junit" ))
+            if ( d.getArtifactId()
+                  .equals( "junit" ) )
             {
-                fail ("Junit scoped dependency not removed");
+                fail( "Junit scoped dependency not removed" );
             }
         }
-        
+
+        final List<Profile> profiles = model.getProfiles();
+        Profile testDepsProfile = null;
+        for ( final Profile profile : profiles )
+        {
+            if ( TestRemovalModder.TEST_DEPS_PROFILE_ID.equals( profile.getId() ) )
+            {
+                testDepsProfile = profile;
+                break;
+            }
+        }
+
+        assertThat( testDepsProfile, notNullValue() );
+
+        final List<Dependency> testDeps = testDepsProfile.getDependencies();
+        assertThat( testDeps, notNullValue() );
+        assertThat( testDeps.size(), equalTo( 1 ) );
+
+        final Dependency testDep = testDeps.get( 0 );
+        assertThat( testDep.getArtifactId(), equalTo( "junit" ) );
+
+        final Activation act = testDepsProfile.getActivation();
+        assertThat( act, notNullValue() );
+
+        final ActivationProperty actProp = act.getProperty();
+
+        assertThat( actProp, notNullValue() );
+        assertThat( actProp.getName(), equalTo( "maven.test.skip" ) );
+        assertThat( actProp.getValue(), equalTo( "!true" ) );
     }
 }
