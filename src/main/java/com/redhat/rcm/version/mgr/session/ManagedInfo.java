@@ -78,6 +78,8 @@ class ManagedInfo
 
     private final Set<VersionlessProjectKey> removedPlugins = new HashSet<VersionlessProjectKey>();
 
+    private final Set<VersionlessProjectKey> removedTests = new HashSet<VersionlessProjectKey>();
+
     private final Set<Project> currentProjects = new LinkedHashSet<Project>();
 
     private final Set<VersionlessProjectKey> currentProjectKeys = new LinkedHashSet<VersionlessProjectKey>();
@@ -85,14 +87,33 @@ class ManagedInfo
     private final List<String> modderKeys = new ArrayList<String>();
 
     ManagedInfo( final VersionManagerSession session, final Collection<String> removedPlugins,
-                 final List<String> modderKeys, final Map<String, String> relocatedCoords,
+                 Collection<String> removedTests, final List<String> modderKeys, final Map<String, String> relocatedCoords,
                  final Map<String, String> propertyMappings )
     {
         this.relocatedCoords = new CoordinateRelocations( relocatedCoords, session );
         this.propertyMappings = new PropertyMappings( propertyMappings, session );
 
-        setRemovedPlugins( removedPlugins );
-        setModderKeys( modderKeys );
+        if (removedPlugins != null)
+        {
+            for ( final String rm : removedPlugins )
+            {
+                this.removedPlugins.add( new VersionlessProjectKey( rm ) );
+            }
+        }
+        if (removedTests != null)
+        {
+            for ( final String rm : removedTests )
+            {
+                this.removedTests.add( new VersionlessProjectKey( rm ) );
+            }
+        }
+        if (modderKeys != null)
+        {
+           for ( final String key : modderKeys )
+           {
+               this.modderKeys.add( key );
+           } 
+        }
     }
 
     boolean hasDependencyMap()
@@ -251,35 +272,14 @@ class ManagedInfo
         }
     }
 
-    void setRemovedPlugins( final Collection<String> removedPlugins )
-    {
-        if ( removedPlugins == null )
-        {
-            return;
-        }
-
-        for ( final String rm : removedPlugins )
-        {
-            this.removedPlugins.add( new VersionlessProjectKey( rm ) );
-        }
-    }
-
     Set<VersionlessProjectKey> getRemovedPlugins()
     {
         return removedPlugins;
     }
 
-    void setModderKeys( final List<String> modderKeys )
+    Set<VersionlessProjectKey> getRemovedTests()
     {
-        if ( modderKeys == null )
-        {
-            return;
-        }
-
-        for ( final String key : modderKeys )
-        {
-            this.modderKeys.add( key );
-        }
+        return removedTests;
     }
 
     List<String> getModderKeys()
@@ -287,7 +287,7 @@ class ManagedInfo
         return modderKeys;
     }
 
-    public FullProjectKey getToolchainKey()
+    FullProjectKey getToolchainKey()
     {
         return toolchainKey;
     }
@@ -313,7 +313,7 @@ class ManagedInfo
                         : new VersionlessProjectKey( toolchainKey ).equals( new VersionlessProjectKey( parent ) );
     }
 
-    public synchronized void setCurrentProjects( final Collection<Model> models )
+    synchronized void setCurrentProjects( final Collection<Model> models )
         throws ProjectToolsException
     {
         if ( models == null || models.isEmpty() )
@@ -331,17 +331,17 @@ class ManagedInfo
         }
     }
 
-    public Set<Project> getCurrentProjects()
+    Set<Project> getCurrentProjects()
     {
         return currentProjects;
     }
 
-    public boolean isCurrentProject( final ProjectKey key )
+    boolean isCurrentProject( final ProjectKey key )
     {
         return currentProjectKeys.contains( new VersionlessProjectKey( key ) );
     }
 
-    public PropertyMappings getPropertyMapping()
+    PropertyMappings getPropertyMapping()
     {
         return propertyMappings;
     }

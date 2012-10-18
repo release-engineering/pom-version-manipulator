@@ -44,6 +44,8 @@ public final class SessionBuilder
 
     private Collection<String> removedPlugins = new HashSet<String>();
 
+    private Collection<String> removedTests = new HashSet<String>();
+
     private List<String> modders = STANDARD;
 
     private boolean preserveFiles = false;
@@ -69,7 +71,7 @@ public final class SessionBuilder
 
     public VersionManagerSession build()
     {
-        return new VersionManagerSession( workspace, reports, versionSuffix, versionModifier, removedPlugins, modders, preserveFiles,
+        return new VersionManagerSession( workspace, reports, versionSuffix, versionModifier, removedPlugins, removedTests, modders, preserveFiles,
                                           strict, coordinateRelocations, propertyMappings );
     }
 
@@ -91,9 +93,9 @@ public final class SessionBuilder
         return this;
     }
 
-    public SessionBuilder withModders( final List<String> modders )
+    public SessionBuilder withRemovedTests( final Collection<String> removedTests )
     {
-        this.modders = modders;
+        this.removedTests = removedTests;
         return this;
     }
 
