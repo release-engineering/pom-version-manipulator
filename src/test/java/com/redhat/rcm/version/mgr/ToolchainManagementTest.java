@@ -765,7 +765,9 @@ public class ToolchainManagementTest
             final File pom = new File( repo, srcPom.getName() );
             copyFile( srcPom, pom );
 
-            final VersionManagerSession session = newVersionManagerSession( workspace, reports, null, removedPlugins );
+            final VersionManagerSession session = newVersionManagerSession
+                            ( workspace, reports, null, removedPlugins, 
+                              Collections.<String> emptyList() );
 
             final File remoteRepo = getResourceFile( TOOLCHAIN_TEST_POMS + "repo" );
             session.setRemoteRepository( remoteRepo.toURI()
@@ -806,7 +808,9 @@ public class ToolchainManagementTest
             final File pom = new File( repo, srcPom.getName() );
             copyFile( srcPom, pom );
 
-            final VersionManagerSession session = newVersionManagerSession( workspace, reports, null, removedPlugins );
+            final VersionManagerSession session = newVersionManagerSession
+                            ( workspace, reports, null, removedPlugins, 
+                              Collections.<String> emptyList() );
 
             final File remoteRepo = getResourceFile( TOOLCHAIN_TEST_POMS + "repo" );
             session.setRemoteRepository( remoteRepo.toURI()

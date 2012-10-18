@@ -30,7 +30,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -69,29 +68,20 @@ public final class TestProjectUtils
 
     public static VersionManagerSession newVersionManagerSession( final File workspace, final File reports,
                                                                   final String suffix,
-                                                                  final Collection<String> removedPlugins )
+                                                                  final Collection<String> removedPlugins,
+                                                                  final Collection<String> removedTests)
     {
         return new SessionBuilder( workspace, reports ).withVersionSuffix( suffix )
                                                        .withRemovedPlugins( removedPlugins )
+                                                       .withRemovedTests( removedTests )
                                                        .build();
     }
-
+    
     public static Set<String> getStandardModders()
     {
         return new HashSet<String>( Arrays.asList( ProjectModder.STANDARD_MODIFICATIONS ) );
     }
-
-    public static VersionManagerSession newVersionManagerSession( final File workspace, final File reports,
-                                                                  final String suffix,
-                                                                  final Collection<String> removedPlugins,
-                                                                  final List<String> modders )
-    {
-        return new SessionBuilder( workspace, reports ).withVersionSuffix( suffix )
-                                                       .withRemovedPlugins( removedPlugins )
-                                                       .withModders( modders )
-                                                       .build();
-    }
-
+    
     public static File getResourceFile( final String path )
     {
         final URL resource = Thread.currentThread()
