@@ -125,6 +125,9 @@ You can override any of the options in your .vman.properties file on the command
                                               REMOVE if found
                                               Property file equivalent: removed-plugins
 
+     --removed-tests                        : List of modules (format: <groupId:artifactId>[,<groupId:artifactId>]) for
+                                              which tests should be disabled and test scoped dependencies removed.
+
      -O (--capture-output,
          --capture-pom) FILE                : Write captured (missing) definitions to this POM location.
 
@@ -189,6 +192,10 @@ The optional ones are:
     version-modifier         Change the POM's versions using the format 'pattern:replacement'.
 
     reporting-removal        Remove reporting elements from the POM.
+
+    testremoval              For each module, disable test compilation and execution and remove
+                             any test scoped dependencies.
+
 
 In order to add optional modifiers to the standard list use either
 

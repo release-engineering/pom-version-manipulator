@@ -89,8 +89,8 @@ public class VersionManagerSession
 
     public VersionManagerSession( final File workspace, final File reports, 
                                   final String versionSuffix, final String versionModifier,
-                                  final Collection<String> removedPlugins, final List<String> modderKeys,
-                                  final boolean preserveFiles, final boolean strict,
+                                  final Collection<String> removedPlugins, final Collection<String> removedTests, 
+                                  final List<String> modderKeys, final boolean preserveFiles, final boolean strict,
                                   final Map<String, String> relocatedCoords, final Map<String, String> propertyMappings )
     {
         this.workspace = workspace;
@@ -106,7 +106,7 @@ public class VersionManagerSession
 
         this.preserveFiles = preserveFiles;
 
-        managedInfo = new ManagedInfo( this, removedPlugins, modderKeys, relocatedCoords, propertyMappings );
+        managedInfo = new ManagedInfo( this, removedPlugins, removedTests, modderKeys, relocatedCoords, propertyMappings );
         changeInfo = new ChangeInfo();
     }
 
@@ -312,16 +312,14 @@ public class VersionManagerSession
         return this;
     }
 
-    public VersionManagerSession setRemovedPlugins( final Collection<String> removedPlugins )
-    {
-        managedInfo.setRemovedPlugins( removedPlugins );
-
-        return this;
-    }
-
     public Set<VersionlessProjectKey> getRemovedPlugins()
     {
         return managedInfo.getRemovedPlugins();
+    }
+
+    public Set<VersionlessProjectKey> getRemovedTests()
+    {
+        return managedInfo.getRemovedTests();
     }
 
     public FullProjectKey getToolchainKey()

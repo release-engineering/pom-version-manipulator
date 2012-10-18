@@ -129,6 +129,9 @@ public class Cli
     @Option( name = "-r", aliases = { "--rm-plugins", "--removed-plugins" }, usage = "List of plugins (format: <groupId:artifactId>[,<groupId:artifactId>]) to REMOVE if found.\nProperty file equivalent: removed-plugins" )
     private String removedPluginsList;
 
+    @Option( name = "--removed-tests", usage = "List of test modules (format: <groupId:artifactId>[,<groupId:artifactId>]) to remove (via maven.test.skip) if found.\nProperty file equivalent: removed-tests" )
+    private String removedTestsList;
+
     @Option( name = "-R", aliases = { "--report-dir" }, usage = "Write reports here.\nDefault: <workspace>/reports" )
     private File reports = new File( "vman-workspace/reports" );
 
@@ -177,6 +180,8 @@ public class Cli
 
     public static final String REMOVED_PLUGINS_PROPERTY = "removed-plugins";
 
+    public static final String REMOVED_TESTS_PROPERTY = "removed-tests";
+
     public static final String LOCAL_REPOSITORY_PROPERTY = "local-repository";
 
     public static final String SETTINGS_PROPERTY = "settings";
@@ -201,6 +206,8 @@ public class Cli
     private List<String> boms;
 
     private List<String> removedPlugins;
+
+    private List<String> removedTests;
 
     private List<String> modders;
 
@@ -506,22 +513,17 @@ public class Cli
     {
         loadConfiguration();
 
-        if ( boms == null && bomList != null )
-        {
-            loadBomList();
-        }
+        loadBomList();
 
-        if ( removedPlugins == null && removedPluginsList != null )
-        {
-            loadRemovedPlugins();
-        }
+        loadRemoved();
 
         loadAndNormalizeModifications();
 
         LOGGER.info( "modifications = " + join( modders, " " ) );
 
         final VersionManagerSession session =
-            new VersionManagerSession( workspace, reports, versionSuffix, versionModifier, removedPlugins, modders, preserveFiles,
+            new VersionManagerSession( workspace, reports, versionSuffix, versionModifier, 
+                                       removedPlugins, removedTests, modders, preserveFiles,
                                        strict, relocatedCoords, propertyMappings );
 
         if ( remoteRepository != null )
@@ -666,12 +668,17 @@ public class Cli
         return sw.toString();
     }
 
-    private void loadRemovedPlugins()
+    private void loadRemoved()
     {
-        if ( removedPluginsList != null )
+        if ( removedPlugins == null && removedPluginsList != null )
         {
             final String[] ls = removedPluginsList.split( "\\s*,\\s*" );
             removedPlugins = Arrays.asList( ls );
+        }
+        if ( removedTests == null && removedTestsList != null )
+        {
+            final String[] ls = removedTestsList.split( "\\s*,\\s*" );
+            removedTests = Arrays.asList( ls );
         }
     }
 
@@ -799,6 +806,11 @@ public class Cli
                 if ( removedPluginsList == null )
                 {
                     removedPlugins = readListProperty( props, REMOVED_PLUGINS_PROPERTY );
+                }
+
+                if ( removedTestsList == null )
+                {
+                    removedTests = readListProperty( props, REMOVED_TESTS_PROPERTY );
                 }
 
                 if ( modifications == null )

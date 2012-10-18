@@ -60,7 +60,7 @@ public class ManagedInfoTest
         final SessionBuilder sb = new SessionBuilder( null );
         final VersionManagerSession session = sb.build();
         final ManagedInfo info =
-            new ManagedInfo( session, Collections.<String> emptyList(), Collections.<String> emptyList(),
+            new ManagedInfo( session, Collections.<String> emptyList(), Collections.<String> emptyList(), Collections.<String> emptyList(),
                              Collections.<String, String> emptyMap(), Collections.<String, String> emptyMap() );
 
         final Dependency dep1 = new Dependency();
