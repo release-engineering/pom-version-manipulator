@@ -193,8 +193,8 @@ The optional ones are:
 
     reporting-removal        Remove reporting elements from the POM.
 
-    testremoval              For each module, disable test compilation and execution and remove
-                             any test scoped dependencies.
+    testremoval              For each module, disable test compilation and execution and move
+                             any test scoped dependencies into a separate profile.
 
 
 In order to add optional modifiers to the standard list use either

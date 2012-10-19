@@ -87,8 +87,7 @@ public class TestRemovalTest
     {
         final Model model = loadModel( "test-removal/pom-test-deps.xml" );
 
-        assertThat( model.getProperties()
-                         .size(), equalTo( 0 ) );
+        assertThat( model.getProperties().size(), equalTo( 0 ) );
 
         final boolean changed =
             new TestRemovalModder().inject( new Project( model ),
@@ -97,9 +96,9 @@ public class TestRemovalTest
                                                                       Collections.singletonList( "test:pom-test-deps" ) ) );
 
         assertThat( changed, equalTo( true ) );
-        assertThat( model.getProperties()
-                         .size(), equalTo( 1 ) );
-
+        assertThat( model.getProperties().size(), equalTo( 1 ) );
+        assertThat( model.getProperties().containsKey( TestRemovalModder.SKIP_TEST ), equalTo(true) );
+        
         final List<Dependency> dep = model.getDependencies();
         for ( final Dependency d : dep )
         {
@@ -138,7 +137,7 @@ public class TestRemovalTest
         final ActivationProperty actProp = act.getProperty();
 
         assertThat( actProp, notNullValue() );
-        assertThat( actProp.getName(), equalTo( "maven.test.skip" ) );
+        assertThat( actProp.getName(), equalTo( TestRemovalModder.SKIP_TEST ) );
         assertThat( actProp.getValue(), equalTo( "!true" ) );
     }
 }

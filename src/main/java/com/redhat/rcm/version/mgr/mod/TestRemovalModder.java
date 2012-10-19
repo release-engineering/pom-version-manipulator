@@ -44,10 +44,12 @@ public class TestRemovalModder
 
     public static final String TEST_DEPS_PROFILE_ID = "_testDependencies";
 
+    public static final String SKIP_TEST = "maven.test.skip";
+
     @Override
     public String getDescription()
     {
-        return "Forcibly remove test scoped dependencies from the pom.";
+        return "Move test scoped dependencies from the pom into a separate profile.";
     }
 
     @Override
@@ -86,7 +88,7 @@ public class TestRemovalModder
                     profile.setDependencies( movedDeps );
 
                     final ActivationProperty actProp = new ActivationProperty();
-                    actProp.setName( "maven.test.skip" );
+                    actProp.setName( SKIP_TEST );
                     actProp.setValue( "!true" );
 
                     final Activation act = new Activation();
@@ -100,13 +102,13 @@ public class TestRemovalModder
 
             Properties props = model.getProperties();
 
-            LOGGER.info( "Injecting new maven.skip.test property..." );
+            LOGGER.info( "Injecting skip test property..." );
             if ( props == null )
             {
                 props = new Properties();
             }
 
-            props.put( "maven.skip.test", "true" );
+            props.put( SKIP_TEST, "true" );
             model.setProperties( props );
 
             changed = true;
