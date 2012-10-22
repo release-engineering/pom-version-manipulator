@@ -89,7 +89,7 @@ public class TestRemovalModder
 
                     final ActivationProperty actProp = new ActivationProperty();
                     actProp.setName( SKIP_TEST );
-                    actProp.setValue( "!true" );
+                    actProp.setValue( "false" );
 
                     final Activation act = new Activation();
                     act.setProperty( actProp );
