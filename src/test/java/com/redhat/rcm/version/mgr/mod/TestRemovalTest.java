@@ -98,11 +98,11 @@ public class TestRemovalTest
         assertThat( changed, equalTo( true ) );
         assertThat( model.getProperties().size(), equalTo( 1 ) );
         assertThat( model.getProperties().containsKey( TestRemovalModder.SKIP_TEST ), equalTo(true) );
-        
+
         final List<Dependency> dep = model.getDependencies();
         for ( final Dependency d : dep )
         {
-            // Don't need to test groupId as there is only a single artifact with the GAV of 
+            // Don't need to test groupId as there is only a single artifact with the GAV of
             // junit in that pom.
             if ( d.getArtifactId()
                   .equals( "junit" ) )
@@ -138,6 +138,6 @@ public class TestRemovalTest
 
         assertThat( actProp, notNullValue() );
         assertThat( actProp.getName(), equalTo( TestRemovalModder.SKIP_TEST ) );
-        assertThat( actProp.getValue(), equalTo( "!true" ) );
+        assertThat( actProp.getValue(), equalTo( "false" ) );
     }
 }
