@@ -127,6 +127,11 @@ You can override any of the options in your .vman.properties file on the command
 
      --removed-tests                        : List of modules (format: <groupId:artifactId>[,<groupId:artifactId>]) for
                                               which tests should be disabled and test scoped dependencies removed.
+                                              Property file equivalent: removed-tests
+
+     --extensions-whitelist                 : List of extensions (format: <groupId:artifactId>[,<groupId:artifactId>]) to
+                                              preserve. Only used with the ExtensionsRemovalModder.
+                                              Property file equivalent: extensions-whitelist
 
      -O (--capture-output,
          --capture-pom) FILE                : Write captured (missing) definitions to this POM location.

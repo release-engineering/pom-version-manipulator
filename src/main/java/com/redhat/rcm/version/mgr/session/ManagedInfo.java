@@ -80,6 +80,8 @@ class ManagedInfo
 
     private final Set<VersionlessProjectKey> removedTests = new HashSet<VersionlessProjectKey>();
 
+    private final Set<VersionlessProjectKey> extensionsWhitelist = new HashSet<VersionlessProjectKey>();
+
     private final Set<Project> currentProjects = new LinkedHashSet<Project>();
 
     private final Set<VersionlessProjectKey> currentProjectKeys = new LinkedHashSet<VersionlessProjectKey>();
@@ -87,7 +89,7 @@ class ManagedInfo
     private final List<String> modderKeys = new ArrayList<String>();
 
     ManagedInfo( final VersionManagerSession session, final Collection<String> removedPlugins,
-                 Collection<String> removedTests, final List<String> modderKeys, final Map<String, String> relocatedCoords,
+                 Collection<String> removedTests,  Collection<String> extensionsWhitelist, final List<String> modderKeys, final Map<String, String> relocatedCoords,
                  final Map<String, String> propertyMappings )
     {
         this.relocatedCoords = new CoordinateRelocations( relocatedCoords, session );
@@ -105,6 +107,13 @@ class ManagedInfo
             for ( final String rm : removedTests )
             {
                 this.removedTests.add( new VersionlessProjectKey( rm ) );
+            }
+        }
+        if (extensionsWhitelist != null)
+        {
+            for ( final String rm : extensionsWhitelist)
+            {
+                this.extensionsWhitelist.add( new VersionlessProjectKey( rm ) );
             }
         }
         if (modderKeys != null)
@@ -280,6 +289,11 @@ class ManagedInfo
     Set<VersionlessProjectKey> getRemovedTests()
     {
         return removedTests;
+    }
+
+    Set<VersionlessProjectKey> getExtensionsWhitelist()
+    {
+        return extensionsWhitelist;
     }
 
     List<String> getModderKeys()

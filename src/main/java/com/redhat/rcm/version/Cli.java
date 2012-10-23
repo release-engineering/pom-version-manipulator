@@ -132,6 +132,9 @@ public class Cli
     @Option( name = "--removed-tests", usage = "List of test modules (format: <groupId:artifactId>[,<groupId:artifactId>]) to remove (via maven.test.skip) if found.\nProperty file equivalent: removed-tests" )
     private String removedTestsList;
 
+    @Option( name = "--extensions-whitelist", usage = "List of extensions (format: <groupId:artifactId>[,<groupId:artifactId>]) to preserve.\nProperty file equivalent: extensions-whitelist" )
+    private String extensionsWhitelistList;
+
     @Option( name = "-R", aliases = { "--report-dir" }, usage = "Write reports here.\nDefault: <workspace>/reports" )
     private File reports = new File( "vman-workspace/reports" );
 
@@ -180,6 +183,8 @@ public class Cli
 
     public static final String REMOVED_PLUGINS_PROPERTY = "removed-plugins";
 
+    public static final String EXTENSIONS_WHITELIST_PROPERTY = "extensions-whitelist";
+
     public static final String REMOVED_TESTS_PROPERTY = "removed-tests";
 
     public static final String LOCAL_REPOSITORY_PROPERTY = "local-repository";
@@ -207,6 +212,8 @@ public class Cli
 
     private List<String> removedPlugins;
 
+    private List<String> extensionsWhitelist;
+
     private List<String> removedTests;
 
     private List<String> modders;
@@ -221,14 +228,10 @@ public class Cli
 
     private boolean bootstrapRead;
 
-    private File logFile = new File ( workspace, "vman.log" );
+    private File logFile = new File( workspace, "vman.log" );
 
     private static int exitValue = Integer.MIN_VALUE;
 
-    public static int exitValue()
-    {
-        return exitValue;
-    }
 
     public static void main( final String[] args )
     {
@@ -383,7 +386,7 @@ public class Cli
 
     private void configureLogging()
     {
-        if (console)
+        if ( console )
         {
             return;
         }
@@ -416,14 +419,11 @@ public class Cli
 
                 repo.setThreshold( level );
 
-                repo.getRootLogger()
-                    .removeAllAppenders();
+                repo.getRootLogger().removeAllAppenders();
 
-                repo.getRootLogger()
-                    .setLevel( level );
+                repo.getRootLogger().setLevel( level );
 
-                repo.getRootLogger()
-                    .addAppender( appender );
+                repo.getRootLogger().addAppender( appender );
 
                 @SuppressWarnings( "unchecked" )
                 final List<Logger> loggers = Collections.list( repo.getCurrentLoggers() );
@@ -458,8 +458,7 @@ public class Cli
             return -2;
         }
 
-        if ( session.getErrors()
-                    .isEmpty() )
+        if ( session.getErrors().isEmpty() )
         {
             LOGGER.info( "Modifying POM(s).\n\nTarget:\n\t" + target + "\n\nBOMs:\n\t"
                 + StringUtils.join( boms.iterator(), "\n\t" ) + "\n\nWorkspace:\n\t" + workspace + "\n\nReports:\n\t"
@@ -515,16 +514,16 @@ public class Cli
 
         loadBomList();
 
-        loadRemoved();
+        loadPlugins();
 
         loadAndNormalizeModifications();
 
         LOGGER.info( "modifications = " + join( modders, " " ) );
 
         final VersionManagerSession session =
-            new VersionManagerSession( workspace, reports, versionSuffix, versionModifier, 
-                                       removedPlugins, removedTests, modders, preserveFiles,
-                                       strict, relocatedCoords, propertyMappings );
+            new VersionManagerSession( workspace, reports, versionSuffix, versionModifier, removedPlugins,
+                                       removedTests, extensionsWhitelist, modders, preserveFiles, strict,
+                                       relocatedCoords, propertyMappings );
 
         if ( remoteRepository != null )
         {
@@ -562,10 +561,7 @@ public class Cli
     private static void printVersionInfo()
     {
         final StringBuilder sb = new StringBuilder();
-        sb.append( APP_NAME )
-          .append( "\n\n" )
-          .append( APP_DESCRIPTION )
-          .append( "\n\n" );
+        sb.append( APP_NAME ).append( "\n\n" ).append( APP_DESCRIPTION ).append( "\n\n" );
 
         final LinkedHashMap<String, Object> map = new LinkedHashMap<String, Object>();
         map.put( "Built By:", APP_BUILDER );
@@ -589,8 +585,7 @@ public class Cli
         final LinkedHashMap<String, Object> props = new LinkedHashMap<String, Object>();
         for ( final String key : keys )
         {
-            props.put( key, modders.get( key )
-                                   .getDescription() );
+            props.put( key, modders.get( key ).getDescription() );
         }
 
         final StringBuilder sb = new StringBuilder();
@@ -668,8 +663,13 @@ public class Cli
         return sw.toString();
     }
 
-    private void loadRemoved()
+    private void loadPlugins()
     {
+        if ( extensionsWhitelistList == null && extensionsWhitelistList != null )
+        {
+            final String[] ls = extensionsWhitelistList.split( "\\s*,\\s*" );
+            extensionsWhitelist = Arrays.asList( ls );
+        }
         if ( removedPlugins == null && removedPluginsList != null )
         {
             final String[] ls = removedPluginsList.split( "\\s*,\\s*" );
@@ -718,8 +718,7 @@ public class Cli
                 {
                     if ( key.length() > 1 )
                     {
-                        mods.add( key.substring( 1 )
-                                     .trim() );
+                        mods.add( key.substring( 1 ).trim() );
                     }
                 }
                 else
@@ -811,6 +810,11 @@ public class Cli
                 if ( removedTestsList == null )
                 {
                     removedTests = readListProperty( props, REMOVED_TESTS_PROPERTY );
+                }
+
+                if ( extensionsWhitelistList == null )
+                {
+                    extensionsWhitelist = readListProperty( props, EXTENSIONS_WHITELIST_PROPERTY );
                 }
 
                 if ( modifications == null )

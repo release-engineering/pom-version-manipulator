@@ -31,6 +31,7 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -143,9 +144,35 @@ public class CliTest
         System.out.println( "\n\n" );
     }
 
+    
+    /*
+     * Validate the exit value. Use reflection to retrieve the value to avoid
+     * having to create unnecessary accessors.
+     */
     private void assertExitValue()
     {
-        assertThat( new Integer( Cli.exitValue() ), equalTo( 0 ) );
+        try
+        {
+            Field f = Cli.class.getDeclaredField( "exitValue" );
+            f.setAccessible( true );
+            assertThat( f.getInt( null ), equalTo( 0 ) );            
+        }
+        catch ( SecurityException e )
+        {
+            fail ("Exception retrieving field information " + e);
+        }
+        catch ( NoSuchFieldException e )
+        {
+            fail ("Exception retrieving field information " + e);
+        }
+        catch ( IllegalArgumentException e )
+        {
+            fail ("Exception retrieving field information " + e);
+        }
+        catch ( IllegalAccessException e )
+        {
+            fail ("Exception retrieving field information " + e);
+        }
     }
 
     @Test

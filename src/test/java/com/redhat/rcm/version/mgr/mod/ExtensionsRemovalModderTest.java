@@ -29,13 +29,14 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import com.redhat.rcm.version.model.Project;
+import com.redhat.rcm.version.testutil.SessionBuilder;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 
 public class ExtensionsRemovalModderTest
 {
-
     protected File repo;
 
     protected File workspace;
@@ -72,12 +73,31 @@ public class ExtensionsRemovalModderTest
         final Model model = loadModel( "pom-with-extensions.xml" );
 
         assertThat( model.getBuild().getExtensions().size(), equalTo( 1 ) );
-
+   
         final boolean changed =
             new ExtensionsRemovalModder().inject( new Project( model ),
                                             newVersionManagerSession( workspace, reports, "-rebuild-1" ) );
 
         assertThat( changed, equalTo( true ) );
         assertThat( model.getBuild().getExtensions().size(), equalTo( 0 ) );
+
     }
+
+
+    @Test
+    public void removeExtensionsPreservingArtifact()
+        throws Exception
+    {
+        final Model model = loadModel( "pom-with-extensions.xml" );
+
+        assertThat( model.getBuild().getExtensions().size(), equalTo( 1 ) );
+
+        final SessionBuilder builder = new SessionBuilder( workspace, reports).
+                        withExtensionsWhitelist( Collections.singletonList( "org.apache.maven.wagon:wagon-ssh-external") );
+
+        final boolean changed =
+            new ExtensionsRemovalModder().inject( new Project( model ), builder.build() );
+
+        assertThat( changed, equalTo( false ) );
+        assertThat( model.getBuild().getExtensions().size(), equalTo( 1 ) );    }
 }

@@ -18,7 +18,12 @@
 package com.redhat.rcm.version.mgr.mod;
 
 import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
+import org.apache.log4j.Logger;
+import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Extension;
 import org.apache.maven.model.Model;
 import org.codehaus.plexus.component.annotations.Component;
@@ -30,6 +35,7 @@ import com.redhat.rcm.version.model.Project;
 public class ExtensionsRemovalModder
     implements ProjectModder
 {
+    private static final Logger LOGGER = Logger.getLogger( ExtensionsRemovalModder.class );
 
     public String getDescription()
     {
@@ -51,8 +57,32 @@ public class ExtensionsRemovalModder
         if ( model.getBuild () != null && model.getBuild().getExtensions() != null &&
              !model.getBuild().getExtensions().isEmpty())
         {
-            model.getBuild().setExtensions(Collections.<Extension>emptyList());
-            changed = true;
+            List<Extension> extensions = model.getBuild().getExtensions();
+            Set<VersionlessProjectKey> whitelist = session.getExtensionsWhitelist();
+
+            if (whitelist != null && ! whitelist.isEmpty())
+            {
+                Iterator<Extension> i = extensions.iterator();
+                while (i.hasNext())
+                {
+                    Extension e = i.next();
+                    VersionlessProjectKey key = new VersionlessProjectKey (e.getGroupId(), e.getArtifactId());
+
+                    LOGGER.info( "ExtensionsRemoval - checking " + key +
+                                 " against whitelist " + whitelist);
+
+                    if ( ! whitelist.contains( key ) )
+                    {
+                        i.remove();
+                        changed = true;
+                    }
+                }
+            }
+            else
+            {
+                model.getBuild().setExtensions(Collections.<Extension>emptyList());
+                changed = true;
+            }
         }
 
         return changed;

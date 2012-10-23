@@ -46,6 +46,8 @@ public final class SessionBuilder
 
     private Collection<String> removedTests = new HashSet<String>();
 
+    private Collection<String> extensionsWhitelist = new HashSet<String>();
+
     private List<String> modders = STANDARD;
 
     private boolean preserveFiles = false;
@@ -71,7 +73,7 @@ public final class SessionBuilder
 
     public VersionManagerSession build()
     {
-        return new VersionManagerSession( workspace, reports, versionSuffix, versionModifier, removedPlugins, removedTests, modders, preserveFiles,
+        return new VersionManagerSession( workspace, reports, versionSuffix, versionModifier, removedPlugins, removedTests, extensionsWhitelist, modders, preserveFiles,
                                           strict, coordinateRelocations, propertyMappings );
     }
 
@@ -99,27 +101,15 @@ public final class SessionBuilder
         return this;
     }
 
-    public SessionBuilder withPreserveFiles( final boolean preserveFiles )
+    public SessionBuilder withExtensionsWhitelist( final Collection<String> extensionsWhitelist )
     {
-        this.preserveFiles = preserveFiles;
+        this.extensionsWhitelist = extensionsWhitelist;
         return this;
     }
 
     public SessionBuilder withStrict( final boolean strict )
     {
         this.strict = strict;
-        return this;
-    }
-
-    public SessionBuilder withCoordinateRelocations( final Map<String, String> coordinateRelocations )
-    {
-        this.coordinateRelocations.putAll( coordinateRelocations );
-        return this;
-    }
-
-    public SessionBuilder withPropertyMappings( final Map<String, String> propertyMappings )
-    {
-        this.propertyMappings.putAll( propertyMappings );
         return this;
     }
 
