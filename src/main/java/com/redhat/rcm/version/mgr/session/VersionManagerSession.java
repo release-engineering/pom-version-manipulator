@@ -47,7 +47,6 @@ import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.maven.VManWorkspaceReader;
 import com.redhat.rcm.version.maven.WildcardProjectKey;
 import com.redhat.rcm.version.model.Project;
-import com.redhat.rcm.version.model.ProjectAncestryGraph;
 import com.redhat.rcm.version.util.ActivityLog;
 
 public class VersionManagerSession
@@ -69,8 +68,6 @@ public class VersionManagerSession
     private final File workspace;
 
     private final File reports;
-
-    private ProjectAncestryGraph ancestryGraph;
 
     private final String versionSuffix;
 
@@ -386,48 +383,15 @@ public class VersionManagerSession
         return managedInfo.hasBom( key );
     }
 
-    // public boolean hasToolchainAncestor( final Project project )
-    // {
-    // return toolchainKey == null ? false : getAncestryGraph().hasAncestor( toolchainKey, project );
-    // }
-    //
-    // public boolean hasParentInGraph( final Project project )
-    // {
-    // return getAncestryGraph().hasParentInGraph( project );
-    // }
-
-    // public VersionManagerSession addProject( final Project project )
-    // {
-    // getAncestryGraph().connect( project );
-    // managedInfo.getCurrentProjects().add( project );
-    //
-    // return this;
-    // }
-    //
-    private synchronized ProjectAncestryGraph getAncestryGraph()
-    {
-        if ( ancestryGraph == null )
-        {
-            ancestryGraph = new ProjectAncestryGraph( managedInfo.getToolchainKey() );
-        }
-
-        return ancestryGraph;
-    }
-
-    public boolean ancestryGraphContains( final FullProjectKey key )
-    {
-        return getAncestryGraph().contains( key );
-    }
-
     public void setRemoteRepositories( final String remoteRepositories )
         throws MalformedURLException
     {
         String id = "vman";
         int repoIndex = 1;
-        String repos[] = remoteRepositories.split( "," );
-        ArrayList<Repository> resolveRepos = new ArrayList<Repository>();
-        
-        for (String repository : repos)
+        final String repos[] = remoteRepositories.split( "," );
+        final ArrayList<Repository> resolveRepos = new ArrayList<Repository>();
+
+        for ( final String repository : repos )
         {
             String u = repository;
             final int idx = u.indexOf( '|' );
@@ -438,7 +402,7 @@ public class VersionManagerSession
             }
 
             final Repository resolveRepo = new Repository();
-            resolveRepo.setId( id+'-'+repoIndex++ );
+            resolveRepo.setId( id + '-' + repoIndex++ );
             resolveRepo.setUrl( u );
 
             resolveRepos.add( resolveRepo );

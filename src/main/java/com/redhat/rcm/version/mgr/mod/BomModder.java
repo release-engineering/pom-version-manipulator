@@ -231,10 +231,18 @@ public class BomModder
         if ( version != null || !session.isStrict() )
         {
             d.setVersion( null );
-            if ( isManaged && ( dep.getScope() == null || dep.getExclusions() == null || dep.getExclusions()
-                                                                                            .isEmpty() ) )
+            if ( isManaged )
             {
-                result = DepModResult.DELETED;
+                if ( dep.getScope() == null && ( dep.getExclusions() == null || dep.getExclusions()
+                                                                                   .isEmpty() ) )
+                {
+                    result = DepModResult.DELETED;
+                }
+                else
+                {
+                    // FIXME: This is a BAD place to be...we can't remove the managed dep, but we also can't leave it.
+                    // Leaving it means dependency version info will cause cascading build problems when versions shift.
+                }
             }
             else
             {
