@@ -76,6 +76,11 @@ public class ExtensionsRemovalModder
                         i.remove();
                         changed = true;
                     }
+                    else
+                    {
+                        e.setVersion( session.replacePropertyVersion (project, e.getGroupId(), e.getArtifactId()));
+                        changed = true;
+                    }
                 }
             }
             else

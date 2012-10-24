@@ -228,7 +228,6 @@ public class VersionManager
         try
         {
             models = modelLoader.loadRawModels( session, true, new DefaultRequestTrace( "VMan ROOT" ), pomFiles );
-            // projects = modelLoader.buildModels( session, pomFiles );
         }
         catch ( final ProjectToolsException e )
         {
@@ -285,7 +284,9 @@ public class VersionManager
             LOGGER.info( "Modifying '" + project.getKey() + "'..." );
 
             final List<String> modderKeys = session.getModderKeys();
+            System.out.println ("### ModderKeys " + modderKeys);
             Collections.sort( modderKeys, ProjectModder.KEY_COMPARATOR );
+            System.out.println ("### ModderKeys (postsort): " + modderKeys);
 
             boolean changed = false;
             if ( modders != null )
@@ -436,7 +437,7 @@ public class VersionManager
     @Override
     public String getName()
     {
-        return "RedHat POM Version Modifier";
+        return "Red Hat POM Version Modifier";
     }
 
     @Override

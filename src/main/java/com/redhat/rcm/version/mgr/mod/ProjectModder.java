@@ -25,7 +25,6 @@ import com.redhat.rcm.version.model.Project;
 
 public interface ProjectModder
 {
-
     String STANDARD_MODS_ALIAS = "[standard]";
 
     String[] STANDARD_MODIFICATIONS = { "version-suffix", "toolchain-realignment", "bom-realignment", "repo-removal" };
