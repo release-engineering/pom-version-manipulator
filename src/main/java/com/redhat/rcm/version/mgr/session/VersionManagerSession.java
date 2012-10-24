@@ -87,11 +87,10 @@ public class VersionManagerSession
 
     private final String versionModifier;
 
-    public VersionManagerSession( final File workspace, final File reports, 
-                                  final String versionSuffix, final String versionModifier,
-                                  final Collection<String> removedPlugins, final Collection<String> removedTests, 
-                                  final Collection<String> extensionsWhitelist, final List<String> modderKeys, 
-                                  final boolean preserveFiles, final boolean strict,
+    public VersionManagerSession( final File workspace, final File reports, final String versionSuffix,
+                                  final String versionModifier, final Collection<String> removedPlugins,
+                                  final Collection<String> removedTests, final Collection<String> extensionsWhitelist,
+                                  final List<String> modderKeys, final boolean preserveFiles, final boolean strict,
                                   final Map<String, String> relocatedCoords, final Map<String, String> propertyMappings )
     {
         this.workspace = workspace;
@@ -107,7 +106,9 @@ public class VersionManagerSession
 
         this.preserveFiles = preserveFiles;
 
-        managedInfo = new ManagedInfo( this, removedPlugins, removedTests, extensionsWhitelist, modderKeys, relocatedCoords, propertyMappings );
+        managedInfo =
+            new ManagedInfo( this, removedPlugins, removedTests, extensionsWhitelist, modderKeys, relocatedCoords,
+                             propertyMappings );
         changeInfo = new ChangeInfo();
     }
 
@@ -500,6 +501,11 @@ public class VersionManagerSession
         return managedInfo.getCurrentProjects();
     }
 
+    public Project getCurrentProject( final ProjectKey key )
+    {
+        return managedInfo.getCurrentProject( key );
+    }
+
     public boolean isCurrentProject( final ProjectKey key )
     {
         return managedInfo.isCurrentProject( key );
@@ -539,4 +545,5 @@ public class VersionManagerSession
     {
         return changeInfo.getRelocatedCoordinatesByFile();
     }
+
 }

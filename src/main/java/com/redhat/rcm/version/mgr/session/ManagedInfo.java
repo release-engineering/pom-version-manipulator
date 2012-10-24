@@ -84,44 +84,46 @@ class ManagedInfo
 
     private final Set<Project> currentProjects = new LinkedHashSet<Project>();
 
-    private final Set<VersionlessProjectKey> currentProjectKeys = new LinkedHashSet<VersionlessProjectKey>();
+    private final Map<VersionlessProjectKey, Project> currentProjectsByKey =
+        new LinkedHashMap<VersionlessProjectKey, Project>();
 
     private final List<String> modderKeys = new ArrayList<String>();
 
     ManagedInfo( final VersionManagerSession session, final Collection<String> removedPlugins,
-                 Collection<String> removedTests,  Collection<String> extensionsWhitelist, final List<String> modderKeys, final Map<String, String> relocatedCoords,
+                 final Collection<String> removedTests, final Collection<String> extensionsWhitelist,
+                 final List<String> modderKeys, final Map<String, String> relocatedCoords,
                  final Map<String, String> propertyMappings )
     {
         this.relocatedCoords = new CoordinateRelocations( relocatedCoords, session );
         this.propertyMappings = new PropertyMappings( propertyMappings, session );
 
-        if (removedPlugins != null)
+        if ( removedPlugins != null )
         {
             for ( final String rm : removedPlugins )
             {
                 this.removedPlugins.add( new VersionlessProjectKey( rm ) );
             }
         }
-        if (removedTests != null)
+        if ( removedTests != null )
         {
             for ( final String rm : removedTests )
             {
                 this.removedTests.add( new VersionlessProjectKey( rm ) );
             }
         }
-        if (extensionsWhitelist != null)
+        if ( extensionsWhitelist != null )
         {
-            for ( final String rm : extensionsWhitelist)
+            for ( final String rm : extensionsWhitelist )
             {
                 this.extensionsWhitelist.add( new VersionlessProjectKey( rm ) );
             }
         }
-        if (modderKeys != null)
+        if ( modderKeys != null )
         {
-           for ( final String key : modderKeys )
-           {
-               this.modderKeys.add( key );
-           } 
+            for ( final String key : modderKeys )
+            {
+                this.modderKeys.add( key );
+            }
         }
     }
 
@@ -336,12 +338,12 @@ class ManagedInfo
         }
 
         currentProjects.clear();
-        currentProjectKeys.clear();
+        currentProjectsByKey.clear();
         for ( final Model model : new LinkedHashSet<Model>( models ) )
         {
             final Project project = new Project( model );
             currentProjects.add( project );
-            currentProjectKeys.add( new VersionlessProjectKey( project.getKey() ) );
+            currentProjectsByKey.put( toVersionlessKey( project.getKey() ), project );
         }
     }
 
@@ -352,12 +354,22 @@ class ManagedInfo
 
     boolean isCurrentProject( final ProjectKey key )
     {
-        return currentProjectKeys.contains( new VersionlessProjectKey( key ) );
+        return currentProjectsByKey.containsKey( toVersionlessKey( key ) );
     }
 
     PropertyMappings getPropertyMapping()
     {
         return propertyMappings;
+    }
+
+    public Project getCurrentProject( final ProjectKey key )
+    {
+        return currentProjectsByKey.get( toVersionlessKey( key ) );
+    }
+
+    private VersionlessProjectKey toVersionlessKey( final ProjectKey key )
+    {
+        return (VersionlessProjectKey) ( key instanceof VersionlessProjectKey ? key : new VersionlessProjectKey( key ) );
     }
 
 }

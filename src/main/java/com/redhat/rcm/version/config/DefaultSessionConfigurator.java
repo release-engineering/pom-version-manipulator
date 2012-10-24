@@ -31,6 +31,7 @@ import org.apache.maven.execution.MavenExecutionRequestPopulationException;
 import org.apache.maven.execution.MavenExecutionRequestPopulator;
 import org.apache.maven.mae.project.ProjectLoader;
 import org.apache.maven.mae.project.ProjectToolsException;
+import org.apache.maven.mae.project.session.SessionInitializer;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.settings.Settings;
 import org.apache.maven.settings.building.DefaultSettingsBuildingRequest;
@@ -39,8 +40,11 @@ import org.apache.maven.settings.building.SettingsBuildingException;
 import org.apache.maven.settings.building.SettingsBuildingResult;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.component.annotations.Requirement;
+import org.sonatype.aether.RepositorySystemSession;
+import org.sonatype.aether.util.DefaultRepositorySystemSession;
 
 import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.maven.VManWorkspaceReader;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
 @Component( role = SessionConfigurator.class )
@@ -58,6 +62,9 @@ public class DefaultSessionConfigurator
 
     @Requirement
     private MavenExecutionRequestPopulator requestPopulator;
+
+    @Requirement
+    private SessionInitializer sessionInitializer;
 
     DefaultSessionConfigurator()
     {
@@ -127,6 +134,24 @@ public class DefaultSessionConfigurator
             session.addError( new VManException( "Failed to initialize system using settings from: %s. Reason: %s", e,
                                                  settingsXml, e.getMessage() ) );
         }
+
+        try
+        {
+            sessionInitializer.initializeSessionComponents( session );
+        }
+        catch ( final ProjectToolsException e )
+        {
+            session.addError( e );
+            return;
+        }
+
+        final RepositorySystemSession rss = session.getRepositorySystemSession();
+
+        final DefaultRepositorySystemSession drss =
+            (DefaultRepositorySystemSession) ( ( rss instanceof DefaultRepositorySystemSession ) ? rss
+                            : new DefaultRepositorySystemSession( rss ) );
+
+        drss.setWorkspaceReader( new VManWorkspaceReader( session ) );
     }
 
     private void loadToolchain( final String toolchain, final VersionManagerSession session )
