@@ -230,8 +230,9 @@ public class BomModder
         if ( version != null || !session.isStrict() )
         {
             d.setVersion( null );
-            if ( isManaged && ( dep.getScope() == null || dep.getExclusions() == null || dep.getExclusions()
-                                                                                            .isEmpty() ) )
+
+            if ( isManaged &&
+                ( dep.getScope() == null && (dep.getExclusions() == null || dep.getExclusions().isEmpty() ) ))
             {
                 result = DepModResult.DELETED;
             }

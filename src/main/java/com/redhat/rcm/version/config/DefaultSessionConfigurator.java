@@ -41,6 +41,7 @@ import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.component.annotations.Requirement;
 
 import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.maven.EffectiveModelBuilder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
 @Component( role = SessionConfigurator.class )
@@ -58,6 +59,9 @@ public class DefaultSessionConfigurator
 
     @Requirement
     private MavenExecutionRequestPopulator requestPopulator;
+
+    @Requirement
+    private EffectiveModelBuilder modelBuilder; 
 
     DefaultSessionConfigurator()
     {
@@ -84,6 +88,8 @@ public class DefaultSessionConfigurator
         {
             loadToolchain( toolchain, session );
         }
+        
+        session.setEffectiveModelBuilder( modelBuilder );
     }
 
     private void loadSettings( final VersionManagerSession session )

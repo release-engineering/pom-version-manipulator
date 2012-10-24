@@ -28,8 +28,10 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
+import org.apache.log4j.Logger;
 import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.ProjectKey;
@@ -41,19 +43,17 @@ import org.apache.maven.model.Parent;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.ReportPlugin;
 import org.apache.maven.model.Repository;
+import org.apache.maven.model.building.ModelBuilder;
 import org.apache.maven.project.MavenProject;
 
 import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.maven.EffectiveModelBuilder;
 import com.redhat.rcm.version.model.Project;
-import com.redhat.rcm.version.model.ProjectAncestryGraph;
 import com.redhat.rcm.version.util.ActivityLog;
 
 public class VersionManagerSession
     extends SimpleProjectToolsSession
 {
-
-    public static final File GLOBAL = new File( "/" );
-
     private final List<Throwable> errors = new ArrayList<Throwable>();
 
     private final Map<File, ActivityLog> logs = new LinkedHashMap<File, ActivityLog>();
@@ -71,8 +71,6 @@ public class VersionManagerSession
 
     private final File reports;
 
-    private ProjectAncestryGraph ancestryGraph;
-
     private final String versionSuffix;
 
     private String settingsXml;
@@ -86,6 +84,8 @@ public class VersionManagerSession
     private final boolean strict;
 
     private final String versionModifier;
+
+    private EffectiveModelBuilder modelBuilder;
 
     public VersionManagerSession( final File workspace, final File reports, 
                                   final String versionSuffix, final String versionModifier,
@@ -374,39 +374,6 @@ public class VersionManagerSession
         return managedInfo.hasBom( key );
     }
 
-    // public boolean hasToolchainAncestor( final Project project )
-    // {
-    // return toolchainKey == null ? false : getAncestryGraph().hasAncestor( toolchainKey, project );
-    // }
-    //
-    // public boolean hasParentInGraph( final Project project )
-    // {
-    // return getAncestryGraph().hasParentInGraph( project );
-    // }
-
-    // public VersionManagerSession addProject( final Project project )
-    // {
-    // getAncestryGraph().connect( project );
-    // managedInfo.getCurrentProjects().add( project );
-    //
-    // return this;
-    // }
-    //
-    private synchronized ProjectAncestryGraph getAncestryGraph()
-    {
-        if ( ancestryGraph == null )
-        {
-            ancestryGraph = new ProjectAncestryGraph( managedInfo.getToolchainKey() );
-        }
-
-        return ancestryGraph;
-    }
-
-    public boolean ancestryGraphContains( final FullProjectKey key )
-    {
-        return getAncestryGraph().contains( key );
-    }
-
     public void setRemoteRepository( final String remoteRepository )
         throws MalformedURLException
     {
@@ -484,6 +451,11 @@ public class VersionManagerSession
         this.capturePom = capturePom;
     }
 
+    public void setEffectiveModelBuilder ( final EffectiveModelBuilder m )
+    {
+        this.modelBuilder = m;
+    }
+    
     public File getCapturePom()
     {
         return capturePom;
@@ -539,4 +511,47 @@ public class VersionManagerSession
     {
         return changeInfo.getRelocatedCoordinatesByFile();
     }
+    
+    
+
+    /*
+     * This should search through the defined properties. It will look for 
+     * versionmapper.<groupId>-<artifactId>
+     * version.<groupId>-<artifactId>
+     * and return the value held there.
+     */
+    private static final Logger LOGGER = Logger.getLogger( VersionManagerSession.class );
+    public String replacePropertyVersion (Project project, String groupId, String artifactId)
+    {
+        String result = null;
+
+        Model model = null;
+        try{
+            model = modelBuilder.getEffectiveModel( project, this );    
+        }catch (Exception e) { e.printStackTrace(); }
+        final Properties props = model.getProperties();
+        final Set<String> commonKeys = props.stringPropertyNames();
+
+        LOGGER.info ("### Properties " + props + " from " + model);
+
+        String mapper = "versionmappper." + groupId + '-' + artifactId;
+        String direct = "version." + groupId + '-' + artifactId;
+
+        LOGGER.info("### Current projects " + getCurrentProjects());
+        LOGGER.info("### Got direct " + direct + " and commonKeys" + commonKeys);
+        for ( final String key : commonKeys )
+        {
+            if (key.equals( mapper ))
+            {
+                result = "${" + props.getProperty( key ) + "}";
+            }
+            else if (key.equals( direct ))
+            {
+                result = "${" + direct + "}";
+            }
+        }
+        System.err.println ("### Returning result " + result );
+        return result;
+    }
+
 }
