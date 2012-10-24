@@ -18,6 +18,10 @@
 
 package com.redhat.rcm.version.model;
 
+import java.io.File;
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.model.Build;
@@ -30,10 +34,6 @@ import org.apache.maven.model.PluginManagement;
 import org.apache.maven.model.ReportPlugin;
 import org.apache.maven.model.Reporting;
 
-import java.io.File;
-import java.util.Collections;
-import java.util.List;
-
 public class Project
 {
 
@@ -42,6 +42,8 @@ public class Project
     private final Model model;
 
     private FullProjectKey key;
+
+    private Model effectiveModel;
 
     public Project( final FullProjectKey key, final File pom, final Model model )
     {
@@ -247,6 +249,16 @@ public class Project
         {
             reporting.flushReportPluginMap();
         }
+    }
+
+    public void setEffectiveModel( final Model effModel )
+    {
+        this.effectiveModel = effModel;
+    }
+
+    public Model getEffectiveModel()
+    {
+        return effectiveModel;
     }
 
 }
