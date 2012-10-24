@@ -18,6 +18,8 @@
 
 package com.redhat.rcm.version.mgr.mod;
 
+import java.util.Comparator;
+
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
@@ -27,6 +29,33 @@ public interface ProjectModder
     String STANDARD_MODS_ALIAS = "[standard]";
 
     String[] STANDARD_MODIFICATIONS = { "version-suffix", "toolchain-realignment", "bom-realignment", "repo-removal" };
+
+    String[] MODIFICATION_ORDER = { "version-suffix", "version" };
+
+    Comparator<String> KEY_COMPARATOR = new Comparator<String>()
+    {
+        @Override
+        public int compare( final String one, final String two )
+        {
+            final Integer oneIdx = search( one );
+            final Integer twoIdx = search( two );
+
+            return oneIdx.compareTo( twoIdx );
+        }
+
+        private Integer search( final String value )
+        {
+            for ( int i = 0; i < MODIFICATION_ORDER.length; i++ )
+            {
+                if ( MODIFICATION_ORDER[i].equals( value ) )
+                {
+                    return i;
+                }
+            }
+
+            return 9999;
+        }
+    };
 
     boolean inject( final Project project, final VersionManagerSession session );
 

@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -154,7 +155,7 @@ public class VersionManager
         final String[] excludes = Arrays.copyOf( initExcludes, initExcludes.length + excludePattern.length );
 
         System.arraycopy( excludePattern, 0, excludes, initExcludes.length, excludePattern.length );
-        
+
         scanner.setExcludes( excludes );
         scanner.addDefaultExcludes();
 
@@ -307,6 +308,7 @@ public class VersionManager
             LOGGER.info( "Modifying '" + project.getKey() + "'..." );
 
             final List<String> modderKeys = session.getModderKeys();
+            Collections.sort( modderKeys, ProjectModder.KEY_COMPARATOR );
 
             boolean changed = false;
             if ( modders != null )
