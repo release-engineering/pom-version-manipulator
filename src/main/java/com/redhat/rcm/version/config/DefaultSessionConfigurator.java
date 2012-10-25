@@ -188,7 +188,7 @@ public class DefaultSessionConfigurator
     {
         if ( !session.hasDependencyMap() )
         {
-            File[] bomFiles;
+            File[] bomFiles = null;
             try
             {
                 bomFiles = getFiles( boms, session.getDownloads() );
@@ -196,18 +196,19 @@ public class DefaultSessionConfigurator
             catch ( final VManException e )
             {
                 session.addError( e );
-                return;
             }
 
-            List<MavenProject> projects;
-            try
+            List<MavenProject> projects = null;
+            if ( bomFiles != null )
             {
-                projects = projectLoader.buildReactorProjectInstances( session, false, bomFiles );
-            }
-            catch ( final ProjectToolsException e )
-            {
-                session.addError( new VManException( "Error building BOM: %s", e, e.getMessage() ) );
-                return;
+                try
+                {
+                    projects = projectLoader.buildReactorProjectInstances( session, false, bomFiles );
+                }
+                catch ( final ProjectToolsException e )
+                {
+                    session.addError( new VManException( "Error building BOM: %s", e, e.getMessage() ) );
+                }
             }
 
             if ( projects != null )

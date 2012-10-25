@@ -22,35 +22,24 @@ import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModel;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Collections;
+
 import org.apache.maven.mae.MAEException;
 import org.apache.maven.model.Model;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
-import com.redhat.rcm.version.fixture.LoggingFixture;
 import com.redhat.rcm.version.mgr.VersionManager;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.testutil.SessionBuilder;
 import com.redhat.rcm.version.testutil.TestVersionManager;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Collections;
-
 public class PropertyModderTest
+    extends AbstractModderTest
 {
-
-    protected File repo;
-
-    protected File workspace;
-
-    protected File reports;
-
-    @Rule
-    public final TemporaryFolder tempFolder = new TemporaryFolder();
 
     private TestVersionManager vman;
 
@@ -58,23 +47,6 @@ public class PropertyModderTest
     public void setup()
         throws IOException, MAEException
     {
-        LoggingFixture.setupLogging();
-
-        if ( repo == null )
-        {
-            repo = tempFolder.newFolder( "repository" );
-        }
-
-        if ( workspace == null )
-        {
-            workspace = tempFolder.newFolder( "workspace" );
-        }
-
-        if ( reports == null )
-        {
-            reports = tempFolder.newFolder( "reports" );
-        }
-
         if ( vman == null )
         {
             VersionManager.setClasspathScanning( true );
@@ -88,14 +60,16 @@ public class PropertyModderTest
     {
         final Model model = loadModel( "pom-with-property.xml" );
 
-        assertThat( model.getProperties().getProperty( "foo" ), equalTo( "bar" ) );
+        assertThat( model.getProperties()
+                         .getProperty( "foo" ), equalTo( "bar" ) );
 
         final SessionBuilder builder = new SessionBuilder( workspace, reports ).withPropertyMapping( "foo", "baz" );
 
         final boolean changed = new PropertyModder().inject( new Project( model ), builder.build() );
 
         assertThat( changed, equalTo( true ) );
-        assertThat( model.getProperties().getProperty( "foo" ), equalTo( "baz" ) );
+        assertThat( model.getProperties()
+                         .getProperty( "foo" ), equalTo( "baz" ) );
     }
 
     @Test
@@ -105,17 +79,20 @@ public class PropertyModderTest
         final Model model = loadModel( "pom-with-property.xml" );
         final File bom = getResourceFile( "bom-with-property.xml" );
 
-        assertThat( model.getProperties().getProperty( "foo" ), equalTo( "bar" ) );
+        assertThat( model.getProperties()
+                         .getProperty( "foo" ), equalTo( "bar" ) );
 
         final VersionManagerSession session =
-            new SessionBuilder( workspace, reports ).withPropertyMapping( "foo", "@newFoo@" ).build();
+            new SessionBuilder( workspace, reports ).withPropertyMapping( "foo", "@newFoo@" )
+                                                    .build();
 
         vman.configureSession( Collections.singletonList( bom.getAbsolutePath() ), null, session );
 
         final boolean changed = new PropertyModder().inject( new Project( model ), session );
 
         assertThat( changed, equalTo( true ) );
-        assertThat( model.getProperties().getProperty( "foo" ), equalTo( "baz" ) );
+        assertThat( model.getProperties()
+                         .getProperty( "foo" ), equalTo( "baz" ) );
     }
 
     @Test
@@ -125,17 +102,20 @@ public class PropertyModderTest
         final Model model = loadModel( "pom-with-property.xml" );
         final File bom = getResourceFile( "bom-with-property.xml" );
 
-        assertThat( model.getProperties().getProperty( "foo" ), equalTo( "bar" ) );
+        assertThat( model.getProperties()
+                         .getProperty( "foo" ), equalTo( "bar" ) );
 
         final VersionManagerSession session =
-            new SessionBuilder( workspace, reports ).withPropertyMapping( "foo", "@otherFoo@" ).build();
+            new SessionBuilder( workspace, reports ).withPropertyMapping( "foo", "@otherFoo@" )
+                                                    .build();
 
         vman.configureSession( Collections.singletonList( bom.getAbsolutePath() ), null, session );
 
         final boolean changed = new PropertyModder().inject( new Project( model ), session );
 
         assertThat( changed, equalTo( false ) );
-        assertThat( model.getProperties().getProperty( "foo" ), equalTo( "bar" ) );
+        assertThat( model.getProperties()
+                         .getProperty( "foo" ), equalTo( "bar" ) );
     }
 
 }

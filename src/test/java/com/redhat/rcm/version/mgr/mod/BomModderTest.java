@@ -16,137 +16,111 @@
  * <http://www.gnu.org/licenses>.
  */
 
-package com.redhat.rcm.version.mgr;
+package com.redhat.rcm.version.mgr.mod;
 
 import static com.redhat.rcm.version.testutil.TestProjectUtils.getResourceFile;
 import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModel;
+import static com.redhat.rcm.version.testutil.TestProjectUtils.loadProject;
+import static com.redhat.rcm.version.testutil.TestProjectUtils.loadProjects;
 import static com.redhat.rcm.version.testutil.TestProjectUtils.newVersionManagerSession;
-import static com.redhat.rcm.version.testutil.VManAssertions.assertPOMsNormalizedToBOMs;
+import static com.redhat.rcm.version.testutil.VManAssertions.assertModelsNormalizedToBOMs;
+import static com.redhat.rcm.version.testutil.VManAssertions.assertNoErrors;
+import static com.redhat.rcm.version.testutil.VManAssertions.assertProjectNormalizedToBOMs;
+import static com.redhat.rcm.version.testutil.VManAssertions.assertProjectsNormalizedToBOMs;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.io.IOException;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
-import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Repository;
-import org.apache.maven.project.MavenProject;
-import org.codehaus.plexus.util.FileUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
+import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 import org.junit.Test;
-import org.junit.rules.TestName;
 
-import com.redhat.rcm.version.fixture.LoggingFixture;
 import com.redhat.rcm.version.mgr.capture.MissingInfoCapture;
-import com.redhat.rcm.version.mgr.mod.BomModder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.testutil.SessionBuilder;
 
-public class BOMManagementTest
-    extends AbstractVersionManagerTest
+public class BomModderTest
+    extends AbstractModderTest
 {
 
     private static final String TEST_DIR = "relocations/";
-
-    @Rule
-    public TestName name = new TestName();
-
-    @BeforeClass
-    public static void enableLogging()
-    {
-        LoggingFixture.setupLogging();
-    }
-
-    @Before
-    public void setup()
-        throws Throwable
-    {
-        setupDirs();
-        setupVersionManager();
-
-        System.out.println( "START: " + name.getMethodName() + "\n\n" );
-    }
-
-    @After
-    public void teardown()
-    {
-        LoggingFixture.flushLogging();
-        System.out.println( "\n\nEND: " + name.getMethodName() );
-    }
 
     @Test
     public void modifyProjectTree_BOMInjected()
         throws Exception
     {
-        final File srcRepo = getResourceFile( "bom-injection-multi" );
-        FileUtils.copyDirectoryStructure( srcRepo, new File( repo, "project" ) );
+        final String base = "bom-injection-multi/";
+        final Model parent = loadModel( base + "pom.xml" );
+        final Model child = loadModel( base + "child/pom.xml" );
 
-        final File pom = new File( repo, "project/pom.xml" );
+        final List<Model> models = new ArrayList<Model>( 2 );
+        models.add( child );
+        models.add( parent );
 
-        final File bom = getResourceFile( "bom.xml" );
+        final Project bom = loadProject( base + "bom.xml" );
 
         final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
+        session.setCurrentProjects( models );
+        configureSession( Collections.singletonList( bom.getPom()
+                                                        .getAbsolutePath() ), null, session );
 
-        final Set<File> modified =
-            vman.modifyVersions( pom, Collections.singletonList( bom.getAbsolutePath() ), null, session );
+        final BomModder modder = new BomModder();
+
+        final boolean[] changed =
+            { modder.inject( new Project( child ), session ), modder.inject( new Project( parent ), session ) };
 
         assertNoErrors( session );
 
         // NOTE: Child POM not modified...nothing to do there!
-        assertThat( modified.size(), equalTo( 1 ) );
-        assertPOMsNormalizedToBOMs( modified, Collections.singleton( bom ) );
+        assertThat( changed[0], equalTo( false ) );
+        assertThat( changed[1], equalTo( true ) );
 
-        System.out.println( "\n\n" );
+        assertModelsNormalizedToBOMs( models, Collections.singleton( bom ) );
     }
 
     @Test
     public void modifySinglePom_BOMInjected()
         throws Exception
     {
-        final File srcPom = getResourceFile( "bom-injection-single/pom.xml" );
-        final File bom = getResourceFile( "bom.xml" );
-
-        final File pom = new File( repo, srcPom.getName() );
-        FileUtils.copyFile( srcPom, pom );
+        final String base = "bom-injection-single/";
+        final Project src = loadProject( base + "pom.xml" );
+        final File bom = getResourceFile( base + "bom.xml" );
 
         final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
+        configureSession( Collections.singletonList( bom.getAbsolutePath() ), null, session );
 
-        final Set<File> modified =
-            vman.modifyVersions( pom, Collections.singletonList( bom.getAbsolutePath() ), null, session );
+        final boolean changed = new BomModder().inject( src, session );
 
         assertNoErrors( session );
-        assertThat( modified.size(), equalTo( 1 ) );
-        assertPOMsNormalizedToBOMs( modified, Collections.singleton( bom ) );
-
-        System.out.println( "\n\n" );
+        assertThat( changed, equalTo( true ) );
+        assertProjectNormalizedToBOMs( src, Collections.singleton( loadProject( bom ) ) );
     }
 
     @Test
     public void modifySinglePom_BOMWithParentInRepo()
         throws Exception
     {
-        final File srcRepo = getResourceFile( "bom-parent-in-repo" );
-        FileUtils.copyDirectoryStructure( srcRepo, repo );
+        final File srcDir = getResourceFile( "bom-parent-in-repo" );
+        final File remoteRepo = new File( srcDir, "repo" );
 
-        final File pom = new File( repo, "project/pom.xml" );
-        final File bom = new File( repo, "bom.xml" );
-        final File remoteRepo = new File( repo, "repo" );
+        final File bom = new File( srcDir, "bom.xml" );
+        final Project pom = loadProject( new File( srcDir, "project/pom.xml" ) );
 
         final Repository resolve = new Repository();
 
@@ -158,13 +132,13 @@ public class BOMManagementTest
 
         final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
         session.setResolveRepositories( resolve );
+        configureSession( Collections.singletonList( bom.getAbsolutePath() ), null, session );
 
-        final Set<File> modified =
-            vman.modifyVersions( pom, Collections.singletonList( bom.getAbsolutePath() ), null, session );
+        final boolean changed = new BomModder().inject( pom, session );
+
+        assertThat( changed, equalTo( true ) );
         assertNoErrors( session );
-        assertPOMsNormalizedToBOMs( modified, Collections.singleton( bom ) );
-
-        System.out.println( "\n\n" );
+        assertProjectNormalizedToBOMs( pom, Collections.singleton( loadProject( bom ) ) );
     }
 
     @Test
@@ -173,12 +147,11 @@ public class BOMManagementTest
     {
         System.out.println( "BOM-of-BOMS test (normalize to BOM usage)..." );
 
-        final File srcRepo = getResourceFile( "bom-of-boms" );
-        FileUtils.copyDirectoryStructure( srcRepo, repo );
+        final File srcDir = getResourceFile( "bom-of-boms" );
+        final File remoteRepo = new File( srcDir, "repo" );
 
-        final File pom = new File( repo, "project/pom.xml" );
-        final File bom = new File( repo, "bom.xml" );
-        final File remoteRepo = new File( repo, "repo" );
+        final File bom = new File( srcDir, "bom.xml" );
+        final Project pom = loadProject( new File( srcDir, "project/pom.xml" ) );
 
         final Repository resolve = new Repository();
 
@@ -191,10 +164,13 @@ public class BOMManagementTest
         final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
         session.setResolveRepositories( resolve );
 
-        final Set<File> modified =
-            vman.modifyVersions( pom, Collections.singletonList( bom.getAbsolutePath() ), null, session );
+        configureSession( Collections.singletonList( bom.getAbsolutePath() ), null, session );
+
+        final boolean changed = new BomModder().inject( pom, session );
+
+        assertThat( changed, equalTo( true ) );
         assertNoErrors( session );
-        assertPOMsNormalizedToBOMs( modified, Collections.singleton( bom ) );
+        assertProjectNormalizedToBOMs( pom, Collections.singleton( loadProject( bom ) ) );
 
         System.out.println( "\n\n" );
     }
@@ -205,18 +181,18 @@ public class BOMManagementTest
     {
         System.out.println( "Single POM test (normalize to BOM usage)..." );
 
-        final File srcPom = getResourceFile( "rwx-parent-0.2.1.pom" );
-        final File bom = getResourceFile( "bom.xml" );
-
-        final File pom = new File( repo, srcPom.getName() );
-        FileUtils.copyFile( srcPom, pom );
+        final Project pom = loadProject( "rwx-parent-0.2.1.pom" );
+        final Project bom = loadProject( "bom.xml" );
 
         final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
+        configureSession( Collections.singletonList( bom.getPom()
+                                                        .getAbsolutePath() ), null, session );
 
-        final Set<File> modified =
-            vman.modifyVersions( pom, Collections.singletonList( bom.getAbsolutePath() ), null, session );
+        final boolean changed = new BomModder().inject( pom, session );
+
+        assertThat( changed, equalTo( true ) );
         assertNoErrors( session );
-        assertPOMsNormalizedToBOMs( modified, Collections.singleton( bom ) );
+        assertProjectNormalizedToBOMs( pom, Collections.singleton( bom ) );
 
         System.out.println( "\n\n" );
     }
@@ -227,19 +203,25 @@ public class BOMManagementTest
     {
         System.out.println( "Mult-module project tree test (normalize to BOM usage)..." );
 
-        final File srcRepo = getResourceFile( "project-dir" );
-        final File bom = getResourceFile( "bom.xml" );
-
-        FileUtils.copyDirectoryStructure( srcRepo, repo );
-
         final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
 
-        final Set<File> modified =
-            vman.modifyVersions( repo, "pom.xml", "", Collections.singletonList( bom.getAbsolutePath() ), null, session );
+        final Set<Project> poms = loadProjects( "project-dir", session );
+        final Project bom = loadProject( "bom.xml" );
+
+        configureSession( Collections.singletonList( bom.getPom()
+                                                        .getAbsolutePath() ), null, session );
+        session.setCurrentProjects( poms );
+
+        final Map<Project, Boolean> results = new HashMap<Project, Boolean>();
+        final BomModder modder = new BomModder();
+        for ( final Project pom : poms )
+        {
+            results.put( pom, modder.inject( pom, session ) );
+        }
 
         assertNoErrors( session );
 
-        assertPOMsNormalizedToBOMs( modified, Collections.singleton( bom ) );
+        assertProjectsNormalizedToBOMs( poms, Collections.singleton( bom ) );
 
         System.out.println( "\n\n" );
     }
@@ -250,28 +232,35 @@ public class BOMManagementTest
     {
         System.out.println( "Multi-module tree with interdependencies test (normalize to BOM usage)..." );
 
-        final File srcRepo = getResourceFile( "project-dir-with-interdep" );
-        final File bom = getResourceFile( "bom.xml" );
-
-        FileUtils.copyDirectoryStructure( srcRepo, repo );
-
         final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
 
-        final Set<File> modified =
-            vman.modifyVersions( repo, "pom.xml", "", Collections.singletonList( bom.getAbsolutePath() ), null, session );
+        final Set<Project> poms = loadProjects( "project-dir-with-interdep", session );
+        final Set<VersionlessProjectKey> skipped = new HashSet<VersionlessProjectKey>( poms.size() );
+        for ( final Project project : poms )
+        {
+            skipped.add( new VersionlessProjectKey( project.getKey() ) );
+        }
+
+        final Project bom = loadProject( "bom.xml" );
+
+        configureSession( Collections.singletonList( bom.getPom()
+                                                        .getAbsolutePath() ), null, session );
+        session.setCurrentProjects( poms );
+
+        final Map<Project, Boolean> results = new HashMap<Project, Boolean>();
+        final BomModder modder = new BomModder();
+        for ( final Project pom : poms )
+        {
+            results.put( pom, modder.inject( pom, session ) );
+        }
 
         assertNoErrors( session );
 
-        final String g = "org.commonjava.rwx";
+        final Set<Dependency> result =
+            assertProjectsNormalizedToBOMs( poms, Collections.singleton( bom ),
+                                            skipped.toArray( new VersionlessProjectKey[] {} ) );
 
-        final Set<Dependency> skipped =
-            assertPOMsNormalizedToBOMs( modified, Collections.singleton( bom ),
-                                        new VersionlessProjectKey( g, "rwx-parent" ),
-                                        new VersionlessProjectKey( g, "rwx-core" ),
-                                        new VersionlessProjectKey( g, "rwx-bindings" ),
-                                        new VersionlessProjectKey( g, "rwx-http" ) );
-
-        for ( final Dependency dep : skipped )
+        for ( final Dependency dep : result )
         {
             assertThat( "Dependency: " + dep + " should NOT be modified!", dep.getVersion(), notNullValue() );
         }
@@ -285,14 +274,31 @@ public class BOMManagementTest
     {
         System.out.println( "Complete repository test..." );
 
-        final File srcRepo = getResourceFile( "repository" );
-        final String bom = getResourceFile( "bom.xml" ).getAbsolutePath();
+        final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
 
-        FileUtils.copyDirectoryStructure( srcRepo, repo );
+        final Set<Project> poms = loadProjects( "repository", session );
+        final Set<VersionlessProjectKey> skipped = new HashSet<VersionlessProjectKey>( poms.size() );
+        for ( final Project project : poms )
+        {
+            skipped.add( new VersionlessProjectKey( project.getKey() ) );
+        }
 
-        modifyRepo( false, bom );
+        final Project bom = loadProject( "bom.xml" );
 
-        System.out.println( "\n\n" );
+        configureSession( Collections.singletonList( bom.getPom()
+                                                        .getAbsolutePath() ), null, session );
+        session.setCurrentProjects( poms );
+
+        final Map<Project, Boolean> results = new HashMap<Project, Boolean>();
+        final BomModder modder = new BomModder();
+        for ( final Project pom : poms )
+        {
+            results.put( pom, modder.inject( pom, session ) );
+        }
+
+        assertNoErrors( session );
+        assertProjectsNormalizedToBOMs( poms, Collections.singleton( bom ),
+                                        skipped.toArray( new VersionlessProjectKey[] {} ) );
     }
 
     @Test
@@ -301,29 +307,44 @@ public class BOMManagementTest
     {
         System.out.println( "Repository POM non-interference test..." );
 
-        final File srcRepo = getResourceFile( "projects-with-property-refs" );
-        final String bom = getResourceFile( "bom.xml" ).getAbsolutePath();
+        final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
 
-        FileUtils.copyDirectoryStructure( srcRepo, repo );
-
-        final VersionManagerSession session = createVersionManagerSession();
-
-        final Set<File> results =
-            vman.modifyVersions( repo, "**/*.pom", "", Collections.singletonList( bom ), null, session );
-        assertNoErrors( session );
-        for ( final File file : results )
+        final Set<Project> poms = loadProjects( "projects-with-property-refs", session );
+        final Set<VersionlessProjectKey> skipped = new HashSet<VersionlessProjectKey>( poms.size() );
+        for ( final Project project : poms )
         {
-            if ( "rwx-parent-0.2.1.pom".equals( file.getName() ) )
+            skipped.add( new VersionlessProjectKey( project.getKey() ) );
+        }
+
+        final Project bom = loadProject( "bom.xml" );
+
+        configureSession( Collections.singletonList( bom.getPom()
+                                                        .getAbsolutePath() ), null, session );
+        session.setCurrentProjects( poms );
+
+        final Map<Project, Boolean> results = new HashMap<Project, Boolean>();
+        final BomModder modder = new BomModder();
+        for ( final Project pom : poms )
+        {
+            results.put( pom, modder.inject( pom, session ) );
+        }
+
+        assertNoErrors( session );
+        assertProjectsNormalizedToBOMs( poms, Collections.singleton( bom ),
+                                        skipped.toArray( new VersionlessProjectKey[] {} ) );
+        for ( final Project project : poms )
+        {
+            if ( "rwx-parent".equals( project.getArtifactId() ) )
             {
-                final String result = FileUtils.fileRead( file );
-                assertTrue( "Non-dependency POM interpolation preserved in output!",
-                            result.contains( "<finalName>${artifactId}</finalName>" ) );
+                assertThat( project.getModel()
+                                   .getBuild(), notNullValue() );
+                assertThat( project.getModel()
+                                   .getBuild()
+                                   .getFinalName(), equalTo( "${artifactId}" ) );
 
                 break;
             }
         }
-
-        System.out.println( "\n\n" );
     }
 
     @Test
@@ -332,14 +353,32 @@ public class BOMManagementTest
     {
         System.out.println( "Partial repository test..." );
 
-        final File srcRepo = getResourceFile( "repository.partial" );
-        final String bom = getResourceFile( "bom.xml" ).getAbsolutePath();
+        final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
 
-        FileUtils.copyDirectoryStructure( srcRepo, repo );
+        final Set<Project> poms = loadProjects( "repository.partial", session );
+        final Set<VersionlessProjectKey> skipped = new HashSet<VersionlessProjectKey>( poms.size() );
+        for ( final Project project : poms )
+        {
+            skipped.add( new VersionlessProjectKey( project.getKey() ) );
+        }
 
-        modifyRepo( false, bom );
+        final Project bom = loadProject( "bom.xml" );
 
-        System.out.println( "\n\n" );
+        configureSession( Collections.singletonList( bom.getPom()
+                                                        .getAbsolutePath() ), null, session );
+        session.setCurrentProjects( poms );
+
+        final Map<Project, Boolean> results = new HashMap<Project, Boolean>();
+        final BomModder modder = new BomModder();
+        for ( final Project pom : poms )
+        {
+            results.put( pom, modder.inject( pom, session ) );
+        }
+
+        assertNoErrors( session );
+
+        assertProjectsNormalizedToBOMs( poms, Collections.singleton( bom ),
+                                        skipped.toArray( new VersionlessProjectKey[] {} ) );
     }
 
     @Test
@@ -348,15 +387,41 @@ public class BOMManagementTest
     {
         System.out.println( "Complete repository test..." );
 
-        final File srcRepo = getResourceFile( "repository" );
-        final String bom1 = getResourceFile( "bom.part1.xml" ).getAbsolutePath();
-        final String bom2 = getResourceFile( "bom.part2.xml" ).getAbsolutePath();
+        final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
 
-        FileUtils.copyDirectoryStructure( srcRepo, repo );
+        final Set<Project> poms = loadProjects( "repository", session );
 
-        modifyRepo( false, bom1, bom2 );
+        final Set<VersionlessProjectKey> skipped = new HashSet<VersionlessProjectKey>( poms.size() );
+        for ( final Project project : poms )
+        {
+            skipped.add( new VersionlessProjectKey( project.getKey() ) );
+        }
 
-        System.out.println( "\n\n" );
+        final Set<Project> boms = new HashSet<Project>();
+        boms.add( loadProject( "bom.part1.xml" ) );
+        boms.add( loadProject( "bom.part2.xml" ) );
+
+        final List<String> bomPaths = new ArrayList<String>();
+        for ( final Project bom : boms )
+        {
+            bomPaths.add( bom.getPom()
+                             .getAbsolutePath() );
+        }
+
+        configureSession( bomPaths, null, session );
+
+        session.setCurrentProjects( poms );
+
+        final Map<Project, Boolean> results = new HashMap<Project, Boolean>();
+        final BomModder modder = new BomModder();
+        for ( final Project pom : poms )
+        {
+            results.put( pom, modder.inject( pom, session ) );
+        }
+
+        assertNoErrors( session );
+
+        assertProjectsNormalizedToBOMs( poms, boms, skipped.toArray( new VersionlessProjectKey[] {} ) );
     }
 
     @Test
@@ -365,43 +430,40 @@ public class BOMManagementTest
     {
         System.out.println( "Partial repository test..." );
 
-        final File srcRepo = getResourceFile( "repository.partial" );
-        final String bom1 = getResourceFile( "bom.part1.xml" ).getAbsolutePath();
-        final String bom2 = getResourceFile( "bom.part2.xml" ).getAbsolutePath();
+        final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
 
-        FileUtils.copyDirectoryStructure( srcRepo, repo );
+        final Set<Project> poms = loadProjects( "repository.partial", session );
+        final Set<VersionlessProjectKey> skipped = new HashSet<VersionlessProjectKey>( poms.size() );
+        for ( final Project project : poms )
+        {
+            skipped.add( new VersionlessProjectKey( project.getKey() ) );
+        }
 
-        modifyRepo( false, bom1, bom2 );
+        final Set<Project> boms = new HashSet<Project>();
+        boms.add( loadProject( "bom.part1.xml" ) );
+        boms.add( loadProject( "bom.part2.xml" ) );
 
-        System.out.println( "\n\n" );
-    }
+        final List<String> bomPaths = new ArrayList<String>();
+        for ( final Project bom : boms )
+        {
+            bomPaths.add( bom.getPom()
+                             .getAbsolutePath() );
+        }
 
-    @Test
-    public void modifySinglePom()
-        throws Exception
-    {
-        System.out.println( "Single POM test..." );
+        configureSession( bomPaths, null, session );
 
-        final File srcPom = getResourceFile( "rwx-parent-0.2.1.pom" );
-        final String bom = getResourceFile( "bom.xml" ).getAbsolutePath();
+        session.setCurrentProjects( poms );
 
-        final File pom = new File( repo, srcPom.getName() );
-        FileUtils.copyFile( srcPom, pom );
+        final Map<Project, Boolean> results = new HashMap<Project, Boolean>();
+        final BomModder modder = new BomModder();
+        for ( final Project pom : poms )
+        {
+            results.put( pom, modder.inject( pom, session ) );
+        }
 
-        final VersionManagerSession session = createVersionManagerSession();
+        assertNoErrors( session );
 
-        /* final File out = */vman.modifyVersions( pom, Collections.singletonList( bom ), getToolchainPath(), session );
-        vman.generateReports( reports, session );
-
-        // final String source = FileUtils.fileRead( srcPom );
-        //
-        // System.out.println( "Original source POM:\n\n" + source );
-        //
-        // final String result = FileUtils.fileRead( out );
-        //
-        // System.out.println( "Rewritten POM:\n\n" + result );
-
-        System.out.println( "\n\n" );
+        assertProjectsNormalizedToBOMs( poms, boms, skipped.toArray( new VersionlessProjectKey[] {} ) );
     }
 
     @Test
@@ -410,19 +472,17 @@ public class BOMManagementTest
     {
         System.out.println( "Single POM test (interpolated BOM)..." );
 
-        final File srcPom = getResourceFile( "rwx-parent-0.2.1.pom" );
-        final String bom = getResourceFile( "bom.interp.xml" ).getAbsolutePath();
+        final Project pom = loadProject( "rwx-parent-0.2.1.pom" );
+        final Project bom = loadProject( "bom.interp.xml" );
 
-        final File pom = new File( repo, srcPom.getName() );
-        FileUtils.copyFile( srcPom, pom );
+        final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
+        configureSession( Collections.singletonList( bom.getPom()
+                                                        .getAbsolutePath() ), null, session );
 
-        final VersionManagerSession session = createVersionManagerSession();
+        final boolean changed = new BomModder().inject( pom, session );
 
-        vman.modifyVersions( pom, Collections.singletonList( bom ), null, session );
+        assertThat( changed, equalTo( true ) );
         assertNoErrors( session );
-        vman.generateReports( reports, session );
-
-        System.out.println( "\n\n" );
     }
 
     @Test
@@ -431,25 +491,22 @@ public class BOMManagementTest
     {
         System.out.println( "Single POM test (with relocations)..." );
 
-        final File srcPom = getResourceFile( "rwx-parent-0.2.1.pom" );
-        final String bom = getResourceFile( "bom-relocations.xml" ).getAbsolutePath();
+        final Project pom = loadProject( "rwx-parent-0.2.1.pom" );
+        final Project bom = loadProject( "bom-relocations.xml" );
 
-        final File pom = new File( repo, srcPom.getName() );
-        FileUtils.copyFile( srcPom, pom );
+        final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
+        configureSession( Collections.singletonList( bom.getPom()
+                                                        .getAbsolutePath() ), null, session );
 
-        final VersionManagerSession session = createVersionManagerSession();
+        final boolean changed = new BomModder().inject( pom, session );
 
-        final Set<File> modified = vman.modifyVersions( pom, Collections.singletonList( bom ), null, session );
+        assertThat( changed, equalTo( true ) );
         assertNoErrors( session );
 
-        assertNotNull( modified );
-        assertThat( modified.size(), equalTo( 1 ) );
+        final StringWriter sw = new StringWriter();
+        new MavenXpp3Writer().write( sw, pom.getModel() );
+        final String result = sw.toString();
 
-        final File out = modified.iterator()
-                                 .next();
-        vman.generateReports( reports, session );
-
-        final String result = FileUtils.fileRead( out );
         assertFalse( result.contains( "<groupId>commons-codec</groupId>" ) );
         assertFalse( result.contains( "<groupId>commons-lang</groupId>" ) );
 
@@ -458,21 +515,21 @@ public class BOMManagementTest
 
     @Test
     public void modifySinglePomWithRelocations_InBom()
-        throws IOException, ProjectToolsException
+        throws Exception
     {
-        final Model original = loadModel( TEST_DIR + "relocate-dep.pom" );
+        final Project project = loadProject( TEST_DIR + "relocate-dep.pom" );
 
         final String bomPath = "bom-dep-1.0.pom";
-        final Model bomModel = loadModel( TEST_DIR + bomPath );
-        final MavenProject bomProject = new MavenProject( bomModel );
-        bomProject.setOriginalModel( bomModel );
+        final Project bom = loadProject( TEST_DIR + bomPath );
 
-        assertThat( original.getDependencies(), notNullValue() );
-        assertThat( original.getDependencies()
-                            .size(), equalTo( 1 ) );
+        final Model model = project.getModel();
+        assertThat( model.getDependencies(), notNullValue() );
+        assertThat( model.getDependencies()
+                         .size(), equalTo( 1 ) );
 
-        Dependency dep = original.getDependencies()
-                                 .get( 0 );
+        Dependency dep = model.getDependencies()
+                              .get( 0 );
+
         assertThat( dep.getArtifactId(), equalTo( "old-dep" ) );
         assertThat( dep.getVersion(), equalTo( "1.0" ) );
 
@@ -482,14 +539,12 @@ public class BOMManagementTest
                                                     .withStrict( true )
                                                     .build();
 
-        session.addBOM( getResourceFile( TEST_DIR + bomPath ), bomProject );
-
-        final Project project = new Project( original );
+        configureSession( Collections.singletonList( bom.getPom()
+                                                        .getAbsolutePath() ), null, session );
 
         final boolean changed = new BomModder().inject( project, session );
         assertThat( changed, equalTo( true ) );
 
-        final Model model = project.getModel();
         assertThat( model.getDependencies(), notNullValue() );
         assertThat( model.getDependencies()
                          .size(), equalTo( 1 ) );
@@ -502,21 +557,20 @@ public class BOMManagementTest
 
     @Test
     public void modifySinglePomWithRelocations_NotInBom_NonStrictMode()
-        throws IOException, ProjectToolsException
+        throws Exception
     {
-        final Model original = loadModel( TEST_DIR + "relocate-dep.pom" );
+        final Project project = loadProject( TEST_DIR + "relocate-dep.pom" );
 
         final String bomPath = "bom-empty-1.0.pom";
-        final Model bomModel = loadModel( TEST_DIR + bomPath );
-        final MavenProject bomProject = new MavenProject( bomModel );
-        bomProject.setOriginalModel( bomModel );
+        final Project bom = loadProject( TEST_DIR + bomPath );
 
-        assertThat( original.getDependencies(), notNullValue() );
-        assertThat( original.getDependencies()
-                            .size(), equalTo( 1 ) );
+        final Model model = project.getModel();
+        assertThat( model.getDependencies(), notNullValue() );
+        assertThat( model.getDependencies()
+                         .size(), equalTo( 1 ) );
 
-        Dependency dep = original.getDependencies()
-                                 .get( 0 );
+        Dependency dep = model.getDependencies()
+                              .get( 0 );
         assertThat( dep.getArtifactId(), equalTo( "old-dep" ) );
         assertThat( dep.getVersion(), equalTo( "1.0" ) );
 
@@ -526,14 +580,12 @@ public class BOMManagementTest
                                                     .withStrict( false )
                                                     .build();
 
-        session.addBOM( getResourceFile( TEST_DIR + bomPath ), bomProject );
-
-        final Project project = new Project( original );
+        configureSession( Collections.singletonList( bom.getPom()
+                                                        .getAbsolutePath() ), null, session );
 
         final boolean changed = new BomModder().inject( project, session );
         assertThat( changed, equalTo( true ) );
 
-        final Model model = project.getModel();
         assertThat( model.getDependencies(), notNullValue() );
         assertThat( model.getDependencies()
                          .size(), equalTo( 1 ) );
@@ -546,21 +598,21 @@ public class BOMManagementTest
 
     @Test
     public void modifySinglePomWithRelocations_NotInBom_StrictMode()
-        throws IOException, ProjectToolsException
+        throws Exception
     {
-        final Model original = loadModel( TEST_DIR + "relocate-dep.pom" );
+        final Project project = loadProject( TEST_DIR + "relocate-dep.pom" );
 
         final String bomPath = "bom-empty-1.0.pom";
-        final Model bomModel = loadModel( TEST_DIR + bomPath );
-        final MavenProject bomProject = new MavenProject( bomModel );
-        bomProject.setOriginalModel( bomModel );
+        final Project bom = loadProject( TEST_DIR + bomPath );
 
-        assertThat( original.getDependencies(), notNullValue() );
-        assertThat( original.getDependencies()
-                            .size(), equalTo( 1 ) );
+        final Model model = project.getModel();
+        assertThat( model.getDependencies(), notNullValue() );
+        assertThat( model.getDependencies()
+                         .size(), equalTo( 1 ) );
 
-        Dependency dep = original.getDependencies()
-                                 .get( 0 );
+        Dependency dep = model.getDependencies()
+                              .get( 0 );
+
         assertThat( dep.getArtifactId(), equalTo( "old-dep" ) );
         assertThat( dep.getVersion(), equalTo( "1.0" ) );
 
@@ -570,14 +622,12 @@ public class BOMManagementTest
                                                     .withStrict( true )
                                                     .build();
 
-        session.addBOM( getResourceFile( TEST_DIR + bomPath ), bomProject );
-
-        final Project project = new Project( original );
+        configureSession( Collections.singletonList( bom.getPom()
+                                                        .getAbsolutePath() ), null, session );
 
         final boolean changed = new BomModder().inject( project, session );
         assertThat( changed, equalTo( true ) );
 
-        final Model model = project.getModel();
         assertThat( model.getDependencies(), notNullValue() );
         assertThat( model.getDependencies()
                          .size(), equalTo( 1 ) );
@@ -590,7 +640,7 @@ public class BOMManagementTest
 
     @Test
     public void modifySinglePomWithNonBOMRelocatedCoordinates()
-        throws IOException, ProjectToolsException
+        throws Exception
     {
         System.out.println( "Single POM test (with relocations NOT from BOM)..." );
 
@@ -604,7 +654,7 @@ public class BOMManagementTest
                                                                                "new.group.id:new-artifact:1.0.0" )
                                                     .build();
 
-        vman.configureSession( Collections.singletonList( bom ), bom, session );
+        configureSession( Collections.singletonList( bom ), null, session );
 
         new BomModder().inject( new Project( model ), session );
 
@@ -625,7 +675,7 @@ public class BOMManagementTest
 
     @Test
     public void modifySinglePomWithNonBOMRelocatedCoordinatesWhenDepNotInBOM()
-        throws IOException, ProjectToolsException
+        throws Exception
     {
         System.out.println( "Single POM test (with relocations NOT from BOM, no dep in BOM)..." );
 
@@ -639,7 +689,7 @@ public class BOMManagementTest
                                                                                "new.group.id:new-artifact:1.0.0" )
                                                     .build();
 
-        vman.configureSession( Collections.singletonList( bom ), bom, session );
+        configureSession( Collections.singletonList( bom ), null, session );
 
         new BomModder().inject( new Project( model ), session );
 
@@ -660,7 +710,7 @@ public class BOMManagementTest
 
     @Test
     public void managedDepsMissingFromBOMIncludedInCapturePOM()
-        throws IOException, ProjectToolsException
+        throws Exception
     {
         System.out.println( "capture missing managed deps..." );
 
@@ -675,7 +725,7 @@ public class BOMManagementTest
         session.setCapturePom( capturePom );
         session.setCurrentProjects( Collections.singleton( model ) );
 
-        vman.configureSession( Collections.singletonList( bom ), bom, session );
+        configureSession( Collections.singletonList( bom ), null, session );
 
         new BomModder().inject( new Project( model ), session );
         new MissingInfoCapture().captureMissing( session );
@@ -704,7 +754,7 @@ public class BOMManagementTest
 
     @Test
     public void managedDepsMissingFromBOMIncludedInCapturePOM_NonStrictMode()
-        throws IOException, ProjectToolsException
+        throws Exception
     {
         System.out.println( "capture missing managed deps..." );
 
@@ -720,7 +770,7 @@ public class BOMManagementTest
         session.setCapturePom( capturePom );
         session.setCurrentProjects( Collections.singleton( model ) );
 
-        vman.configureSession( Collections.singletonList( bom ), bom, session );
+        configureSession( Collections.singletonList( bom ), null, session );
 
         new BomModder().inject( new Project( model ), session );
         new MissingInfoCapture().captureMissing( session );
@@ -749,7 +799,7 @@ public class BOMManagementTest
 
     @Test
     public void injectBOMsAheadOfPreexistingBOMInStrictMode()
-        throws ProjectToolsException, IOException
+        throws Exception
     {
         final File pom = getResourceFile( "pom-with-existing-import.xml" );
         final String bom1 = getResourceFile( "bom-min.xml" ).getAbsolutePath();
@@ -783,11 +833,12 @@ public class BOMManagementTest
 
         session.setCurrentProjects( Collections.singleton( model ) );
 
-        vman.configureSession( boms, null, session );
+        configureSession( boms, null, session );
 
-        new BomModder().inject( new Project( model ), session );
+        final boolean changed = new BomModder().inject( new Project( model ), session );
 
         assertNoErrors( session );
+        assertThat( changed, equalTo( true ) );
 
         assertThat( model.getDependencyManagement(), notNullValue() );
         assertThat( model.getDependencyManagement()

@@ -18,12 +18,12 @@
 
 package com.redhat.rcm.version.mgr;
 
+import static com.redhat.rcm.version.util.InputUtils.getIncludedSubpaths;
 import static com.redhat.rcm.version.util.PomUtils.writeModifiedPom;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -45,7 +45,6 @@ import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.component.annotations.Requirement;
-import org.codehaus.plexus.util.DirectoryScanner;
 import org.codehaus.plexus.util.FileUtils;
 import org.codehaus.plexus.util.StringUtils;
 import org.sonatype.aether.util.DefaultRequestTrace;
@@ -142,33 +141,8 @@ public class VersionManager
     {
         configureSession( boms, toolchain, session );
 
-        final DirectoryScanner scanner = new DirectoryScanner();
-        scanner.setBasedir( dir );
-
-        final String[] initExcludes = new String[] { session.getWorkspace()
-                                                            .getName() + "/**", session.getReports()
-                                                                                       .getName() + "/**" };
-
-        final String[] excludePattern =
-            pomExcludePattern == null ? new String[] {} : pomExcludePattern.split( "\\s*,\\s*" );
-
-        final String[] excludes = Arrays.copyOf( initExcludes, initExcludes.length + excludePattern.length );
-
-        System.arraycopy( excludePattern, 0, excludes, initExcludes.length, excludePattern.length );
-
-        scanner.setExcludes( excludes );
-        scanner.addDefaultExcludes();
-
-        final String[] includes = pomNamePattern.split( "\\s*,\\s*" );
-        scanner.setIncludes( includes );
-
-        scanner.scan();
-
+        final String[] includedSubpaths = getIncludedSubpaths( dir, pomNamePattern, pomExcludePattern, session );
         final List<File> pomFiles = new ArrayList<File>();
-        final String[] includedSubpaths = scanner.getIncludedFiles();
-
-        LOGGER.debug( "Scanning from " + dir + " and got included files " + Arrays.toString( includedSubpaths )
-            + " and got excluded files " + Arrays.toString( scanner.getExcludedFiles() ) );
 
         for ( final String subpath : includedSubpaths )
         {
@@ -303,6 +277,7 @@ public class VersionManager
         }
 
         LOGGER.info( "Modifying " + models.size() + " project(s)..." );
+        // TODO: Projects may need to be sorted to parents-first if we have to use modelBuilder where there are parent-child relationships.
         for ( final Project project : session.getCurrentProjects() )
         {
             LOGGER.info( "Modifying '" + project.getKey() + "'..." );
@@ -313,6 +288,7 @@ public class VersionManager
             boolean changed = false;
             if ( modders != null )
             {
+                // TODO: This may need to be the outer loop, if we need to deal with parent/child relationships in modelBuilder...
                 for ( final String key : modderKeys )
                 {
                     final ProjectModder modder = modders.get( key );

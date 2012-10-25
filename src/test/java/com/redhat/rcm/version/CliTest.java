@@ -19,7 +19,7 @@
 package com.redhat.rcm.version;
 
 import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModel;
-import static com.redhat.rcm.version.testutil.VManAssertions.assertNormalizedToBOMs;
+import static com.redhat.rcm.version.testutil.VManAssertions.assertPOMsNormalizedToBOMs;
 import static org.apache.commons.io.FileUtils.copyDirectory;
 import static org.apache.commons.io.FileUtils.copyFile;
 import static org.apache.commons.io.FileUtils.writeLines;
@@ -144,7 +144,6 @@ public class CliTest
         System.out.println( "\n\n" );
     }
 
-    
     /*
      * Validate the exit value. Use reflection to retrieve the value to avoid
      * having to create unnecessary accessors.
@@ -153,25 +152,25 @@ public class CliTest
     {
         try
         {
-            Field f = Cli.class.getDeclaredField( "exitValue" );
+            final Field f = Cli.class.getDeclaredField( "exitValue" );
             f.setAccessible( true );
-            assertThat( f.getInt( null ), equalTo( 0 ) );            
+            assertThat( f.getInt( null ), equalTo( 0 ) );
         }
-        catch ( SecurityException e )
+        catch ( final SecurityException e )
         {
-            fail ("Exception retrieving field information " + e);
+            fail( "Exception retrieving field information " + e );
         }
-        catch ( NoSuchFieldException e )
+        catch ( final NoSuchFieldException e )
         {
-            fail ("Exception retrieving field information " + e);
+            fail( "Exception retrieving field information " + e );
         }
-        catch ( IllegalArgumentException e )
+        catch ( final IllegalArgumentException e )
         {
-            fail ("Exception retrieving field information " + e);
+            fail( "Exception retrieving field information " + e );
         }
-        catch ( IllegalAccessException e )
+        catch ( final IllegalAccessException e )
         {
-            fail ("Exception retrieving field information " + e);
+            fail( "Exception retrieving field information " + e );
         }
     }
 
@@ -229,7 +228,7 @@ public class CliTest
         Cli.main( args );
         assertExitValue();
 
-        assertNormalizedToBOMs( Collections.singleton( pom ), Collections.singleton( bom ) );
+        assertPOMsNormalizedToBOMs( Collections.singleton( pom ), Collections.singleton( bom ) );
 
         System.out.println( "\n\n" );
     }

@@ -24,8 +24,6 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
@@ -34,52 +32,13 @@ import org.apache.maven.model.ActivationProperty;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Profile;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
-import com.redhat.rcm.version.fixture.LoggingFixture;
 import com.redhat.rcm.version.model.Project;
 
 public class TestRemovalTest
+    extends AbstractModderTest
 {
-
-    protected File repo;
-
-    protected File workspace;
-
-    protected File reports;
-
-    @Rule
-    public final TemporaryFolder tempFolder = new TemporaryFolder();
-
-    @BeforeClass
-    public static void logging()
-    {
-        LoggingFixture.setupLogging();
-    }
-
-    @Before
-    public void setupDirs()
-        throws IOException
-    {
-        if ( repo == null )
-        {
-            repo = tempFolder.newFolder( "repository" );
-        }
-
-        if ( workspace == null )
-        {
-            workspace = tempFolder.newFolder( "workspace" );
-        }
-
-        if ( reports == null )
-        {
-            reports = tempFolder.newFolder( "reports" );
-        }
-    }
 
     @Test
     public void testRemoveTest()
@@ -87,7 +46,8 @@ public class TestRemovalTest
     {
         final Model model = loadModel( "test-removal/pom-test-deps.xml" );
 
-        assertThat( model.getProperties().size(), equalTo( 0 ) );
+        assertThat( model.getProperties()
+                         .size(), equalTo( 0 ) );
 
         final boolean changed =
             new TestRemovalModder().inject( new Project( model ),
@@ -96,8 +56,10 @@ public class TestRemovalTest
                                                                       Collections.singletonList( "test:pom-test-deps" ) ) );
 
         assertThat( changed, equalTo( true ) );
-        assertThat( model.getProperties().size(), equalTo( 1 ) );
-        assertThat( model.getProperties().containsKey( TestRemovalModder.SKIP_TEST ), equalTo(true) );
+        assertThat( model.getProperties()
+                         .size(), equalTo( 1 ) );
+        assertThat( model.getProperties()
+                         .containsKey( TestRemovalModder.SKIP_TEST ), equalTo( true ) );
 
         final List<Dependency> dep = model.getDependencies();
         for ( final Dependency d : dep )

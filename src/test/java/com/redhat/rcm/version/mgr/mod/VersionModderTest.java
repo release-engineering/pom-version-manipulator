@@ -22,48 +22,14 @@ import static com.redhat.rcm.version.testutil.TestProjectUtils.newVersionManager
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
-import java.io.File;
-import java.io.IOException;
-
 import org.apache.maven.model.Model;
-import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 import com.redhat.rcm.version.model.Project;
 
 public class VersionModderTest
+    extends AbstractModderTest
 {
-
-    protected File repo;
-
-    protected File workspace;
-
-    protected File reports;
-
-    @Rule
-    public final TemporaryFolder tempFolder = new TemporaryFolder();
-
-    @Before
-    public void setupDirs()
-        throws IOException
-    {
-        if ( repo == null )
-        {
-            repo = tempFolder.newFolder( "repository" );
-        }
-
-        if ( workspace == null )
-        {
-            workspace = tempFolder.newFolder( "workspace" );
-        }
-
-        if ( reports == null )
-        {
-            reports = tempFolder.newFolder( "reports" );
-        }
-    }
 
     @Test
     public void testVersionReplaceVersion()
@@ -73,14 +39,13 @@ public class VersionModderTest
 
         assertThat( model.getVersion(), equalTo( "1.0.1" ) );
 
-        final boolean changed = new VersionModder().inject( new Project( model ),
-            newVersionManagerSession( workspace, reports, "dummy-suffix", "1.0.1:Alpha1" ) );
+        final boolean changed =
+            new VersionModder().inject( new Project( model ),
+                                        newVersionManagerSession( workspace, reports, "dummy-suffix", "1.0.1:Alpha1" ) );
 
         assertThat( changed, equalTo( true ) );
-        assertThat( model.getVersion(), equalTo( "Alpha1") );
+        assertThat( model.getVersion(), equalTo( "Alpha1" ) );
     }
-
-
 
     @Test
     public void testVersionReplaceSubset()
@@ -90,10 +55,11 @@ public class VersionModderTest
 
         assertThat( model.getVersion(), equalTo( "0.2.1" ) );
 
-        final boolean changed = new VersionModder().inject( new Project( model ),
-            newVersionManagerSession( workspace, reports, "dummy-suffix", "1:Alpha1" ) );
+        final boolean changed =
+            new VersionModder().inject( new Project( model ),
+                                        newVersionManagerSession( workspace, reports, "dummy-suffix", "1:Alpha1" ) );
 
         assertThat( changed, equalTo( true ) );
-        assertThat( model.getVersion(), equalTo( "0.2.Alpha1") );
+        assertThat( model.getVersion(), equalTo( "0.2.Alpha1" ) );
     }
 }

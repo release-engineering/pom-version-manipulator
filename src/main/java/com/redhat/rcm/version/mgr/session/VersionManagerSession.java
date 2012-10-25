@@ -546,4 +546,9 @@ public class VersionManagerSession
         return changeInfo.getRelocatedCoordinatesByFile();
     }
 
+    public void setCurrentProjects( final Set<Project> projects )
+    {
+        managedInfo.setCurrentProjects( projects );
+    }
+
 }

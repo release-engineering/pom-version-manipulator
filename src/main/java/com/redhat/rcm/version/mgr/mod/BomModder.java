@@ -184,6 +184,7 @@ public class BomModder
         }
 
         VersionlessProjectKey key = new VersionlessProjectKey( dep.getGroupId(), dep.getArtifactId() );
+
         if ( session.isCurrentProject( key ) )
         {
             LOGGER.info( "NOT CHANGING version for interdependency from current project set: " + key );

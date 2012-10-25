@@ -329,6 +329,17 @@ class ManagedInfo
                         : new VersionlessProjectKey( toolchainKey ).equals( new VersionlessProjectKey( parent ) );
     }
 
+    synchronized void setCurrentProjects( final Set<Project> projects )
+    {
+        currentProjects.clear();
+        currentProjectsByKey.clear();
+        for ( final Project project : projects )
+        {
+            currentProjects.add( project );
+            currentProjectsByKey.put( toVersionlessKey( project.getKey() ), project );
+        }
+    }
+
     synchronized void setCurrentProjects( final Collection<Model> models )
         throws ProjectToolsException
     {
@@ -354,7 +365,10 @@ class ManagedInfo
 
     boolean isCurrentProject( final ProjectKey key )
     {
-        return currentProjectsByKey.containsKey( toVersionlessKey( key ) );
+        final VersionlessProjectKey vk = toVersionlessKey( key );
+        final Project prj = currentProjectsByKey.get( vk );
+
+        return currentProjectsByKey.containsKey( vk );
     }
 
     PropertyMappings getPropertyMapping()
@@ -362,14 +376,14 @@ class ManagedInfo
         return propertyMappings;
     }
 
-    public Project getCurrentProject( final ProjectKey key )
+    Project getCurrentProject( final ProjectKey key )
     {
         return currentProjectsByKey.get( toVersionlessKey( key ) );
     }
 
     private VersionlessProjectKey toVersionlessKey( final ProjectKey key )
     {
-        return (VersionlessProjectKey) ( key instanceof VersionlessProjectKey ? key : new VersionlessProjectKey( key ) );
+        return (VersionlessProjectKey) ( key instanceof FullProjectKey ? new VersionlessProjectKey( key ) : key );
     }
 
 }

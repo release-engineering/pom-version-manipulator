@@ -18,6 +18,7 @@
 
 package com.redhat.rcm.version.testutil;
 
+import static com.redhat.rcm.version.util.InputUtils.getIncludedSubpaths;
 import static junit.framework.Assert.fail;
 import static org.apache.commons.io.FileUtils.copyFile;
 
@@ -39,11 +40,14 @@ import org.apache.maven.model.Model;
 import org.apache.maven.model.io.DefaultModelReader;
 import org.apache.maven.model.io.ModelReader;
 import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
+import org.apache.maven.project.MavenProject;
 import org.junit.rules.TemporaryFolder;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.mod.ProjectModder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
+import com.redhat.rcm.version.model.Project;
+import com.redhat.rcm.version.util.InputUtils;
 
 public final class TestProjectUtils
 {
@@ -53,10 +57,11 @@ public final class TestProjectUtils
     }
 
     public static VersionManagerSession newVersionManagerSession( final File workspace, final File reports,
-                                                                  final String suffix, final String modifier)
+                                                                  final String suffix, final String modifier )
     {
-        return new SessionBuilder( workspace, reports ).withVersionSuffix( suffix ).
-                        withVersionModifier( modifier ).build();
+        return new SessionBuilder( workspace, reports ).withVersionSuffix( suffix )
+                                                       .withVersionModifier( modifier )
+                                                       .build();
     }
 
     public static VersionManagerSession newVersionManagerSession( final File workspace, final File reports,
@@ -69,19 +74,19 @@ public final class TestProjectUtils
     public static VersionManagerSession newVersionManagerSession( final File workspace, final File reports,
                                                                   final String suffix,
                                                                   final Collection<String> removedPlugins,
-                                                                  final Collection<String> removedTests)
+                                                                  final Collection<String> removedTests )
     {
         return new SessionBuilder( workspace, reports ).withVersionSuffix( suffix )
                                                        .withRemovedPlugins( removedPlugins )
                                                        .withRemovedTests( removedTests )
                                                        .build();
     }
-    
+
     public static Set<String> getStandardModders()
     {
         return new HashSet<String>( Arrays.asList( ProjectModder.STANDARD_MODIFICATIONS ) );
     }
-    
+
     public static File getResourceFile( final String path )
     {
         final URL resource = Thread.currentThread()
@@ -119,6 +124,62 @@ public final class TestProjectUtils
         options.put( ModelReader.IS_STRICT, Boolean.FALSE.toString() );
 
         return new DefaultModelReader().read( pom, options );
+    }
+
+    public static MavenProject mavenProjectFor( final Project project )
+    {
+        final MavenProject result = new MavenProject( project.getModel() );
+        result.setOriginalModel( project.getModel() );
+        result.setFile( project.getPom() );
+
+        return result;
+    }
+
+    public static Set<Project> loadProjects( final String path, final VersionManagerSession session )
+        throws Exception
+    {
+        final File dir = getResourceFile( path );
+        final String[] poms = getIncludedSubpaths( dir, null, null, session );
+
+        final Set<Project> projects = new HashSet<Project>( poms.length );
+        for ( final String fname : poms )
+        {
+            final File f = new File( dir, fname );
+            projects.add( loadProject( f ) );
+        }
+
+        return projects;
+    }
+
+    public static Set<Project> loadProjects( final File dir, final VersionManagerSession session )
+        throws Exception
+    {
+        final String[] poms = InputUtils.getIncludedSubpaths( dir, null, null, session );
+
+        final Set<Project> projects = new HashSet<Project>( poms.length );
+        for ( final String fname : poms )
+        {
+            final File f = new File( dir, fname );
+            projects.add( loadProject( f ) );
+        }
+
+        return projects;
+    }
+
+    public static Project loadProject( final String path )
+        throws Exception
+    {
+        final File pom = getResourceFile( path );
+        return new Project( pom, loadModel( pom ) );
+    }
+
+    public static Project loadProject( final File pom )
+        throws Exception
+    {
+        final Map<String, Object> options = new HashMap<String, Object>();
+        options.put( ModelReader.IS_STRICT, Boolean.FALSE.toString() );
+
+        return new Project( pom, loadModel( pom ) );
     }
 
     public static FullProjectKey loadProjectKey( final String path )

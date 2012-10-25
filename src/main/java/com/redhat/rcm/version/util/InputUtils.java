@@ -49,8 +49,10 @@ import org.apache.http.conn.params.ConnRouteParams;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.log4j.Logger;
+import org.codehaus.plexus.util.DirectoryScanner;
 
 import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
 public final class InputUtils
 {
@@ -59,6 +61,40 @@ public final class InputUtils
 
     private InputUtils()
     {
+    }
+
+    public static String[] getIncludedSubpaths( final File basedir, final String includes, final String excludes,
+                                                final VersionManagerSession session )
+    {
+        final DirectoryScanner scanner = new DirectoryScanner();
+        scanner.setBasedir( basedir );
+
+        final String[] initExcludes = new String[] { session.getWorkspace()
+                                                            .getName() + "/**", session.getReports()
+                                                                                       .getName() + "/**" };
+
+        final String[] excludePattern = excludes == null ? new String[] {} : excludes.split( "\\s*,\\s*" );
+
+        final String[] excluded = Arrays.copyOf( initExcludes, initExcludes.length + excludePattern.length );
+
+        System.arraycopy( excludePattern, 0, excluded, initExcludes.length, excludePattern.length );
+
+        scanner.setExcludes( excluded );
+        scanner.addDefaultExcludes();
+
+        final String[] included =
+            includes == null ? new String[] { "**/pom.xml", "**/*.pom" } : includes.split( "\\s*,\\s*" );
+
+        scanner.setIncludes( included );
+
+        scanner.scan();
+
+        final String[] includedSubpaths = scanner.getIncludedFiles();
+
+        LOGGER.debug( "Scanning from " + basedir + " and got included files " + Arrays.toString( includedSubpaths )
+            + " and got excluded files " + Arrays.toString( scanner.getExcludedFiles() ) );
+
+        return includedSubpaths;
     }
 
     public static List<String> readListProperty( final Properties props, final String property )
@@ -342,14 +378,14 @@ public final class InputUtils
                     HttpResponse response = client.execute( get );
                     // Work around for scenario where we are loading from a server
                     // that does a refresh e.g. gitweb
-                    if (response.containsHeader( "Cache-control" ))
+                    if ( response.containsHeader( "Cache-control" ) )
                     {
                         LOGGER.info( "Waiting for server to generate cache..." );
                         try
                         {
-                            Thread.sleep (5000);
+                            Thread.sleep( 5000 );
                         }
-                        catch ( InterruptedException e )
+                        catch ( final InterruptedException e )
                         {
                         }
                         get.abort();

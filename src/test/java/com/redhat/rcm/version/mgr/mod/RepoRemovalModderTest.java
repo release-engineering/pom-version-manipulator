@@ -23,47 +23,13 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 import org.apache.maven.model.Model;
-import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 import com.redhat.rcm.version.model.Project;
 
-import java.io.File;
-import java.io.IOException;
-
 public class RepoRemovalModderTest
+    extends AbstractModderTest
 {
-
-    protected File repo;
-
-    protected File workspace;
-
-    protected File reports;
-
-    @Rule
-    public final TemporaryFolder tempFolder = new TemporaryFolder();
-
-    @Before
-    public void setupDirs()
-        throws IOException
-    {
-        if ( repo == null )
-        {
-            repo = tempFolder.newFolder( "repository" );
-        }
-
-        if ( workspace == null )
-        {
-            workspace = tempFolder.newFolder( "workspace" );
-        }
-
-        if ( reports == null )
-        {
-            reports = tempFolder.newFolder( "reports" );
-        }
-    }
 
     @Test
     public void removeRegularRepository()
@@ -71,14 +37,16 @@ public class RepoRemovalModderTest
     {
         final Model model = loadModel( "pom-with-repo.xml" );
 
-        assertThat( model.getRepositories().size(), equalTo( 1 ) );
+        assertThat( model.getRepositories()
+                         .size(), equalTo( 1 ) );
 
         final boolean changed =
             new RepoRemovalModder().inject( new Project( model ),
                                             newVersionManagerSession( workspace, reports, "-rebuild-1" ) );
 
         assertThat( changed, equalTo( true ) );
-        assertThat( model.getRepositories().size(), equalTo( 0 ) );
+        assertThat( model.getRepositories()
+                         .size(), equalTo( 0 ) );
     }
 
     @Test
@@ -87,14 +55,16 @@ public class RepoRemovalModderTest
     {
         final Model model = loadModel( "pom-with-pluginRepo.xml" );
 
-        assertThat( model.getPluginRepositories().size(), equalTo( 1 ) );
+        assertThat( model.getPluginRepositories()
+                         .size(), equalTo( 1 ) );
 
         final boolean changed =
             new RepoRemovalModder().inject( new Project( model ),
                                             newVersionManagerSession( workspace, reports, "-rebuild-1" ) );
 
         assertThat( changed, equalTo( true ) );
-        assertThat( model.getPluginRepositories().size(), equalTo( 0 ) );
+        assertThat( model.getPluginRepositories()
+                         .size(), equalTo( 0 ) );
     }
 
 }

@@ -23,49 +23,15 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 import org.apache.maven.model.Model;
-import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.testutil.SessionBuilder;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.Collections;
 
-public class ExtensionsRemovalModderTest
+public class ExtensionsRemovalModderTest extends AbstractModderTest
 {
-    protected File repo;
-
-    protected File workspace;
-
-    protected File reports;
-
-    @Rule
-    public final TemporaryFolder tempFolder = new TemporaryFolder();
-
-    @Before
-    public void setupDirs()
-        throws IOException
-    {
-        if ( repo == null )
-        {
-            repo = tempFolder.newFolder( "repository" );
-        }
-
-        if ( workspace == null )
-        {
-            workspace = tempFolder.newFolder( "workspace" );
-        }
-
-        if ( reports == null )
-        {
-            reports = tempFolder.newFolder( "reports" );
-        }
-    }
-
     @Test
     public void removeExtensions()
         throws Exception
