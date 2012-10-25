@@ -18,6 +18,8 @@
 
 package com.redhat.rcm.version.mgr.session;
 
+import static com.redhat.rcm.version.util.AnnotationUtils.nameOf;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -32,8 +34,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import javax.inject.Named;
 
 import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.FullProjectKey;
@@ -577,16 +577,14 @@ public class VersionManagerSession
 
     public String getReportFilename( final Class<? extends Report> cls )
     {
-        final Named named = cls.getAnnotation( Named.class );
-        if ( named == null || named.value()
-                                   .trim()
-                                   .length() < 1 )
+        final String named = nameOf( cls );
+        if ( named == null )
         {
             throw new IllegalArgumentException(
                                                 "Cannot find valid @Named annotation, which should hold the report filename." );
         }
 
-        return named.value();
+        return named;
     }
 
 }
