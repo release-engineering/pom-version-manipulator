@@ -18,43 +18,35 @@
 
 package com.redhat.rcm.version.report;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
+import java.util.Map;
+import java.util.TreeMap;
+
+import javax.inject.Named;
+import javax.inject.Singleton;
+
 import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
-import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.util.IOUtil;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.Map;
-import java.util.TreeMap;
-
-@Component( role = Report.class, hint = MappedDependenciesReport.ID )
+@Singleton
+@Named( "mapped-dependencies.log" )
 public class MappedDependenciesReport
     implements Report
 {
-    public static final String ID = "mapped-dependencies";
-
-    @Override
-    public String getId()
-    {
-        return ID;
-    }
-
     @Override
     public void generate( final File reportsDir, final VersionManagerSession sessionData )
         throws VManException
     {
-        final File report = new File( reportsDir, ID + ".txt" );
-
         BufferedWriter writer = null;
         try
         {
-            writer = new BufferedWriter( new FileWriter( report ) );
+            writer = sessionData.openReportFile( this );
 
             final Map<File, Map<VersionlessProjectKey, String>> byBom = sessionData.getMappedDependenciesByBom();
             for ( final Map.Entry<File, Map<VersionlessProjectKey, String>> bomEntry : byBom.entrySet() )
@@ -89,7 +81,7 @@ public class MappedDependenciesReport
         }
         catch ( final IOException e )
         {
-            throw new VManException( "Failed to write to: %s. Reason: %s", e, report, e.getMessage() );
+            throw new VManException( "Failed to write mapped-dependencies report. Reason: %s", e, e.getMessage() );
         }
         finally
         {

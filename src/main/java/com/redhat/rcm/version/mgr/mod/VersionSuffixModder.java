@@ -18,13 +18,14 @@
 
 package com.redhat.rcm.version.mgr.mod;
 
-import org.codehaus.plexus.component.annotations.Component;
+import javax.inject.Named;
 
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
-@Component( role = ProjectModder.class, hint = "version-suffix" )
-public class VersionSuffixModder extends AbstractVersionModder
+@Named( "modder/version-suffix" )
+public class VersionSuffixModder
+    extends AbstractVersionModder
 {
     private String suffix;
 
@@ -35,29 +36,29 @@ public class VersionSuffixModder extends AbstractVersionModder
     }
 
     @Override
-    protected String getActionDescription ()
+    protected String getActionDescription()
     {
         return "Adding suffix " + suffix;
     }
 
     @Override
-    protected boolean verifyVersion (String version)
+    protected boolean verifyVersion( final String version )
     {
-        return !version.endsWith( suffix ) && !isTemplateVersion(version);
+        return !version.endsWith( suffix ) && !isTemplateVersion( version );
     }
 
     @Override
-    protected String replaceVersion (String version)
+    protected String replaceVersion( final String version )
     {
-        return (version + suffix);
+        return ( version + suffix );
     }
 
     @Override
-    protected boolean initialiseModder (final Project project, final VersionManagerSession session)
+    protected boolean initialiseModder( final Project project, final VersionManagerSession session )
     {
-        boolean result = (session.getVersionSuffix() != null);
+        final boolean result = ( session.getVersionSuffix() != null );
 
-        if (result)
+        if ( result )
         {
             suffix = session.getVersionSuffix();
         }

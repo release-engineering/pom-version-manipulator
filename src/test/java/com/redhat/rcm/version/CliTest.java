@@ -38,6 +38,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 import org.junit.Before;
@@ -48,7 +49,7 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 
 import com.redhat.rcm.version.fixture.LoggingFixture;
-import com.redhat.rcm.version.mgr.VersionManager;
+import com.redhat.rcm.version.maven.MavenComponentProvider;
 import com.redhat.rcm.version.testutil.HttpTestService;
 
 public class CliTest
@@ -279,13 +280,16 @@ public class CliTest
 
         final File config = writeConfig( props );
 
-        final String[] args = { "-Z", "-C", config.getPath(), pom.getPath() };
+        final String[] args = { "--console", "-Z", "-C", config.getPath(), pom.getPath() };
 
         Cli.main( args );
 
         System.out.println( "\n\n" );
 
         assertThat( capturePom.exists(), equalTo( true ) );
+
+        final String capturePomStr = FileUtils.readFileToString( capturePom );
+        System.out.println( "Capture POM:\n\n" + capturePomStr + "\n\n" );
         final Model model = loadModel( capturePom );
         new MavenXpp3Writer().write( System.out, model );
     }
@@ -564,7 +568,7 @@ public class CliTest
     public static void enableClasspathScanning()
     {
         System.out.println( "Enabling classpath scanning..." );
-        VersionManager.setClasspathScanning( true );
+        MavenComponentProvider.setClasspathScanning( true );
     }
 
     @BeforeClass

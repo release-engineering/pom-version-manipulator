@@ -18,49 +18,42 @@
 
 package com.redhat.rcm.version.report;
 
-import org.apache.maven.mae.project.key.VersionlessProjectKey;
-import org.codehaus.plexus.component.annotations.Component;
-import org.codehaus.plexus.util.IOUtil;
-
-import com.redhat.rcm.version.VManException;
-import com.redhat.rcm.version.mgr.session.VersionManagerSession;
-
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-@Component( role = Report.class, hint = MissingVersionsReport.ID )
+import javax.inject.Named;
+import javax.inject.Singleton;
+
+import org.apache.maven.mae.project.key.VersionlessProjectKey;
+import org.codehaus.plexus.util.IOUtil;
+
+import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.mgr.session.VersionManagerSession;
+
+@Singleton
+@Named( "missing-versions.log" )
 public class MissingVersionsReport
     implements Report
 {
-    public static final String ID = "missing-versions";
-
-    @Override
-    public String getId()
-    {
-        return ID;
-    }
-
     @Override
     public void generate( final File reportsDir, final VersionManagerSession sessionData )
         throws VManException
     {
-        final File reportFile = new File( reportsDir, "missing-versions.log" );
-
         BufferedWriter writer = null;
         try
         {
-            writer = new BufferedWriter( new FileWriter( reportFile ) );
+            writer = sessionData.openReportFile( this );
 
             final Map<VersionlessProjectKey, Set<File>> missing =
                 new TreeMap<VersionlessProjectKey, Set<File>>( sessionData.getMissingVersions() );
             for ( final Map.Entry<VersionlessProjectKey, Set<File>> entry : missing.entrySet() )
             {
-                writer.write( entry.getKey().toString() );
+                writer.write( entry.getKey()
+                                   .toString() );
                 writer.newLine();
             }
 
@@ -76,7 +69,8 @@ public class MissingVersionsReport
 
             for ( final Map.Entry<VersionlessProjectKey, Set<File>> entry : missing.entrySet() )
             {
-                writer.write( entry.getKey().toString() );
+                writer.write( entry.getKey()
+                                   .toString() );
                 writer.write( ":" );
                 writer.newLine();
                 writer.write( "-----------------------------------------------------------" );
@@ -96,7 +90,7 @@ public class MissingVersionsReport
         }
         catch ( final IOException e )
         {
-            throw new VManException( "Failed to write to: %s. Reason: %s", e, reportFile, e.getMessage() );
+            throw new VManException( "Failed to write missing-versions report. Reason: %s", e, e.getMessage() );
         }
         finally
         {

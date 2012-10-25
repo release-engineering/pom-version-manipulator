@@ -18,6 +18,7 @@
 
 package com.redhat.rcm.version.mgr;
 
+import static com.redhat.rcm.version.util.AnnotationUtils.nameOf;
 import static com.redhat.rcm.version.util.InputUtils.getIncludedSubpaths;
 import static com.redhat.rcm.version.util.PomUtils.writeModifiedPom;
 
@@ -33,18 +34,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.PostConstruct;
+import javax.enterprise.inject.Instance;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
 import org.apache.log4j.Logger;
-import org.apache.maven.mae.MAEException;
-import org.apache.maven.mae.app.AbstractMAEApplication;
-import org.apache.maven.mae.boot.embed.MAEEmbedderBuilder;
 import org.apache.maven.mae.project.ModelLoader;
 import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
-import org.codehaus.plexus.component.annotations.Component;
-import org.codehaus.plexus.component.annotations.Requirement;
 import org.codehaus.plexus.util.FileUtils;
 import org.codehaus.plexus.util.StringUtils;
 import org.sonatype.aether.util.DefaultRequestTrace;
@@ -58,52 +59,99 @@ import com.redhat.rcm.version.mgr.verify.ProjectVerifier;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.report.Report;
 
-@Component( role = VersionManager.class )
+@Singleton
 public class VersionManager
-    extends AbstractMAEApplication
 {
 
     private static final Logger LOGGER = Logger.getLogger( VersionManager.class );
 
-    @Requirement
+    @Inject
     private ModelLoader modelLoader;
 
-    @Requirement( role = Report.class )
-    private Map<String, Report> reports;
+    @Inject
+    private Instance<Report> injectedReports;
 
-    @Requirement( role = ProjectModder.class )
+    private Set<Report> reports;
+
+    @Inject
+    private Instance<ProjectModder> injectedModders;
+
     private Map<String, ProjectModder> modders;
 
-    @Requirement( role = ProjectVerifier.class )
+    @Inject
+    private Instance<ProjectVerifier> injectedVerifiers;
+
     private Map<String, ProjectVerifier> verifiers;
 
-    @Requirement
+    @Inject
     private MissingInfoCapture capturer;
 
-    @Requirement
+    @Inject
     private SessionConfigurator sessionConfigurator;
 
     private HashMap<String, String> pomExcludedModules;
 
-    private static boolean useClasspathScanning = false;
-
-    private static Object lock = new Object();
-
-    private static VersionManager instance;
-
-    public static VersionManager getInstance()
-        throws MAEException
+    @PostConstruct
+    public void initialize()
     {
-        synchronized ( lock )
+        if ( injectedReports != null )
         {
-            if ( instance == null )
+            reports = new HashSet<Report>();
+            for ( final Report report : injectedReports )
             {
-                instance = new VersionManager();
-                instance.load();
+                reports.add( report );
             }
         }
 
-        return instance;
+        if ( injectedModders != null )
+        {
+            modders = new HashMap<String, ProjectModder>();
+            for ( final ProjectModder modder : injectedModders )
+            {
+                String named = nameOf( modder );
+                if ( named == null )
+                {
+                    throw new IllegalArgumentException( "Required @Named(..) annotation missing for ProjectModder: "
+                        + modder.getClass()
+                                .getName() );
+                }
+
+                if ( named.startsWith( "modder/" ) )
+                {
+                    named = named.substring( "modder/".length() );
+                }
+
+                LOGGER.info( "Adding modder: " + named + " (" + modder.getClass()
+                                                                      .getName() + ")" );
+
+                modders.put( named, modder );
+            }
+        }
+
+        if ( injectedVerifiers != null )
+        {
+            verifiers = new HashMap<String, ProjectVerifier>();
+            for ( final ProjectVerifier verifier : injectedVerifiers )
+            {
+                String named = nameOf( verifier );
+                if ( named == null )
+                {
+                    throw new IllegalArgumentException( "Required @Named(..) annotation missing for ProjectVerifier: "
+                        + verifier.getClass()
+                                  .getName() );
+                }
+
+                if ( named.startsWith( "verifier/" ) )
+                {
+                    named = named.substring( "verifier/".length() );
+                }
+
+                LOGGER.info( "Adding verifier: " + named + " (" + verifier.getClass()
+                                                                          .getName() + ")" );
+
+                verifiers.put( named, verifier );
+            }
+        }
     }
 
     public void generateReports( final File reportsDir, final VersionManagerSession sessionData )
@@ -111,10 +159,9 @@ public class VersionManager
         if ( reports != null )
         {
             final Set<String> ids = new HashSet<String>();
-            for ( final Map.Entry<String, Report> entry : reports.entrySet() )
+            for ( final Report report : reports )
             {
-                final String id = entry.getKey();
-                final Report report = entry.getValue();
+                final String id = nameOf( report );
 
                 if ( !id.endsWith( "_" ) )
                 {
@@ -423,37 +470,6 @@ public class VersionManager
         }
 
         return writeModifiedPom( model, pom, coord, version, basedir, session, relocatePom );
-    }
-
-    @Override
-    public String getId()
-    {
-        return "rh.vmod";
-    }
-
-    @Override
-    public String getName()
-    {
-        return "RedHat POM Version Modifier";
-    }
-
-    @Override
-    protected void configureBuilder( final MAEEmbedderBuilder builder )
-        throws MAEException
-    {
-        super.configureBuilder( builder );
-        if ( useClasspathScanning )
-        {
-            builder.withClassScanningEnabled( true );
-        }
-    }
-
-    public static void setClasspathScanning( final boolean scanning )
-    {
-        if ( instance == null )
-        {
-            useClasspathScanning = scanning;
-        }
     }
 
     public Map<String, ProjectModder> getModders()

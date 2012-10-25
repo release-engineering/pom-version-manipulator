@@ -18,17 +18,17 @@
 
 package com.redhat.rcm.version.mgr.mod;
 
-import org.codehaus.plexus.component.annotations.Component;
+import javax.inject.Named;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
-
-@Component( role = ProjectModder.class, hint = "version" )
-public class VersionModder extends AbstractVersionModder
+@Named( "modder/version" )
+public class VersionModder
+    extends AbstractVersionModder
 {
-    private String []versionModifier;
+    private String[] versionModifier;
 
     @Override
     public String getDescription()
@@ -37,36 +37,37 @@ public class VersionModder extends AbstractVersionModder
     }
 
     @Override
-    protected String getActionDescription ()
+    protected String getActionDescription()
     {
         return "Replacing " + versionModifier[1] + " with " + versionModifier[0];
     }
 
     @Override
-    protected boolean verifyVersion (String version)
+    protected boolean verifyVersion( final String version )
     {
-        return (version.indexOf(versionModifier[0]) != -1) && !isTemplateVersion(version);
+        return ( version.indexOf( versionModifier[0] ) != -1 ) && !isTemplateVersion( version );
     }
 
     @Override
-    protected String replaceVersion (String version)
+    protected String replaceVersion( final String version )
     {
-        return (version.replace(versionModifier[0], versionModifier[1]));
+        return ( version.replace( versionModifier[0], versionModifier[1] ) );
     }
 
     @Override
-    protected boolean initialiseModder (final Project project, final VersionManagerSession session)
+    protected boolean initialiseModder( final Project project, final VersionManagerSession session )
     {
-        boolean result = (session.getVersionModifier() != null);
+        final boolean result = ( session.getVersionModifier() != null );
 
-        if (result)
+        if ( result )
         {
-            versionModifier = session.getVersionModifier().split( ":" );
+            versionModifier = session.getVersionModifier()
+                                     .split( ":" );
 
-            if (versionModifier.length != 2)
+            if ( versionModifier.length != 2 )
             {
-                LOGGER.error("Invalid version modifier size - should be two");
-                session.addError(new VManException ("Invalid version modifier size. Should be 'pattern:replacement'."));
+                LOGGER.error( "Invalid version modifier size - should be two" );
+                session.addError( new VManException( "Invalid version modifier size. Should be 'pattern:replacement'." ) );
             }
         }
         return result;

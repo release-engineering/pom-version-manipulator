@@ -20,39 +20,32 @@ package com.redhat.rcm.version.report;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 
-import org.codehaus.plexus.component.annotations.Component;
+import javax.inject.Named;
+import javax.inject.Singleton;
+
 import org.codehaus.plexus.util.IOUtil;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
-@Component( role = Report.class, hint = ErrorReport.ID )
+@Singleton
+@Named( "errors.log" )
 public class ErrorReport
     implements Report
 {
-
-    public static final String ID = "error-log";
-
-    @Override
-    public String getId()
-    {
-        return ID;
-    }
 
     @Override
     public void generate( final File reportsDir, final VersionManagerSession sessionData )
         throws VManException
     {
-        final File reportFile = new File( reportsDir, "errors.log" );
-
         BufferedWriter writer = null;
         try
         {
-            writer = new BufferedWriter( new FileWriter( reportFile ) );
+            writer = sessionData.openReportFile( this );
+
             final PrintWriter pWriter = new PrintWriter( writer );
 
             int count = 0;
@@ -70,7 +63,7 @@ public class ErrorReport
         }
         catch ( final IOException e )
         {
-            throw new VManException( "Failed to write to: %s. Reason: %s", e, reportFile, e.getMessage() );
+            throw new VManException( "Failed to write error report. Reason: %s", e, e.getMessage() );
         }
         finally
         {

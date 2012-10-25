@@ -19,18 +19,20 @@ package com.redhat.rcm.version.mgr.mod;
 
 import java.util.Collections;
 
+import javax.inject.Named;
+
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Repository;
-import org.codehaus.plexus.component.annotations.Component;
 
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
-@Component( role = ProjectModder.class, hint = "repo-removal" )
+@Named( "modder/repo-removal" )
 public class RepoRemovalModder
     implements ProjectModder
 {
 
+    @Override
     public String getDescription()
     {
         return "Remove <repositories/> and <pluginRepostories/> elements from the POM (this is a Maven best practice).";
@@ -48,15 +50,17 @@ public class RepoRemovalModder
         final Model model = project.getModel();
 
         boolean changed = false;
-        if ( model.getRepositories() != null && !model.getRepositories().isEmpty() )
+        if ( model.getRepositories() != null && !model.getRepositories()
+                                                      .isEmpty() )
         {
-            model.setRepositories( Collections.<Repository>emptyList() );
+            model.setRepositories( Collections.<Repository> emptyList() );
             changed = true;
         }
 
-        if ( model.getPluginRepositories() != null && !model.getPluginRepositories().isEmpty() )
+        if ( model.getPluginRepositories() != null && !model.getPluginRepositories()
+                                                            .isEmpty() )
         {
-            model.setPluginRepositories( Collections.<Repository>emptyList() );
+            model.setPluginRepositories( Collections.<Repository> emptyList() );
             changed = true;
         }
 

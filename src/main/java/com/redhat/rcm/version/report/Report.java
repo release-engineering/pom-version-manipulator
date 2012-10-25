@@ -18,15 +18,14 @@
 
 package com.redhat.rcm.version.report;
 
+import java.io.File;
+
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
-import java.io.File;
-
 public interface Report
 {
-    String getId();
-
     void generate( final File reportsDir, final VersionManagerSession sessionData )
         throws VManException;
+
 }

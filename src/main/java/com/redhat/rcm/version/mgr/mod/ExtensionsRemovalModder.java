@@ -22,21 +22,23 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import javax.inject.Named;
+
 import org.apache.log4j.Logger;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Extension;
 import org.apache.maven.model.Model;
-import org.codehaus.plexus.component.annotations.Component;
 
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
-@Component( role = ProjectModder.class, hint = "extensions-removal" )
+@Named( "modder/extensions-removal" )
 public class ExtensionsRemovalModder
     implements ProjectModder
 {
     private static final Logger LOGGER = Logger.getLogger( ExtensionsRemovalModder.class );
 
+    @Override
     public String getDescription()
     {
         return "Remove <extensions/> elements from the POM.";
@@ -54,24 +56,26 @@ public class ExtensionsRemovalModder
         final Model model = project.getModel();
         boolean changed = false;
 
-        if ( model.getBuild () != null && model.getBuild().getExtensions() != null &&
-             !model.getBuild().getExtensions().isEmpty())
+        if ( model.getBuild() != null && model.getBuild()
+                                              .getExtensions() != null && !model.getBuild()
+                                                                                .getExtensions()
+                                                                                .isEmpty() )
         {
-            List<Extension> extensions = model.getBuild().getExtensions();
-            Set<VersionlessProjectKey> whitelist = session.getExtensionsWhitelist();
+            final List<Extension> extensions = model.getBuild()
+                                                    .getExtensions();
+            final Set<VersionlessProjectKey> whitelist = session.getExtensionsWhitelist();
 
-            if (whitelist != null && ! whitelist.isEmpty())
+            if ( whitelist != null && !whitelist.isEmpty() )
             {
-                Iterator<Extension> i = extensions.iterator();
-                while (i.hasNext())
+                final Iterator<Extension> i = extensions.iterator();
+                while ( i.hasNext() )
                 {
-                    Extension e = i.next();
-                    VersionlessProjectKey key = new VersionlessProjectKey (e.getGroupId(), e.getArtifactId());
+                    final Extension e = i.next();
+                    final VersionlessProjectKey key = new VersionlessProjectKey( e.getGroupId(), e.getArtifactId() );
 
-                    LOGGER.info( "ExtensionsRemoval - checking " + key +
-                                 " against whitelist " + whitelist);
+                    LOGGER.info( "ExtensionsRemoval - checking " + key + " against whitelist " + whitelist );
 
-                    if ( ! whitelist.contains( key ) )
+                    if ( !whitelist.contains( key ) )
                     {
                         i.remove();
                         changed = true;
@@ -80,7 +84,8 @@ public class ExtensionsRemovalModder
             }
             else
             {
-                model.getBuild().setExtensions(Collections.<Extension>emptyList());
+                model.getBuild()
+                     .setExtensions( Collections.<Extension> emptyList() );
                 changed = true;
             }
         }

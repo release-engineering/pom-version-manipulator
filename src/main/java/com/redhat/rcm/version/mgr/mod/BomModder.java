@@ -24,6 +24,8 @@ import java.io.File;
 import java.util.Iterator;
 import java.util.List;
 
+import javax.inject.Named;
+
 import org.apache.log4j.Logger;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.mae.project.key.FullProjectKey;
@@ -32,13 +34,12 @@ import org.apache.maven.model.Dependency;
 import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Exclusion;
 import org.apache.maven.model.Model;
-import org.codehaus.plexus.component.annotations.Component;
 
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.model.ReadOnlyDependency;
 
-@Component( role = ProjectModder.class, hint = "bom-realignment" )
+@Named( "modder/bom-realignment" )
 public class BomModder
     implements ProjectModder
 {

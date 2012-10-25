@@ -3,6 +3,8 @@ package com.redhat.rcm.version.mgr.mod;
 import java.io.File;
 import java.util.List;
 
+import org.jboss.weld.environment.se.Weld;
+import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -10,9 +12,9 @@ import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 
+import com.redhat.rcm.version.config.SessionConfigurator;
 import com.redhat.rcm.version.fixture.LoggingFixture;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
-import com.redhat.rcm.version.testutil.TestVersionManager;
 
 public class AbstractModderTest
 {
@@ -67,12 +69,35 @@ public class AbstractModderTest
         System.out.println( "\n\nEND: " + name.getMethodName() );
     }
 
+    @After
+    public final void teardownCDI()
+    {
+        if ( weldContainer != null )
+        {
+            weld.shutdown();
+        }
+    }
+
+    private SessionConfigurator sessionConfigurator;
+
+    private Weld weld;
+
+    private WeldContainer weldContainer;
+
     protected void configureSession( final List<String> boms, final String toolchain,
                                      final VersionManagerSession session )
         throws Exception
     {
-        TestVersionManager.getInstance()
-                          .configureSession( boms, toolchain, session );
+        if ( sessionConfigurator == null )
+        {
+            weld = new Weld();
+            weldContainer = weld.initialize();
+            sessionConfigurator = weldContainer.instance()
+                                               .select( SessionConfigurator.class )
+                                               .get();
+        }
+
+        sessionConfigurator.configureSession( boms, toolchain, session );
     }
 
 }

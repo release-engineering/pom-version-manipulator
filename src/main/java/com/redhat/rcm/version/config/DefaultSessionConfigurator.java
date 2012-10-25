@@ -24,6 +24,9 @@ import static com.redhat.rcm.version.util.InputUtils.getFiles;
 import java.io.File;
 import java.util.List;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
 import org.apache.log4j.Logger;
 import org.apache.maven.execution.DefaultMavenExecutionRequest;
 import org.apache.maven.execution.MavenExecutionRequest;
@@ -38,8 +41,6 @@ import org.apache.maven.settings.building.DefaultSettingsBuildingRequest;
 import org.apache.maven.settings.building.SettingsBuilder;
 import org.apache.maven.settings.building.SettingsBuildingException;
 import org.apache.maven.settings.building.SettingsBuildingResult;
-import org.codehaus.plexus.component.annotations.Component;
-import org.codehaus.plexus.component.annotations.Requirement;
 import org.sonatype.aether.RepositorySystemSession;
 import org.sonatype.aether.util.DefaultRepositorySystemSession;
 
@@ -47,23 +48,23 @@ import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.maven.VManWorkspaceReader;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
-@Component( role = SessionConfigurator.class )
+@Singleton
 public class DefaultSessionConfigurator
     implements SessionConfigurator
 {
 
     private static final Logger LOGGER = Logger.getLogger( DefaultSessionConfigurator.class );
 
-    @Requirement
+    @Inject
     private ProjectLoader projectLoader;
 
-    @Requirement
+    @Inject
     private SettingsBuilder settingsBuilder;
 
-    @Requirement
+    @Inject
     private MavenExecutionRequestPopulator requestPopulator;
 
-    @Requirement
+    @Inject
     private SessionInitializer sessionInitializer;
 
     DefaultSessionConfigurator()

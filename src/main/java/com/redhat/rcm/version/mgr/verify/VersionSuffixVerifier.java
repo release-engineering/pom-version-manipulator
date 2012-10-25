@@ -18,14 +18,17 @@
 
 package com.redhat.rcm.version.mgr.verify;
 
+import javax.inject.Named;
+import javax.inject.Singleton;
+
 import org.apache.maven.mae.project.key.FullProjectKey;
-import org.codehaus.plexus.component.annotations.Component;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
-@Component( role = ProjectVerifier.class, hint = "version-suffix" )
+@Singleton
+@Named( "verifier/version-suffix" )
 public class VersionSuffixVerifier
     implements ProjectVerifier
 {

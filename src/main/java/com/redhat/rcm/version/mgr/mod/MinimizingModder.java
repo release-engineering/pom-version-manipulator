@@ -17,19 +17,20 @@
 
 package com.redhat.rcm.version.mgr.mod;
 
+import java.util.Collections;
+
+import javax.inject.Named;
+
 import org.apache.maven.model.Contributor;
 import org.apache.maven.model.Developer;
 import org.apache.maven.model.DistributionManagement;
 import org.apache.maven.model.MailingList;
 import org.apache.maven.model.Model;
-import org.codehaus.plexus.component.annotations.Component;
 
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
-import java.util.Collections;
-
-@Component( role = ProjectModder.class, hint = "minimize" )
+@Named( "modder/minimize" )
 public class MinimizingModder
     implements ProjectModder
 {
@@ -44,9 +45,9 @@ public class MinimizingModder
         boolean changed = false;
         final Model model = project.getModel();
 
-        changed = (new ReportingRemovalModder().inject( project, session ));
-        changed = (new RepoRemovalModder().inject( project, session )) || changed;
-        changed = (new ExtensionsRemovalModder().inject( project, session )) || changed;
+        changed = ( new ReportingRemovalModder().inject( project, session ) );
+        changed = ( new RepoRemovalModder().inject( project, session ) ) || changed;
+        changed = ( new ExtensionsRemovalModder().inject( project, session ) ) || changed;
 
         if ( model.getDevelopers() != null )
         {

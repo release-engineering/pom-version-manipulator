@@ -21,14 +21,16 @@ package com.redhat.rcm.version.report;
 import static org.apache.commons.io.IOUtils.closeQuietly;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.util.Map;
 import java.util.Set;
 
+import javax.inject.Named;
+import javax.inject.Singleton;
+
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Plugin;
-import org.codehaus.plexus.component.annotations.Component;
 import org.jdom.Comment;
 import org.jdom.Document;
 import org.jdom.Element;
@@ -39,31 +41,24 @@ import org.jdom.output.XMLOutputter;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
-@Component( role = Report.class, hint = MissingPluginManagementReport.ID )
+@Singleton
+@Named( "missing-pluginManagement.xml" )
 public class MissingPluginManagementReport
     implements Report
 {
-
-    public static final String ID = "missing-pluginManagement";
-
-    @Override
-    public String getId()
-    {
-        return ID;
-    }
 
     @Override
     public void generate( final File reportsDir, final VersionManagerSession session )
         throws VManException
     {
-        Map<VersionlessProjectKey, Set<Plugin>> missingPlugins = session.getUnmanagedPluginRefs();
+        final Map<VersionlessProjectKey, Set<Plugin>> missingPlugins = session.getUnmanagedPluginRefs();
         if ( missingPlugins.isEmpty() )
         {
             return;
         }
-        Element plugins = new Element( "plugins" );
+        final Element plugins = new Element( "plugins" );
 
-        for ( Map.Entry<VersionlessProjectKey, Set<Plugin>> pluginsEntry : missingPlugins.entrySet() )
+        for ( final Map.Entry<VersionlessProjectKey, Set<Plugin>> pluginsEntry : missingPlugins.entrySet() )
         {
             if ( plugins.getContentSize() > 0 )
             {
@@ -72,9 +67,9 @@ public class MissingPluginManagementReport
 
             plugins.addContent( new Comment( "START: " + pluginsEntry.getKey() ) );
 
-            for ( Plugin dep : pluginsEntry.getValue() )
+            for ( final Plugin dep : pluginsEntry.getValue() )
             {
-                Element d = new Element( "plugin" );
+                final Element d = new Element( "plugin" );
                 plugins.addContent( d );
 
                 d.addContent( new Element( "groupId" ).setText( dep.getGroupId() ) );
@@ -85,29 +80,28 @@ public class MissingPluginManagementReport
             plugins.addContent( new Comment( "END: " + pluginsEntry.getKey() ) );
         }
 
-        Element build = new Element( "build" );
+        final Element build = new Element( "build" );
         build.addContent( new Element( "pluginManagement" ).setContent( plugins ) );
 
-        Document doc = new Document( build );
+        final Document doc = new Document( build );
 
-        Format fmt = Format.getPrettyFormat();
+        final Format fmt = Format.getPrettyFormat();
         fmt.setIndent( "  " );
         fmt.setTextMode( TextMode.PRESERVE );
 
-        XMLOutputter output = new XMLOutputter( fmt );
+        final XMLOutputter output = new XMLOutputter( fmt );
 
-        File report = new File( reportsDir, ID + ".xml" );
-        FileWriter writer = null;
+        Writer writer = null;
         try
         {
             reportsDir.mkdirs();
 
-            writer = new FileWriter( report );
+            writer = session.openReportFile( this );
             output.output( doc, writer );
         }
-        catch ( IOException e )
+        catch ( final IOException e )
         {
-            throw new VManException( "Failed to generate %s report! Error: %s", e, ID, e.getMessage() );
+            throw new VManException( "Failed to generate missing-pluginManagement report! Error: %s", e, e.getMessage() );
         }
         finally
         {

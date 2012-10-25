@@ -17,17 +17,19 @@
 
 package com.redhat.rcm.version.mgr.mod;
 
+import javax.inject.Named;
+
 import org.apache.maven.model.Model;
-import org.codehaus.plexus.component.annotations.Component;
 
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
-@Component( role = ProjectModder.class, hint = "reporting-removal" )
+@Named( "modder/reporting-removal" )
 public class ReportingRemovalModder
     implements ProjectModder
 {
 
+    @Override
     public String getDescription()
     {
         return "Remove <reporting/> elements from the POM.";

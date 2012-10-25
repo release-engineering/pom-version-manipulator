@@ -18,7 +18,10 @@
 
 package com.redhat.rcm.version.mgr.session;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -29,6 +32,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import javax.inject.Named;
 
 import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.FullProjectKey;
@@ -46,6 +51,7 @@ import org.apache.maven.project.MavenProject;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.model.ProjectAncestryGraph;
+import com.redhat.rcm.version.report.Report;
 import com.redhat.rcm.version.util.ActivityLog;
 
 public class VersionManagerSession
@@ -98,6 +104,8 @@ public class VersionManagerSession
         this.versionSuffix = versionSuffix;
         this.versionModifier = versionModifier;
         this.strict = strict;
+
+        this.capturePom = new File( workspace, "capture.pom.xml" );
 
         backups = new File( workspace, "backups" );
         backups.mkdirs();
@@ -549,6 +557,36 @@ public class VersionManagerSession
     public void setCurrentProjects( final Set<Project> projects )
     {
         managedInfo.setCurrentProjects( projects );
+    }
+
+    public BufferedWriter openReportFile( final Report report )
+        throws IOException
+    {
+        final String fname = getReportFilename( report );
+        final File reportFile = new File( reports, fname );
+        reportFile.getParentFile()
+                  .mkdirs();
+
+        return new BufferedWriter( new FileWriter( reportFile ) );
+    }
+
+    public String getReportFilename( final Report report )
+    {
+        return getReportFilename( report.getClass() );
+    }
+
+    public String getReportFilename( final Class<? extends Report> cls )
+    {
+        final Named named = cls.getAnnotation( Named.class );
+        if ( named == null || named.value()
+                                   .trim()
+                                   .length() < 1 )
+        {
+            throw new IllegalArgumentException(
+                                                "Cannot find valid @Named annotation, which should hold the report filename." );
+        }
+
+        return named.value();
     }
 
 }

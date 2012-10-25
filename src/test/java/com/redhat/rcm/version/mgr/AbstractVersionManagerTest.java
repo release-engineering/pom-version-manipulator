@@ -30,12 +30,16 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.maven.mae.MAEException;
+import org.jboss.weld.environment.se.Weld;
+import org.jboss.weld.environment.se.WeldContainer;
+import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.fixture.LoggingFixture;
+import com.redhat.rcm.version.maven.MavenComponentProvider;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
 public abstract class AbstractVersionManagerTest
@@ -51,6 +55,10 @@ public abstract class AbstractVersionManagerTest
 
     protected File reports;
 
+    private Weld weld;
+
+    private WeldContainer weldContainer;
+
     @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();
 
@@ -64,19 +72,27 @@ public abstract class AbstractVersionManagerTest
         LoggingFixture.setupLogging();
     }
 
-    @BeforeClass
-    public static void enableClasspathScanning()
-    {
-        System.out.println( "Enabling classpath scanning..." );
-        VersionManager.setClasspathScanning( true );
-    }
-
-    public void setupVersionManager()
+    protected void setupVersionManager()
         throws MAEException
     {
         if ( vman == null )
         {
-            vman = VersionManager.getInstance();
+            MavenComponentProvider.setClasspathScanning( true );
+
+            weld = new Weld();
+            weldContainer = weld.initialize();
+            vman = weldContainer.instance()
+                                .select( VersionManager.class )
+                                .get();
+        }
+    }
+
+    @After
+    public void teardownVersionManager()
+    {
+        if ( weldContainer != null )
+        {
+            weld.shutdown();
         }
     }
 

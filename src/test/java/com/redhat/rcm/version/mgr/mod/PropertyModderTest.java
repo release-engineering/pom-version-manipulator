@@ -23,36 +23,18 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Collections;
 
-import org.apache.maven.mae.MAEException;
 import org.apache.maven.model.Model;
-import org.junit.Before;
 import org.junit.Test;
 
-import com.redhat.rcm.version.mgr.VersionManager;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.testutil.SessionBuilder;
-import com.redhat.rcm.version.testutil.TestVersionManager;
 
 public class PropertyModderTest
     extends AbstractModderTest
 {
-
-    private TestVersionManager vman;
-
-    @Before
-    public void setup()
-        throws IOException, MAEException
-    {
-        if ( vman == null )
-        {
-            VersionManager.setClasspathScanning( true );
-            vman = TestVersionManager.getInstance();
-        }
-    }
 
     @Test
     public void remapPropertyToLiteral()
@@ -86,7 +68,7 @@ public class PropertyModderTest
             new SessionBuilder( workspace, reports ).withPropertyMapping( "foo", "@newFoo@" )
                                                     .build();
 
-        vman.configureSession( Collections.singletonList( bom.getAbsolutePath() ), null, session );
+        configureSession( Collections.singletonList( bom.getAbsolutePath() ), null, session );
 
         final boolean changed = new PropertyModder().inject( new Project( model ), session );
 
@@ -109,7 +91,7 @@ public class PropertyModderTest
             new SessionBuilder( workspace, reports ).withPropertyMapping( "foo", "@otherFoo@" )
                                                     .build();
 
-        vman.configureSession( Collections.singletonList( bom.getAbsolutePath() ), null, session );
+        configureSession( Collections.singletonList( bom.getAbsolutePath() ), null, session );
 
         final boolean changed = new PropertyModder().inject( new Project( model ), session );
 

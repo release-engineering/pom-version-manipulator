@@ -18,23 +18,25 @@
 
 package com.redhat.rcm.version.mgr.mod;
 
+import java.util.Properties;
+import java.util.Set;
+
+import javax.inject.Named;
+
 import org.apache.log4j.Logger;
 import org.apache.maven.model.Model;
-import org.codehaus.plexus.component.annotations.Component;
 
 import com.redhat.rcm.version.mgr.session.PropertyMappings;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
-import java.util.Properties;
-import java.util.Set;
-
-@Component( role = ProjectModder.class, hint = "property" )
+@Named( "modder/property" )
 public class PropertyModder
     implements ProjectModder
 {
     private static final Logger LOGGER = Logger.getLogger( BomModder.class );
 
+    @Override
     public String getDescription()
     {
         return "Change property mappings to use those declared in the supplied BOM file(s).";

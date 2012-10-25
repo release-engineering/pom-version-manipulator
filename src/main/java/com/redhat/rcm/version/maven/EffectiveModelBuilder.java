@@ -1,23 +1,24 @@
 package com.redhat.rcm.version.maven;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
 import org.apache.maven.model.Model;
 import org.apache.maven.model.building.DefaultModelBuildingRequest;
 import org.apache.maven.model.building.ModelBuilder;
 import org.apache.maven.model.building.ModelBuildingException;
 import org.apache.maven.model.building.ModelBuildingRequest;
 import org.apache.maven.model.building.ModelBuildingResult;
-import org.codehaus.plexus.component.annotations.Component;
-import org.codehaus.plexus.component.annotations.Requirement;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
-@Component( role = EffectiveModelBuilder.class )
+@Singleton
 public class EffectiveModelBuilder
 {
 
-    @Requirement
+    @Inject
     private ModelBuilder modelBuilder;
 
     public Model getEffectiveModel( final Project project, final VersionManagerSession session )

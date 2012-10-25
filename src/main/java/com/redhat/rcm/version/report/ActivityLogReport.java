@@ -18,46 +18,40 @@
 
 package com.redhat.rcm.version.report;
 
-import org.codehaus.plexus.component.annotations.Component;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
+import java.util.Map;
+
+import javax.inject.Named;
+import javax.inject.Singleton;
+
 import org.codehaus.plexus.util.IOUtil;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.util.ActivityLog;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.Map;
-
-@Component( role = Report.class, hint = ActivityLogReport.ID )
+@Singleton
+@Named( "activity.log" )
 public class ActivityLogReport
     implements Report
 {
-
-    public static final String ID = "activity-log";
-
-    @Override
-    public String getId()
-    {
-        return ID;
-    }
 
     @Override
     public void generate( final File reportsDir, final VersionManagerSession sessionData )
         throws VManException
     {
-        final File reportFile = new File( reportsDir, "activity.log" );
-
         BufferedWriter writer = null;
         try
         {
-            writer = new BufferedWriter( new FileWriter( reportFile ) );
+            writer = sessionData.openReportFile( this );
 
-            for ( final Map.Entry<File, ActivityLog> entry : sessionData.getLogs().entrySet() )
+            for ( final Map.Entry<File, ActivityLog> entry : sessionData.getLogs()
+                                                                        .entrySet() )
             {
-                writer.write( entry.getKey().getPath() );
+                writer.write( entry.getKey()
+                                   .getPath() );
                 writer.write( ":" );
                 writer.newLine();
                 writer.write( "-----------------------------------------------------------" );
@@ -75,7 +69,7 @@ public class ActivityLogReport
         }
         catch ( final IOException e )
         {
-            throw new VManException( "Failed to write to: %s. Reason: %s", e, reportFile, e.getMessage() );
+            throw new VManException( "Failed to write activity log. Reason: %s", e, e.getMessage() );
         }
         finally
         {

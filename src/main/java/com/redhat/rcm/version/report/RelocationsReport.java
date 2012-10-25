@@ -18,44 +18,37 @@
 
 package com.redhat.rcm.version.report;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Map;
+
+import javax.inject.Named;
+import javax.inject.Singleton;
+
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
-import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.util.IOUtil;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.Map;
-
-@Component( role = Report.class, hint = RelocationsReport.ID )
+@Singleton
+@Named( "relocations.log" )
 public class RelocationsReport
     implements Report
 {
-
-    public static final String ID = "relocations-log";
-
-    @Override
-    public String getId()
-    {
-        return ID;
-    }
 
     @Override
     public void generate( final File reportsDir, final VersionManagerSession sessionData )
         throws VManException
     {
-        final File reportFile = new File( reportsDir, "relocations.log" );
-
         PrintWriter writer = null;
         try
         {
-            writer = new PrintWriter( new FileWriter( reportFile ) );
+            writer = new PrintWriter( sessionData.openReportFile( this ) );
+
             writer.printf( "ACTUAL RELOCATIONS (by POM):\n---------------------------------------------------------\n\n" );
             final Map<File, Map<ProjectKey, FullProjectKey>> relocationsByPom =
                 sessionData.getRelocatedCoordinatesByFile();
@@ -64,7 +57,8 @@ public class RelocationsReport
             {
                 final File pom = pomEntry.getKey();
                 writer.printf( "%s\n---------------------------------------------------------\n", pom );
-                for ( final Map.Entry<ProjectKey, FullProjectKey> relo : pomEntry.getValue().entrySet() )
+                for ( final Map.Entry<ProjectKey, FullProjectKey> relo : pomEntry.getValue()
+                                                                                 .entrySet() )
                 {
                     writer.printf( "\n    %s => %s", relo.getKey(), relo.getValue() );
                 }
@@ -73,8 +67,8 @@ public class RelocationsReport
             }
 
             writer.printf( "\n\nALL AVAILABLE RELOCATIONS:\n---------------------------------------------------------\n" );
-            final Map<File, Map<VersionlessProjectKey, FullProjectKey>> byFile =
-                sessionData.getRelocations().getRelocationsByFile();
+            final Map<File, Map<VersionlessProjectKey, FullProjectKey>> byFile = sessionData.getRelocations()
+                                                                                            .getRelocationsByFile();
 
             for ( final Map.Entry<File, Map<VersionlessProjectKey, FullProjectKey>> fileEntry : byFile.entrySet() )
             {
@@ -90,7 +84,7 @@ public class RelocationsReport
         }
         catch ( final IOException e )
         {
-            throw new VManException( "Failed to write to: %s. Reason: %s", e, reportFile, e.getMessage() );
+            throw new VManException( "Failed to write relocations report. Reason: %s", e, e.getMessage() );
         }
         finally
         {

@@ -20,8 +20,10 @@ package com.redhat.rcm.version.mgr.verify;
 
 import java.util.Set;
 
+import javax.inject.Named;
+import javax.inject.Singleton;
+
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
-import org.codehaus.plexus.component.annotations.Component;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
@@ -29,7 +31,8 @@ import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.util.CollectionToString;
 import com.redhat.rcm.version.util.ObjectToString;
 
-@Component( role = ProjectVerifier.class, hint = "toolchain-realignment" )
+@Singleton
+@Named( "verifier/toolchain-realignment" )
 public class ToolchainVerifier
     implements ProjectVerifier
 {
@@ -43,7 +46,7 @@ public class ToolchainVerifier
             return;
         }
 
-        Set<VersionlessProjectKey> unmanaged = session.getUnmanagedPlugins( project.getPom() );
+        final Set<VersionlessProjectKey> unmanaged = session.getUnmanagedPlugins( project.getPom() );
         if ( unmanaged != null && !unmanaged.isEmpty() )
         {
             session.addError( new VManException(

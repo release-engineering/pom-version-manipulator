@@ -69,6 +69,8 @@ import org.apache.log4j.spi.LoggerRepository;
 import org.apache.maven.mae.MAEException;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.codehaus.plexus.util.StringUtils;
+import org.jboss.weld.environment.se.Weld;
+import org.jboss.weld.environment.se.WeldContainer;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
@@ -208,6 +210,10 @@ public class Cli
 
     private static VersionManager vman;
 
+    private static Weld weld;
+
+    private static WeldContainer weldContainer;
+
     private List<String> boms;
 
     private List<String> removedPlugins;
@@ -232,7 +238,6 @@ public class Cli
 
     private static int exitValue = Integer.MIN_VALUE;
 
-
     public static void main( final String[] args )
     {
         final Cli cli = new Cli();
@@ -241,7 +246,12 @@ public class Cli
         {
             parser.parseArgument( args );
 
-            vman = VersionManager.getInstance();
+            weld = new Weld();
+            weldContainer = weld.initialize();
+
+            vman = weldContainer.instance()
+                                .select( VersionManager.class )
+                                .get();
 
             exitValue = 0;
             if ( cli.help )
@@ -281,6 +291,20 @@ public class Cli
         catch ( final MalformedURLException e )
         {
             printUsage( parser, e );
+        }
+        finally
+        {
+            if ( weldContainer != null )
+            {
+                try
+                {
+                    weld.shutdown();
+                }
+                catch ( final Throwable error )
+                {
+                    error.printStackTrace();
+                }
+            }
         }
     }
 
@@ -419,11 +443,14 @@ public class Cli
 
                 repo.setThreshold( level );
 
-                repo.getRootLogger().removeAllAppenders();
+                repo.getRootLogger()
+                    .removeAllAppenders();
 
-                repo.getRootLogger().setLevel( level );
+                repo.getRootLogger()
+                    .setLevel( level );
 
-                repo.getRootLogger().addAppender( appender );
+                repo.getRootLogger()
+                    .addAppender( appender );
 
                 @SuppressWarnings( "unchecked" )
                 final List<Logger> loggers = Collections.list( repo.getCurrentLoggers() );
@@ -458,7 +485,8 @@ public class Cli
             return -2;
         }
 
-        if ( session.getErrors().isEmpty() )
+        if ( session.getErrors()
+                    .isEmpty() )
         {
             LOGGER.info( "Modifying POM(s).\n\nTarget:\n\t" + target + "\n\nBOMs:\n\t"
                 + StringUtils.join( boms.iterator(), "\n\t" ) + "\n\nWorkspace:\n\t" + workspace + "\n\nReports:\n\t"
@@ -561,7 +589,10 @@ public class Cli
     private static void printVersionInfo()
     {
         final StringBuilder sb = new StringBuilder();
-        sb.append( APP_NAME ).append( "\n\n" ).append( APP_DESCRIPTION ).append( "\n\n" );
+        sb.append( APP_NAME )
+          .append( "\n\n" )
+          .append( APP_DESCRIPTION )
+          .append( "\n\n" );
 
         final LinkedHashMap<String, Object> map = new LinkedHashMap<String, Object>();
         map.put( "Built By:", APP_BUILDER );
@@ -585,7 +616,8 @@ public class Cli
         final LinkedHashMap<String, Object> props = new LinkedHashMap<String, Object>();
         for ( final String key : keys )
         {
-            props.put( key, modders.get( key ).getDescription() );
+            props.put( key, modders.get( key )
+                                   .getDescription() );
         }
 
         final StringBuilder sb = new StringBuilder();
@@ -718,7 +750,8 @@ public class Cli
                 {
                     if ( key.length() > 1 )
                     {
-                        mods.add( key.substring( 1 ).trim() );
+                        mods.add( key.substring( 1 )
+                                     .trim() );
                     }
                 }
                 else

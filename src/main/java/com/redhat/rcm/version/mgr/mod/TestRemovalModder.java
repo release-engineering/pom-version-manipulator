@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
+import javax.inject.Named;
+
 import org.apache.log4j.Logger;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Activation;
@@ -31,12 +33,11 @@ import org.apache.maven.model.ActivationProperty;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Profile;
-import org.codehaus.plexus.component.annotations.Component;
 
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
-@Component( role = ProjectModder.class, hint = "testremoval" )
+@Named( "modder/testremoval" )
 public class TestRemovalModder
     implements ProjectModder
 {
