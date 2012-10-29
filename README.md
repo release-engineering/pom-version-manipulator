@@ -148,7 +148,8 @@ You can override any of the options in your .vman.properties file on the command
      -M (--enable-modifications) VAL        : List of modifications to enable for this execution (see --help-modifications
                                               for more information).
 
-     -m (--remote-repository) VAL           : Maven remote repository from which load missing parent POMs.
+     -m (--remote-repositories) VAL         : Maven remote repository from which load missing parent POMs. (format:
+                                              <[id|]repository>[,<[id|]repository>].
                                               Property file equivalent: remote-repository.
 
      -S (--settings) FILE                   : Maven settings.xml file.

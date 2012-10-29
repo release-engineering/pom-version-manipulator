@@ -205,7 +205,7 @@ public class CliTest
         final File remoteRepo = new File( repo, "repo" );
 
         final Properties props = new Properties();
-        props.setProperty( Cli.REMOTE_REPOSITORY_PROPERTY, remoteRepo.toURI()
+        props.setProperty( Cli.REMOTE_REPOSITORIES_PROPERTY, remoteRepo.toURI()
                                                                      .normalize()
                                                                      .toURL()
                                                                      .toExternalForm() );

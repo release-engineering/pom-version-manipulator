@@ -51,9 +51,6 @@ import com.redhat.rcm.version.util.ActivityLog;
 public class VersionManagerSession
     extends SimpleProjectToolsSession
 {
-
-    public static final File GLOBAL = new File( "/" );
-
     private final List<Throwable> errors = new ArrayList<Throwable>();
 
     private final Map<File, ActivityLog> logs = new LinkedHashMap<File, ActivityLog>();
@@ -408,56 +405,31 @@ public class VersionManagerSession
         return getAncestryGraph().contains( key );
     }
 
-    public void setRemoteRepository( final String remoteRepository )
+    public void setRemoteRepositories( final String remoteRepositories )
         throws MalformedURLException
     {
         String id = "vman";
-
-        String u = remoteRepository;
-        final int idx = u.indexOf( '|' );
-        if ( idx > 0 )
+        int repoIndex = 1;
+        String repos[] = remoteRepositories.split( "," );
+        ArrayList<Repository> resolveRepos = new ArrayList<Repository>();
+        
+        for (String repository : repos)
         {
-            id = u.substring( 0, idx );
-            u = u.substring( idx + 1 );
+            String u = repository;
+            final int idx = u.indexOf( '|' );
+            if ( idx > 0 )
+            {
+                id = u.substring( 0, idx );
+                u = u.substring( idx + 1 );
+            }
+
+            final Repository resolveRepo = new Repository();
+            resolveRepo.setId( id+'-'+repoIndex++ );
+            resolveRepo.setUrl( u );
+
+            resolveRepos.add( resolveRepo );
         }
-
-        // URL url = new URL( u );
-        //
-        // Authentication auth = null;
-        //
-        // String ui = url.getUserInfo();
-        // if ( ui != null )
-        // {
-        // idx = ui.indexOf( ':' );
-        //
-        // String user = ui;
-        // String password = null;
-        //
-        // if ( idx > 0 )
-        // {
-        // user = ui.substring( 0, idx );
-        //
-        // if ( idx + 1 < ui.length() )
-        // {
-        // password = ui.substring( idx + 1 );
-        // }
-        // }
-        //
-        // auth = new Authentication( user, password );
-        // }
-        //
-        // RemoteRepository repo = new RemoteRepository( id, "default", u );
-        // if ( auth != null )
-        // {
-        // repo.setAuthentication( auth );
-        // }
-
-        final Repository resolveRepo = new Repository();
-        resolveRepo.setId( id );
-        resolveRepo.setUrl( u );
-
-        setResolveRepositories( resolveRepo );
-        // setRemoteRepositoriesForResolution( Collections.singletonList( repo ) );
+        setResolveRepositories( resolveRepos.toArray( new Repository[resolveRepos.size()] ) );
     }
 
     public boolean isToolchainReference( final Parent parent )
