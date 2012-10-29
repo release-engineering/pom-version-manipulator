@@ -39,7 +39,10 @@ import org.apache.maven.model.ReportPlugin;
 import org.apache.maven.model.Reporting;
 import org.apache.maven.model.merge.MavenModelMerger;
 import org.codehaus.plexus.component.annotations.Component;
+import org.codehaus.plexus.component.annotations.Requirement;
 
+import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.maven.EffectiveModelBuilder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
@@ -52,6 +55,9 @@ public class ToolchainModder
 
     private final InjectionMerger merger = new InjectionMerger();
 
+    @Requirement
+    private EffectiveModelBuilder effModel;
+
     @Override
     public String getDescription()
     {
@@ -62,6 +68,19 @@ public class ToolchainModder
     public boolean inject( final Project project, final VersionManagerSession session )
     {
         boolean changed = false;
+
+        if ( effModel != null )
+        {
+            try
+            {
+                effModel.getEffectiveModel( project, session );
+            }
+            catch ( final VManException e )
+            {
+                throw new RuntimeException( "Failed to build effective model for: " + project.getKey() + ".\nReason: "
+                    + e.getMessage(), e );
+            }
+        }
 
         if ( session.getToolchainKey() == null )
         {

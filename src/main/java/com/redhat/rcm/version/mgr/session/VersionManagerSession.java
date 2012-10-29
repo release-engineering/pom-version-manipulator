@@ -44,6 +44,7 @@ import org.apache.maven.model.Repository;
 import org.apache.maven.project.MavenProject;
 
 import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.maven.VManWorkspaceReader;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.model.ProjectAncestryGraph;
 import com.redhat.rcm.version.util.ActivityLog;
@@ -86,6 +87,8 @@ public class VersionManagerSession
     private final boolean strict;
 
     private final String versionModifier;
+
+    private VManWorkspaceReader workspaceReader;
 
     public VersionManagerSession( final File workspace, final File reports, final String versionSuffix,
                                   final String versionModifier, final Collection<String> removedPlugins,
@@ -305,6 +308,16 @@ public class VersionManagerSession
     public CoordinateRelocations getRelocations()
     {
         return managedInfo.getRelocations();
+    }
+
+    public MavenProject getToolchainProject()
+    {
+        return managedInfo.getToolchainProject();
+    }
+
+    public MavenProject getBOMProject( final FullProjectKey key )
+    {
+        return managedInfo.getBOMProject( key );
     }
 
     public VersionManagerSession setToolchain( final File toolchainFile, final MavenProject project )
@@ -549,6 +562,16 @@ public class VersionManagerSession
     public void setCurrentProjects( final Set<Project> projects )
     {
         managedInfo.setCurrentProjects( projects );
+    }
+
+    public void setWorkspaceReader( final VManWorkspaceReader workspaceReader )
+    {
+        this.workspaceReader = workspaceReader;
+    }
+
+    public VManWorkspaceReader getWorkspaceReader()
+    {
+        return workspaceReader;
     }
 
 }

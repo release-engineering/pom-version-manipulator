@@ -57,7 +57,8 @@ class ManagedInfo
 
     private static final String MAPPINGS_KEY = "mapping";
 
-    private final List<FullProjectKey> bomCoords = new ArrayList<FullProjectKey>();
+    private final LinkedHashMap<FullProjectKey, MavenProject> bomProjects =
+        new LinkedHashMap<FullProjectKey, MavenProject>();
 
     private final CoordinateRelocations relocatedCoords;
 
@@ -88,6 +89,8 @@ class ManagedInfo
         new LinkedHashMap<VersionlessProjectKey, Project>();
 
     private final List<String> modderKeys = new ArrayList<String>();
+
+    private MavenProject toolchainProject;
 
     ManagedInfo( final VersionManagerSession session, final Collection<String> removedPlugins,
                  final Collection<String> removedTests, final Collection<String> extensionsWhitelist,
@@ -182,12 +185,12 @@ class ManagedInfo
     {
         final FullProjectKey key =
             new FullProjectKey( project.getGroupId(), project.getArtifactId(), project.getVersion() );
-        if ( bomCoords.contains( key ) )
+        if ( bomProjects.containsKey( key ) )
         {
             return;
         }
 
-        bomCoords.add( key );
+        bomProjects.put( key, project );
 
         startBomMap( bom, project.getGroupId(), project.getArtifactId(), project.getVersion() );
 
@@ -241,7 +244,7 @@ class ManagedInfo
 
     List<FullProjectKey> getBomCoords()
     {
-        return bomCoords;
+        return new ArrayList<FullProjectKey>( bomProjects.keySet() );
     }
 
     CoordinateRelocations getRelocations()
@@ -252,6 +255,7 @@ class ManagedInfo
     void setToolchain( final File toolchainFile, final MavenProject project )
     {
         toolchainKey = new FullProjectKey( project );
+        this.toolchainProject = project;
 
         final PluginManagement pm = project.getPluginManagement();
         if ( pm != null )
@@ -320,7 +324,7 @@ class ManagedInfo
 
     boolean hasBom( final FullProjectKey key )
     {
-        return bomCoords.contains( key );
+        return bomProjects.containsKey( key );
     }
 
     boolean isToolchainReference( final Parent parent )
@@ -366,8 +370,6 @@ class ManagedInfo
     boolean isCurrentProject( final ProjectKey key )
     {
         final VersionlessProjectKey vk = toVersionlessKey( key );
-        final Project prj = currentProjectsByKey.get( vk );
-
         return currentProjectsByKey.containsKey( vk );
     }
 
@@ -384,6 +386,16 @@ class ManagedInfo
     private VersionlessProjectKey toVersionlessKey( final ProjectKey key )
     {
         return (VersionlessProjectKey) ( key instanceof FullProjectKey ? new VersionlessProjectKey( key ) : key );
+    }
+
+    public MavenProject getToolchainProject()
+    {
+        return toolchainProject;
+    }
+
+    public MavenProject getBOMProject( final FullProjectKey key )
+    {
+        return bomProjects.get( key );
     }
 
 }

@@ -8,6 +8,8 @@ import org.apache.maven.model.building.ModelBuildingRequest;
 import org.apache.maven.model.building.ModelBuildingResult;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.component.annotations.Requirement;
+import org.sonatype.aether.impl.ArtifactResolver;
+import org.sonatype.aether.impl.RemoteRepositoryManager;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
@@ -20,6 +22,12 @@ public class EffectiveModelBuilder
     @Requirement
     private ModelBuilder modelBuilder;
 
+    @Requirement
+    private ArtifactResolver artifactResolver;
+
+    @Requirement
+    private RemoteRepositoryManager remoteRepositoryManager;
+
     public Model getEffectiveModel( final Project project, final VersionManagerSession session )
         throws VManException
     {
@@ -29,8 +37,13 @@ public class EffectiveModelBuilder
             final DefaultModelBuildingRequest mbr = new DefaultModelBuildingRequest();
             mbr.setSystemProperties( System.getProperties() );
             mbr.setPomFile( project.getPom() );
-            mbr.setValidationLevel( ModelBuildingRequest.VALIDATION_LEVEL_STRICT );
+            mbr.setValidationLevel( ModelBuildingRequest.VALIDATION_LEVEL_MINIMAL );
             mbr.setProcessPlugins( false );
+
+            final VManModelResolver resolver =
+                new VManModelResolver( session, project, artifactResolver, remoteRepositoryManager );
+
+            mbr.setModelResolver( resolver );
 
             try
             {

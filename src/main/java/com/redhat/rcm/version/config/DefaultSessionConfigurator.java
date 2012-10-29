@@ -151,7 +151,11 @@ public class DefaultSessionConfigurator
             (DefaultRepositorySystemSession) ( ( rss instanceof DefaultRepositorySystemSession ) ? rss
                             : new DefaultRepositorySystemSession( rss ) );
 
-        drss.setWorkspaceReader( new VManWorkspaceReader( session ) );
+        final VManWorkspaceReader workspaceReader = new VManWorkspaceReader( session );
+        drss.setWorkspaceReader( workspaceReader );
+        session.initialize( drss, session.getProjectBuildingRequest(), session.getArtifactRepositoriesForResolution(),
+                            session.getRemoteRepositoriesForResolution() );
+        session.setWorkspaceReader( workspaceReader );
     }
 
     private void loadToolchain( final String toolchain, final VersionManagerSession session )
