@@ -265,7 +265,7 @@ public class VersionSuffixManagementTest
             final VersionManagerSession session = newVersionManagerSession( workspace, reports, SUFFIX );
 
             final File remoteRepo = getResourceFile( TEST_POMS + "repo" );
-            session.setRemoteRepository( remoteRepo.toURI()
+            session.setRemoteRepositories( remoteRepo.toURI()
                                                    .normalize()
                                                    .toURL()
                                                    .toExternalForm() );
@@ -314,7 +314,7 @@ public class VersionSuffixManagementTest
             final VersionManagerSession session = newVersionManagerSession( workspace, reports, SUFFIX );
 
             final File remoteRepo = getResourceFile( TEST_POMS + "repo" );
-            session.setRemoteRepository( remoteRepo.toURI()
+            session.setRemoteRepositories( remoteRepo.toURI()
                                                    .normalize()
                                                    .toURL()
                                                    .toExternalForm() );
