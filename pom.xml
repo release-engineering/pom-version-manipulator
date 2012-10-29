@@ -296,16 +296,24 @@
               </goals>
               <configuration>
                 <descriptors>
-                  <descriptor>src/main/assembly/bin.xml</descriptor>
+                  <descriptor>src/main/assembly/bin2.xml</descriptor>
                 </descriptors>
-                <archive>
-                  <manifest>
-                    <mainClass>com.redhat.rcm.version.Cli</mainClass>
-                  </manifest>
-                </archive>
               </configuration>
             </execution>
           </executions>
+        </plugin>
+        <plugin>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>2.3.1</version>
+          <configuration>
+            <archive>
+              <manifest>
+                <addClasspath>true</addClasspath>
+                <classpathPrefix>lib/</classpathPrefix>
+                <mainClass>com.redhat.rcm.version.Cli</mainClass>
+              </manifest>
+            </archive>
+          </configuration>
         </plugin>
         <plugin>
           <artifactId>maven-release-plugin</artifactId>

@@ -1,0 +1,29 @@
+<assembly>
+  <id>bin</id>
+  <formats>
+    <format>tar.bz2</format>
+    <format>zip</format>
+    <format>dir</format>
+  </formats>
+  <baseDirectory>${project.artifactId}-${project.version}</baseDirectory>
+  <dependencySets>
+    <dependencySet>
+      <useProjectArtifact>false</useProjectArtifact>
+      <outputDirectory>lib/</outputDirectory>
+    </dependencySet>
+  </dependencySets>
+  <fileSets>
+    <fileSet>
+      <directory>src/main/bin</directory>
+      <outputDirectory>bin/</outputDirectory>
+      <fileMode>750</fileMode>
+    </fileSet>
+  </fileSets>
+  <files>
+    <file>
+      <source>${project.build.directory}/${project.build.finalName}.jar</source>
+      <outputDirectory>/</outputDirectory>
+      <destName>${project.build.finalName}.jar</destName>
+    </file>
+  </files>
+</assembly>
