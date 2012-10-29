@@ -770,7 +770,7 @@ public class ToolchainManagementTest
                               Collections.<String> emptyList() );
 
             final File remoteRepo = getResourceFile( TOOLCHAIN_TEST_POMS + "repo" );
-            session.setRemoteRepository( remoteRepo.toURI()
+            session.setRemoteRepositories( remoteRepo.toURI()
                                                    .normalize()
                                                    .toURL()
                                                    .toExternalForm() );
@@ -813,7 +813,7 @@ public class ToolchainManagementTest
                               Collections.<String> emptyList() );
 
             final File remoteRepo = getResourceFile( TOOLCHAIN_TEST_POMS + "repo" );
-            session.setRemoteRepository( remoteRepo.toURI()
+            session.setRemoteRepositories( remoteRepo.toURI()
                                                    .normalize()
                                                    .toURL()
                                                    .toExternalForm() );

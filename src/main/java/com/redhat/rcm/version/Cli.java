@@ -111,8 +111,8 @@ public class Cli
     @Option( name = "-L", aliases = { "--local-repo", "--local-repository" }, usage = "Local repository directory.\nDefault: <workspace>/local-repository\nProperty file equivalent: local-repository" )
     private File localRepository;
 
-    @Option( name = "-m", aliases = "--remote-repository", usage = "Maven remote repository from which load missing parent POMs.\nProperty file equivalent: remote-repository." )
-    private String remoteRepository;
+    @Option( name = "-m", aliases = "--remote-repositories", usage = "Maven remote repositories from which load missing parent POMs.\nProperty file equivalent: remote-repositories." )
+    private String remoteRepositories;
 
     @Option( name = "-M", aliases = { "--enable-modifications" }, usage = "List of modifications to enable for this execution (see --help-modifications for more information)." )
     private String modifications;
@@ -171,6 +171,9 @@ public class Cli
 
     static final String BOOTSTRAP_PROPERTIES = "vman.boot.properties";
 
+    public static final String REMOTE_REPOSITORIES_PROPERTY = "remote-repositories";
+
+    @Deprecated
     public static final String REMOTE_REPOSITORY_PROPERTY = "remote-repository";
 
     public static final String VERSION_SUFFIX_PROPERTY = "version-suffix";
@@ -338,7 +341,7 @@ public class Cli
         map.put( "  ", "" );
         map.put( "   ", "" );
         map.put( "Settings.xml:", settings );
-        map.put( "Remote repo:", remoteRepository );
+        map.put( "Remote repo:", remoteRepositories );
 
         System.out.println( "Version information:\n-------------------------------------------------\n\n" );
         printVersionInfo();
@@ -525,15 +528,15 @@ public class Cli
                                        removedTests, extensionsWhitelist, modders, preserveFiles, strict,
                                        relocatedCoords, propertyMappings );
 
-        if ( remoteRepository != null )
+        if ( remoteRepositories != null )
         {
             try
             {
-                session.setRemoteRepository( remoteRepository );
+                session.setRemoteRepositories( remoteRepositories );
             }
             catch ( final MalformedURLException e )
             {
-                throw new VManException( "Cannot initialize remote repository: %s. Error: %s", e, remoteRepository,
+                throw new VManException( "Cannot initialize remote repositories: %s. Error: %s", e, remoteRepositories,
                                          e.getMessage() );
             }
         }
@@ -869,12 +872,22 @@ public class Cli
                     }
                 }
 
-                if ( remoteRepository == null )
+                if ( remoteRepositories == null )
                 {
-                    remoteRepository = props.getProperty( REMOTE_REPOSITORY_PROPERTY );
-                    if ( remoteRepository != null )
+                    remoteRepositories = props.getProperty( REMOTE_REPOSITORIES_PROPERTY );
+                    if ( remoteRepositories != null )
                     {
-                        remoteRepository = remoteRepository.trim();
+                        remoteRepositories = remoteRepositories.trim();
+                    }
+                    else
+                    {
+                        remoteRepositories = props.getProperty( REMOTE_REPOSITORY_PROPERTY );
+
+                        if ( remoteRepositories != null )
+                        {
+                            LOGGER.warn( "Using deprecated " + REMOTE_REPOSITORY_PROPERTY );
+                            remoteRepositories = remoteRepositories.trim();
+                        }
                     }
                 }
 
