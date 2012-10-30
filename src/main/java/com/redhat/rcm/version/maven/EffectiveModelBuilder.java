@@ -36,7 +36,7 @@ public class EffectiveModelBuilder
         {
             final DefaultModelBuildingRequest mbr = new DefaultModelBuildingRequest();
             mbr.setSystemProperties( System.getProperties() );
-            mbr.setPomFile( project.getPom() );
+            mbr.setModelSource( new ProjectModelSource( project ) );
             mbr.setValidationLevel( ModelBuildingRequest.VALIDATION_LEVEL_MINIMAL );
             mbr.setProcessPlugins( false );
 
@@ -53,8 +53,8 @@ public class EffectiveModelBuilder
             }
             catch ( final ModelBuildingException e )
             {
-                throw new VManException( "Failed to build effective model for: %s. Reason: %s", e, project.getKey(),
-                                         e.getMessage() );
+                throw new VManException( "Failed to build effective model for: %s (POM: %s). Reason: %s", e,
+                                         project.getKey(), project.getPom(), e.getMessage() );
             }
         }
 

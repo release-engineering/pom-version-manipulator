@@ -37,10 +37,12 @@ import org.apache.log4j.Logger;
 import org.apache.maven.mae.MAEException;
 import org.apache.maven.mae.app.AbstractMAEApplication;
 import org.apache.maven.mae.boot.embed.MAEEmbedderBuilder;
+import org.apache.maven.mae.internal.container.ComponentSelector;
 import org.apache.maven.mae.project.ModelLoader;
 import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
+import org.apache.maven.mae.project.session.SessionInitializer;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
 import org.codehaus.plexus.component.annotations.Component;
@@ -477,5 +479,11 @@ public class VersionManager
             final int index = m.indexOf( ':' );
             pomExcludedModules.put( m.substring( 0, index ), m.substring( index + 1 ) );
         }
+    }
+
+    @Override
+    public ComponentSelector getComponentSelector()
+    {
+        return new ComponentSelector().setSelection( SessionInitializer.class, "vman" );
     }
 }

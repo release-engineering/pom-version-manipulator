@@ -38,8 +38,10 @@ public final class SessionBuilder
 
     private final File reports;
 
+    private File localRepo;
+
     private String versionSuffix = "-rebuild-1";
-    
+
     private String versionModifier = ":";
 
     private Collection<String> removedPlugins = new HashSet<String>();
@@ -73,8 +75,20 @@ public final class SessionBuilder
 
     public VersionManagerSession build()
     {
-        return new VersionManagerSession( workspace, reports, versionSuffix, versionModifier, removedPlugins, removedTests, extensionsWhitelist, modders, preserveFiles,
-                                          strict, coordinateRelocations, propertyMappings );
+        final VersionManagerSession sess =
+            new VersionManagerSession( workspace, reports, versionSuffix, versionModifier, removedPlugins,
+                                       removedTests, extensionsWhitelist, modders, preserveFiles, strict,
+                                       coordinateRelocations, propertyMappings );
+
+        sess.setLocalRepositoryDirectory( localRepo == null ? new File( workspace, "local-repository" ) : localRepo );
+
+        return sess;
+    }
+
+    public SessionBuilder withLocalRepositoryDirectory( final File localRepo )
+    {
+        this.localRepo = localRepo;
+        return this;
     }
 
     public SessionBuilder withVersionSuffix( final String versionSuffix )

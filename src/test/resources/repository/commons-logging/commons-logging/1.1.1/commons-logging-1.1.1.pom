@@ -22,11 +22,6 @@
     - "test" phase. Please run "mvn integration-test" to run the full suite of
     - available unit tests.
     -->
-  <parent>
-    <groupId>org.apache.commons</groupId>
-    <artifactId>commons-parent</artifactId>
-    <version>5</version>
-  </parent>
   <modelVersion>4.0.0</modelVersion>
   <groupId>commons-logging</groupId>
   <artifactId>commons-logging</artifactId>

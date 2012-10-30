@@ -1,9 +1,4 @@
 <?xml version="1.0"?><project>
-  <parent>
-    <artifactId>commons-parent</artifactId>
-    <groupId>org.apache.commons</groupId>
-    <version>3</version>
-  </parent>
   <modelVersion>4.0.0</modelVersion>
   <groupId>commons-io</groupId>
   <artifactId>commons-io</artifactId>

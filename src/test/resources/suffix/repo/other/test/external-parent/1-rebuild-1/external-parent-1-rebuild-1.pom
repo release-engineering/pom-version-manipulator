@@ -3,4 +3,5 @@
   <groupId>other.test</groupId>
   <version>1-rebuild-1</version>
   <artifactId>external-parent</artifactId>
+  <packaging>pom</packaging>
 </project>
