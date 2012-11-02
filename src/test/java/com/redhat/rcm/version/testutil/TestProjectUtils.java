@@ -110,6 +110,19 @@ public final class TestProjectUtils
         return dest;
     }
 
+    public static Project loadProject( final String path )
+        throws IOException, ProjectToolsException
+    {
+        final File pom = getResourceFile( path );
+        return new Project( pom, loadModel( pom ) );
+    }
+
+    public static Project loadProject( final File pom )
+        throws IOException, ProjectToolsException
+    {
+        return new Project( pom, loadModel( pom ) );
+    }
+
     public static Model loadModel( final String path )
         throws IOException
     {
@@ -164,22 +177,6 @@ public final class TestProjectUtils
         }
 
         return projects;
-    }
-
-    public static Project loadProject( final String path )
-        throws Exception
-    {
-        final File pom = getResourceFile( path );
-        return new Project( pom, loadModel( pom ) );
-    }
-
-    public static Project loadProject( final File pom )
-        throws Exception
-    {
-        final Map<String, Object> options = new HashMap<String, Object>();
-        options.put( ModelReader.IS_STRICT, Boolean.FALSE.toString() );
-
-        return new Project( pom, loadModel( pom ) );
     }
 
     public static FullProjectKey loadProjectKey( final String path )

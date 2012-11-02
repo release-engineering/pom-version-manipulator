@@ -24,7 +24,6 @@ import static com.redhat.rcm.version.util.InputUtils.getFiles;
 import java.io.File;
 import java.util.List;
 
-import org.commonjava.util.logging.Logger;
 import org.apache.maven.execution.DefaultMavenExecutionRequest;
 import org.apache.maven.execution.MavenExecutionRequest;
 import org.apache.maven.execution.MavenExecutionRequestPopulationException;
@@ -40,6 +39,7 @@ import org.apache.maven.settings.building.SettingsBuildingException;
 import org.apache.maven.settings.building.SettingsBuildingResult;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.component.annotations.Requirement;
+import org.commonjava.util.logging.Logger;
 import org.sonatype.aether.RepositorySystemSession;
 import org.sonatype.aether.util.DefaultRepositorySystemSession;
 

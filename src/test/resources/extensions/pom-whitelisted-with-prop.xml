@@ -3,24 +3,26 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.apache.geronimo.specs</groupId>
-    <artifactId>specs</artifactId>
+    
+    <parent>
+      <groupId>org.foo</groupId>
+      <artifactId>toolchain-with-prop</artifactId>
+      <version>1</version>
+    </parent>
+    
+    <artifactId>whitelisted-with-prop</artifactId>
+    <version>1.1</version>
+    
     <packaging>pom</packaging>
 
-    <name>Geronimo Specifications</name>
-    <version>1.1</version>
-
     <build>
-        <defaultGoal>install</defaultGoal>
-
         <extensions>
             <extension>
-                <groupId>org.apache.maven.wagon</groupId>
-                <artifactId>wagon-ssh-external</artifactId>
+                <groupId>org.foo</groupId>
+                <artifactId>bar-ext</artifactId>
                 <version>1.0-alpha-6</version>
             </extension>
         </extensions>
-
     </build>
 
 </project>
