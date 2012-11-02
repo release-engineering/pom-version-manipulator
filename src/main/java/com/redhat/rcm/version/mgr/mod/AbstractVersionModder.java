@@ -17,36 +17,37 @@
  */
 package com.redhat.rcm.version.mgr.mod;
 
-import org.apache.log4j.Logger;
 import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
+import org.commonjava.util.logging.Logger;
 
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
-public abstract class AbstractVersionModder implements ProjectModder
+public abstract class AbstractVersionModder
+    implements ProjectModder
 {
-    protected static final Logger LOGGER = Logger.getLogger( VersionModder.class );
+    protected final Logger logger = new Logger( getClass() );
 
-    protected abstract String getActionDescription ();
+    protected abstract String getActionDescription();
 
-    protected abstract boolean initialiseModder (final Project project, final VersionManagerSession session);
+    protected abstract boolean initialiseModder( final Project project, final VersionManagerSession session );
 
-    protected abstract boolean verifyVersion (String version);
+    protected abstract boolean verifyVersion( String version );
 
-    protected abstract String replaceVersion (String model);
+    protected abstract String replaceVersion( String model );
 
     /**
      * It is possible for a pom file to be a template. Don't alter the version in that case.
      * @param version
      * @return boolean
      */
-    protected boolean isTemplateVersion (String version)
+    protected boolean isTemplateVersion( final String version )
     {
-        if (version.startsWith( "${" ) && version.endsWith( "}" ))
+        if ( version.startsWith( "${" ) && version.endsWith( "}" ) )
         {
             return true;
         }
@@ -63,10 +64,10 @@ public abstract class AbstractVersionModder implements ProjectModder
             final Model model = project.getModel();
             final Parent parent = project.getParent();
 
-            if ( model.getVersion() != null && verifyVersion (model.getVersion()))
+            if ( model.getVersion() != null && verifyVersion( model.getVersion() ) )
             {
-                LOGGER.info( getActionDescription() + " in: " + model.getVersion() + "' for: " + model.getId() );
-                model.setVersion( replaceVersion (model.getVersion()));
+                logger.info( getActionDescription() + " in: " + model.getVersion() + "' for: " + model.getId() );
+                model.setVersion( replaceVersion( model.getVersion() ) );
                 changed = true;
             }
 
@@ -79,12 +80,12 @@ public abstract class AbstractVersionModder implements ProjectModder
                 // if the parent references a project in the current vman modification session...
                 if ( session.inCurrentSession( parent ) )
                 {
-                    LOGGER.info( "Parent: '" + parent.getId() + "' is current session (for: " + model.getId() + ")" );
+                    logger.info( "Parent: '" + parent.getId() + "' is current session (for: " + model.getId() + ")" );
                     // and if the parent ref's version doesn't end with the suffix we're using here...
-                    if ( verifyVersion (parent.getVersion()))
+                    if ( verifyVersion( parent.getVersion() ) )
                     {
-                        LOGGER.info( getActionDescription() + " in: " + model.getVersion() + "' for: " + model.getId() );
-                        parent.setVersion( replaceVersion (parent.getVersion()));
+                        logger.info( getActionDescription() + " in: " + model.getVersion() + "' for: " + model.getId() );
+                        parent.setVersion( replaceVersion( parent.getVersion() ) );
                         changed = true;
                     }
                 }
@@ -92,7 +93,7 @@ public abstract class AbstractVersionModder implements ProjectModder
                 // toolchain POM already, don't mess with the rest of this stuff.
                 else if ( tk == null || new VersionlessProjectKey( tk ).equals( vpk ) )
                 {
-                    LOGGER.info( "Toolchain key: '" + tk + "' is null, or parent: '" + parent.getId()
+                    logger.info( "Toolchain key: '" + tk + "' is null, or parent: '" + parent.getId()
                         + "' is already set to toolchain for: " + model.getId() + ". Nothing to do.." );
                     // NOP.
                 }
@@ -102,26 +103,27 @@ public abstract class AbstractVersionModder implements ProjectModder
                 {
                     // note it in the session that this parent POM hasn't been captured in our info.
                     session.addMissingParent( project );
-                    if ( !session.isStrict() &&  verifyVersion(parent.getVersion()))
+                    if ( !session.isStrict() && verifyVersion( parent.getVersion() ) )
                     {
                         // if we're not operating in strict mode, and the parent isn't in the current
                         // VMan session, AND the parent ref version doesn't
                         // end with the suffix we're using, append it and assume that the parent POM
                         // will be VMan-ized and built using the same configuration.
-                        parent.setVersion( replaceVersion (parent.getVersion()));
+                        parent.setVersion( replaceVersion( parent.getVersion() ) );
                         changed = true;
                     }
                     else
                     {
-                        LOGGER.info( "NOT replacing snapshot for parent version: '" + parent.getVersion()
-                            + "' for: " + model.getId()
+                        logger.info( "NOT replacing snapshot for parent version: '" + parent.getVersion() + "' for: "
+                            + model.getId()
                             + "; either we're operating in strict mode, or the parent version is correct." );
                     }
                 }
                 // if we're using a different version of a parent listed in our BOMs
-                else if ( !parent.getVersion().equals( version ) )
+                else if ( !parent.getVersion()
+                                 .equals( version ) )
                 {
-                    LOGGER.info( "Adjusting parent version to: '" + version + "' (was: '" + parent.getVersion()
+                    logger.info( "Adjusting parent version to: '" + version + "' (was: '" + parent.getVersion()
                         + "') for parent: '" + parent.getId() + "' in POM: " + model.getId() );
 
                     // adjust the parent version to match the BOM.

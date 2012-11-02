@@ -24,7 +24,7 @@ import static com.redhat.rcm.version.util.InputUtils.getFiles;
 import java.io.File;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.commonjava.util.logging.Logger;
 import org.apache.maven.execution.DefaultMavenExecutionRequest;
 import org.apache.maven.execution.MavenExecutionRequest;
 import org.apache.maven.execution.MavenExecutionRequestPopulationException;
@@ -52,7 +52,7 @@ public class DefaultSessionConfigurator
     implements SessionConfigurator
 {
 
-    private static final Logger LOGGER = Logger.getLogger( DefaultSessionConfigurator.class );
+    private final Logger logger = new Logger( getClass() );
 
     @Requirement
     private ProjectLoader projectLoader;
@@ -221,7 +221,7 @@ public class DefaultSessionConfigurator
                 {
                     final File bom = project.getFile();
 
-                    LOGGER.info( "Adding BOM to session: " + bom + "; " + project );
+                    logger.info( "Adding BOM to session: " + bom + "; " + project );
                     try
                     {
                         session.addBOM( bom, project );

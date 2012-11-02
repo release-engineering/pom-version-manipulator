@@ -65,7 +65,7 @@ public class VersionModder extends AbstractVersionModder
 
             if (versionModifier.length != 2)
             {
-                LOGGER.error("Invalid version modifier size - should be two");
+                logger.error("Invalid version modifier size - should be two");
                 session.addError(new VManException ("Invalid version modifier size. Should be 'pattern:replacement'."));
             }
         }

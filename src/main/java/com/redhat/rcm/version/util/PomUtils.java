@@ -20,12 +20,19 @@ package com.redhat.rcm.version.util;
 
 import static java.io.File.separatorChar;
 
-import org.apache.log4j.Logger;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.Writer;
+import java.util.List;
+
 import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.jdom.MavenJDOMWriter;
 import org.codehaus.plexus.util.IOUtil;
 import org.codehaus.plexus.util.WriterFactory;
+import org.commonjava.util.logging.Logger;
 import org.jdom.Attribute;
 import org.jdom.Document;
 import org.jdom.Element;
@@ -40,17 +47,10 @@ import org.jdom.xpath.XPath;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.Writer;
-import java.util.List;
-
 public final class PomUtils
 {
 
-    private static final Logger LOGGER = Logger.getLogger( PomUtils.class );
+    private static final Logger LOGGER = new Logger( PomUtils.class );
 
     private PomUtils()
     {
@@ -74,13 +74,12 @@ public final class PomUtils
                 encoding = "UTF-8";
             }
 
-            final Format format =
-                Format.getRawFormat()
-                      .setEncoding( "UTF-8" )
-                      .setTextMode( TextMode.PRESERVE )
-                      .setLineSeparator( System.getProperty( "line.separator" ) )
-                      .setOmitDeclaration( false )
-                      .setOmitEncoding( false );
+            final Format format = Format.getRawFormat()
+                                        .setEncoding( "UTF-8" )
+                                        .setTextMode( TextMode.PRESERVE )
+                                        .setLineSeparator( System.getProperty( "line.separator" ) )
+                                        .setOmitDeclaration( false )
+                                        .setOmitEncoding( false );
 
             LOGGER.info( "Writing modified POM:\n\n" + new XMLOutputter( format ).outputString( doc ) );
 
@@ -93,13 +92,15 @@ public final class PomUtils
 
             normalizeNamespace( doc );
 
-            session.getLog( pom ).add( "Writing modified POM: %s", out );
+            session.getLog( pom )
+                   .add( "Writing modified POM: %s", out );
             writer = WriterFactory.newWriter( out, encoding );
             new XMLOutputter( format ).output( doc, writer );
 
             if ( relocatePom && !out.equals( pom ) )
             {
-                session.getLog( pom ).add( "Deleting original POM: %s\nPurging unused directories...", pom );
+                session.getLog( pom )
+                       .add( "Deleting original POM: %s\nPurging unused directories...", pom );
                 pom.delete();
                 File dir = pom.getParentFile();
                 while ( dir != null && !basedir.equals( dir ) )
@@ -119,17 +120,12 @@ public final class PomUtils
         }
         catch ( final IOException e )
         {
-            session.addError( new VManException( "Failed to write modified POM: %s to: %s\n\tReason: %s",
-                                                 e,
-                                                 pom,
-                                                 out,
+            session.addError( new VManException( "Failed to write modified POM: %s to: %s\n\tReason: %s", e, pom, out,
                                                  e.getMessage() ) );
         }
         catch ( final JDOMException e )
         {
-            session.addError( new VManException( "Failed to read original POM for rewrite: %s\n\tReason: %s",
-                                                 e,
-                                                 pom,
+            session.addError( new VManException( "Failed to read original POM for rewrite: %s\n\tReason: %s", e, pom,
                                                  e.getMessage() ) );
         }
         finally
@@ -165,8 +161,7 @@ public final class PomUtils
         {
             schemaLocation =
                 new Attribute( "schemaLocation",
-                               "http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd",
-                               xsi );
+                               "http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd", xsi );
 
             project.setAttribute( schemaLocation );
         }
@@ -178,7 +173,10 @@ public final class PomUtils
             for ( final Element node : allNodes )
             {
                 if ( node.getNamespace() == null || node.getNamespace() == Namespace.NO_NAMESPACE
-                    || node.getNamespace().getURI().trim().length() < 1 )
+                    || node.getNamespace()
+                           .getURI()
+                           .trim()
+                           .length() < 1 )
                 {
                     node.setNamespace( ns );
                 }
@@ -193,7 +191,8 @@ public final class PomUtils
     public static File generateRelocatedPomFile( final ProjectKey coord, final String version, final File basedir )
     {
         final StringBuilder pathBuilder = new StringBuilder();
-        pathBuilder.append( coord.getGroupId().replace( '.', separatorChar ) )
+        pathBuilder.append( coord.getGroupId()
+                                 .replace( '.', separatorChar ) )
                    .append( separatorChar )
                    .append( coord.getArtifactId() )
                    .append( separatorChar )

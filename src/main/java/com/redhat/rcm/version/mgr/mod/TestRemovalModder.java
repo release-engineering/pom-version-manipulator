@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.commonjava.util.logging.Logger;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Activation;
 import org.apache.maven.model.ActivationProperty;
@@ -40,7 +40,7 @@ import com.redhat.rcm.version.model.Project;
 public class TestRemovalModder
     implements ProjectModder
 {
-    private static final Logger LOGGER = Logger.getLogger( TestRemovalModder.class );
+    private final Logger logger = new Logger( getClass() );
 
     public static final String TEST_DEPS_PROFILE_ID = "_testDependencies";
 
@@ -74,7 +74,7 @@ public class TestRemovalModder
                     if ( dep.getScope() != null && dep.getScope()
                                                       .equals( "test" ) )
                     {
-                        LOGGER.info( "Removing scoped test dependency " + dep.toString() + " for '" + project.getKey()
+                        logger.info( "Removing scoped test dependency " + dep.toString() + " for '" + project.getKey()
                             + "'..." );
                         movedDeps.add( dep );
                         it.remove();
@@ -102,7 +102,7 @@ public class TestRemovalModder
 
             Properties props = model.getProperties();
 
-            LOGGER.info( "Injecting skip test property..." );
+            logger.info( "Injecting skip test property..." );
             if ( props == null )
             {
                 props = new Properties();

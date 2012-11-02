@@ -48,8 +48,8 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.conn.params.ConnRouteParams;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
-import org.apache.log4j.Logger;
 import org.codehaus.plexus.util.DirectoryScanner;
+import org.commonjava.util.logging.Logger;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
@@ -57,7 +57,7 @@ import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 public final class InputUtils
 {
 
-    private static final Logger LOGGER = Logger.getLogger( InputUtils.class );
+    private static final Logger LOGGER = new Logger( InputUtils.class );
 
     private InputUtils()
     {
@@ -248,7 +248,7 @@ public final class InputUtils
             // int count = 0;
             for ( final String line : lines )
             {
-                // LOGGER.info( "processing: '" + line + "'" );
+                // logger.info( "processing: '" + line + "'" );
 
                 String ln = line.trim();
                 if ( ln.startsWith( "#" ) )
@@ -273,7 +273,7 @@ public final class InputUtils
                 // count++;
             }
 
-            // LOGGER.info( "Found " + count + " properties..." );
+            // logger.info( "Found " + count + " properties..." );
         }
 
         return properties;
