@@ -41,7 +41,8 @@ import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.testutil.SessionBuilder;
 import com.redhat.rcm.version.testutil.TestVersionManager;
 
-public class ExtensionsRemovalModderTest extends AbstractModderTest
+public class ExtensionsRemovalModderTest
+    extends AbstractModderTest
 {
     private static final String BASE = "extensions/";
 
@@ -132,7 +133,7 @@ public class ExtensionsRemovalModderTest extends AbstractModderTest
         final boolean changed = testVman.getModder( ExtensionsRemovalModder.class )
                                         .inject( project, session );
 
-        assertThat( changed, equalTo( false ) );
+        assertThat( changed, equalTo( true ) );
         assertThat( model.getBuild()
                          .getExtensions()
                          .size(), equalTo( 1 ) );
@@ -170,7 +171,7 @@ public class ExtensionsRemovalModderTest extends AbstractModderTest
         final boolean changed = testVman.getModder( ExtensionsRemovalModder.class )
                                         .inject( project, session );
 
-        assertThat( changed, equalTo( false ) );
+        assertThat( changed, equalTo( true ) );
         assertThat( model.getBuild()
                          .getExtensions()
                          .size(), equalTo( 1 ) );
