@@ -22,12 +22,15 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Extension;
 import org.apache.maven.model.Model;
 import org.codehaus.plexus.component.annotations.Component;
+import org.codehaus.plexus.component.annotations.Requirement;
+import org.commonjava.util.logging.Logger;
 
+import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.maven.EffectiveModelBuilder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
@@ -35,12 +38,16 @@ import com.redhat.rcm.version.model.Project;
 public class ExtensionsRemovalModder
     implements ProjectModder
 {
-    private static final Logger LOGGER = Logger.getLogger( ExtensionsRemovalModder.class );
+    private final Logger logger = new Logger( getClass() );
 
+    @Override
     public String getDescription()
     {
         return "Remove <extensions/> elements from the POM.";
     }
+
+    @Requirement
+    private EffectiveModelBuilder modelBuilder;
 
     /**
      * {@inheritDoc}
@@ -52,40 +59,53 @@ public class ExtensionsRemovalModder
     public boolean inject( final Project project, final VersionManagerSession session )
     {
         final Model model = project.getModel();
+        try
+        {
+            modelBuilder.getEffectiveModel( project, session );
+        }
+        catch ( final VManException e )
+        {
+            logger.error( "Failed to build effective model for: %s. Reason: %s", e, project.getKey(), e.getMessage() );
+            session.addError( e );
+        }
+
         boolean changed = false;
 
-        if ( model.getBuild () != null && model.getBuild().getExtensions() != null &&
-             !model.getBuild().getExtensions().isEmpty())
+        if ( model.getBuild() != null && model.getBuild()
+                                              .getExtensions() != null && !model.getBuild()
+                                                                                .getExtensions()
+                                                                                .isEmpty() )
         {
-            List<Extension> extensions = model.getBuild().getExtensions();
-            Set<VersionlessProjectKey> whitelist = session.getExtensionsWhitelist();
+            final List<Extension> extensions = model.getBuild()
+                                                    .getExtensions();
+            final Set<VersionlessProjectKey> whitelist = session.getExtensionsWhitelist();
 
-            if (whitelist != null && ! whitelist.isEmpty())
+            if ( whitelist != null && !whitelist.isEmpty() )
             {
-                Iterator<Extension> i = extensions.iterator();
-                while (i.hasNext())
+                final Iterator<Extension> i = extensions.iterator();
+                while ( i.hasNext() )
                 {
-                    Extension e = i.next();
-                    VersionlessProjectKey key = new VersionlessProjectKey (e.getGroupId(), e.getArtifactId());
+                    final Extension e = i.next();
+                    final VersionlessProjectKey key = new VersionlessProjectKey( e.getGroupId(), e.getArtifactId() );
 
-                    LOGGER.info( "ExtensionsRemoval - checking " + key +
-                                 " against whitelist " + whitelist);
+                    logger.info( "ExtensionsRemoval - checking " + key + " against whitelist " + whitelist );
 
-                    if ( ! whitelist.contains( key ) )
+                    if ( !whitelist.contains( key ) )
                     {
                         i.remove();
                         changed = true;
                     }
                     else
                     {
-                        e.setVersion( session.replacePropertyVersion (project, e.getGroupId(), e.getArtifactId()));
+                        e.setVersion( session.replacePropertyVersion( project, e.getGroupId(), e.getArtifactId() ) );
                         changed = true;
                     }
                 }
             }
             else
             {
-                model.getBuild().setExtensions(Collections.<Extension>emptyList());
+                model.getBuild()
+                     .setExtensions( Collections.<Extension> emptyList() );
                 changed = true;
             }
         }

@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
 import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.ProjectKey;
@@ -44,6 +43,7 @@ import org.apache.maven.model.Plugin;
 import org.apache.maven.model.ReportPlugin;
 import org.apache.maven.model.Repository;
 import org.apache.maven.project.MavenProject;
+import org.commonjava.util.logging.Logger;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.maven.VManWorkspaceReader;
@@ -518,28 +518,29 @@ public class VersionManagerSession
      * version.<groupId>-<artifactId>
      * and return the value held there.
      */
-    private static final Logger LOGGER = Logger.getLogger( VersionManagerSession.class );
+    private final Logger logger = new Logger( getClass() );
 
     public String replacePropertyVersion( final Project project, final String groupId, final String artifactId )
     {
         String result = null;
-
         final Model model = project.getEffectiveModel();
+
         if ( model == null )
         {
+            // TODO: This needs more thought.
             return null;
         }
 
         final Properties props = model.getProperties();
         final Set<String> commonKeys = props.stringPropertyNames();
 
-        LOGGER.info( "### Properties " + props + " from " + model );
+        logger.info( "### Properties " + props + " from " + model );
 
         final String mapper = "versionmappper." + groupId + '-' + artifactId;
         final String direct = "version." + groupId + '-' + artifactId;
 
-        LOGGER.info( "### Current projects " + getCurrentProjects() );
-        LOGGER.info( "### Got direct " + direct + " and commonKeys" + commonKeys );
+        logger.info( "### Current projects " + getCurrentProjects() );
+        logger.info( "### Got direct " + direct + " and commonKeys" + commonKeys );
         for ( final String key : commonKeys )
         {
             if ( key.equals( mapper ) )
