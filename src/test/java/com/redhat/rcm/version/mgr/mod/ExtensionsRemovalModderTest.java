@@ -41,8 +41,7 @@ import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.testutil.SessionBuilder;
 import com.redhat.rcm.version.testutil.TestVersionManager;
 
-public class ExtensionsRemovalModderTest
-    extends AbstractModderTest
+public class ExtensionsRemovalModderTest extends AbstractModderTest
 {
     private static final String BASE = "extensions/";
 
