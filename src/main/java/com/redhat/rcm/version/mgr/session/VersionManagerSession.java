@@ -514,7 +514,7 @@ public class VersionManagerSession
     }
 
     /*
-     * This should search through the defined properties. It will look for 
+     * This should search through the defined properties. It will look for
      * versionmapper.<groupId>-<artifactId>
      * version.<groupId>-<artifactId>
      * and return the value held there.
@@ -534,14 +534,11 @@ public class VersionManagerSession
 
         final Properties props = model.getProperties();
         final Set<String> commonKeys = props.stringPropertyNames();
-
-        logger.info( "### Properties " + props + " from " + model );
-
-        final String mapper = "versionmappper." + groupId + '-' + artifactId;
+        final String mapper = "versionmapper." + groupId + '-' + artifactId;
         final String direct = "version." + groupId + '-' + artifactId;
 
         logger.info( "### Current projects " + getCurrentProjects() );
-        logger.info( "### Got direct " + direct + " and commonKeys" + commonKeys );
+        logger.info( "### Got direct " + direct + " and " + mapper + " and commonKeys" + commonKeys );
         for ( final String key : commonKeys )
         {
             if ( key.equals( mapper ) )
@@ -553,7 +550,7 @@ public class VersionManagerSession
                 result = "${" + direct + "}";
             }
         }
-        System.err.println( "### Returning result " + result );
+        logger.info ( "### Injecting property: " + result);
         return result;
     }
 

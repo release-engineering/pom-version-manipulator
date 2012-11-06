@@ -46,9 +46,6 @@ public class ExtensionsRemovalModder
         return "Remove <extensions/> elements from the POM.";
     }
 
-    @Requirement
-    private EffectiveModelBuilder modelBuilder;
-
     /**
      * {@inheritDoc}
      *
@@ -59,15 +56,6 @@ public class ExtensionsRemovalModder
     public boolean inject( final Project project, final VersionManagerSession session )
     {
         final Model model = project.getModel();
-        try
-        {
-            modelBuilder.getEffectiveModel( project, session );
-        }
-        catch ( final VManException e )
-        {
-            logger.error( "Failed to build effective model for: %s. Reason: %s", e, project.getKey(), e.getMessage() );
-            session.addError( e );
-        }
 
         boolean changed = false;
 

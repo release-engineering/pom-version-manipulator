@@ -37,12 +37,20 @@ import org.codehaus.plexus.component.annotations.Component;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.model.ReadOnlyDependency;
+import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.maven.EffectiveModelBuilder;
+import com.redhat.rcm.version.mgr.session.VersionManagerSession;
+import com.redhat.rcm.version.model.Project;
+import org.codehaus.plexus.component.annotations.Requirement;
 
 @Component( role = ProjectModder.class, hint = "bom-realignment" )
 public class BomModder
     implements ProjectModder
 {
     private final Logger logger = new Logger( getClass() );
+
+    @Requirement
+    private EffectiveModelBuilder modelBuilder;
 
     @Override
     public String getDescription()
@@ -58,6 +66,19 @@ public class BomModder
 
         DependencyManagement dm = null;
         boolean changed = false;
+
+        if ( modelBuilder != null )
+        {
+            try
+            {
+                project.setEffectiveModel (modelBuilder.getEffectiveModel( project, session ) );
+            }
+            catch ( final VManException e )
+            {
+                logger.error( "Failed to build effective model for: %s. Reason: %s", e, project.getKey(), e.getMessage() );
+                session.addError( e );
+            }
+        }
 
         if ( model.getDependencies() != null )
         {
@@ -239,6 +260,7 @@ public class BomModder
             }
             else
             {
+                d.setVersion (session.replacePropertyVersion (project, d.getGroupId (), d.getArtifactId ()));
                 result = DepModResult.MODIFIED;
             }
         }

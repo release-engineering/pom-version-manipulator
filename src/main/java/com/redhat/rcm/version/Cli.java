@@ -1055,10 +1055,6 @@ public class Cli
                 closeQuietly( reader );
             }
         }
-        else
-        {
-            logger.error( "No such BOM list file: '" + bomList + "'." );
-        }
     }
 
     private static void printUsage( final CmdLineParser parser, final Exception error )
