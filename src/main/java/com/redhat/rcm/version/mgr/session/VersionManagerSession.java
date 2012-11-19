@@ -46,7 +46,6 @@ import org.apache.maven.project.MavenProject;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.maven.VManWorkspaceReader;
 import com.redhat.rcm.version.model.Project;
-import com.redhat.rcm.version.model.ProjectAncestryGraph;
 import com.redhat.rcm.version.util.ActivityLog;
 
 public class VersionManagerSession
@@ -68,8 +67,6 @@ public class VersionManagerSession
     private final File workspace;
 
     private final File reports;
-
-    private ProjectAncestryGraph ancestryGraph;
 
     private final String versionSuffix;
 
@@ -403,30 +400,15 @@ public class VersionManagerSession
     // return this;
     // }
     //
-    private synchronized ProjectAncestryGraph getAncestryGraph()
-    {
-        if ( ancestryGraph == null )
-        {
-            ancestryGraph = new ProjectAncestryGraph( managedInfo.getToolchainKey() );
-        }
-
-        return ancestryGraph;
-    }
-
-    public boolean ancestryGraphContains( final FullProjectKey key )
-    {
-        return getAncestryGraph().contains( key );
-    }
-
     public void setRemoteRepositories( final String remoteRepositories )
         throws MalformedURLException
     {
         String id = "vman";
         int repoIndex = 1;
-        String repos[] = remoteRepositories.split( "," );
-        ArrayList<Repository> resolveRepos = new ArrayList<Repository>();
-        
-        for (String repository : repos)
+        final String repos[] = remoteRepositories.split( "," );
+        final ArrayList<Repository> resolveRepos = new ArrayList<Repository>();
+
+        for ( final String repository : repos )
         {
             String u = repository;
             final int idx = u.indexOf( '|' );
@@ -437,7 +419,7 @@ public class VersionManagerSession
             }
 
             final Repository resolveRepo = new Repository();
-            resolveRepo.setId( id+'-'+repoIndex++ );
+            resolveRepo.setId( id + '-' + repoIndex++ );
             resolveRepo.setUrl( u );
 
             resolveRepos.add( resolveRepo );
@@ -544,6 +526,26 @@ public class VersionManagerSession
     public VManWorkspaceReader getWorkspaceReader()
     {
         return workspaceReader;
+    }
+
+    public boolean hasBoms()
+    {
+        return managedInfo.hasBoms();
+    }
+
+    public Map<String, String> getPomExcludeModules()
+    {
+        return managedInfo.getPomExcludeModules();
+    }
+
+    public void setPomExcludeModules( final String excludes )
+    {
+        managedInfo.setPomExcludeModules( excludes );
+    }
+
+    public void setPomExcludeModules( final Map<String, String> excludes )
+    {
+        managedInfo.setPomExcludeModules( excludes );
     }
 
 }

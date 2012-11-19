@@ -92,6 +92,8 @@ class ManagedInfo
 
     private MavenProject toolchainProject;
 
+    private Map<String, String> pomExcludedModules;
+
     ManagedInfo( final VersionManagerSession session, final Collection<String> removedPlugins,
                  final Collection<String> removedTests, final Collection<String> extensionsWhitelist,
                  final List<String> modderKeys, final Map<String, String> relocatedCoords,
@@ -396,6 +398,39 @@ class ManagedInfo
     public MavenProject getBOMProject( final FullProjectKey key )
     {
         return bomProjects.get( key );
+    }
+
+    boolean hasBoms()
+    {
+        return bomProjects == null || bomProjects.isEmpty();
+    }
+
+    void setPomExcludeModules( final String pomExcludeModules )
+    {
+        if ( pomExcludeModules == null )
+        {
+            return;
+        }
+
+        final String[] modules = pomExcludeModules.split( "," );
+
+        pomExcludedModules = new HashMap<String, String>();
+
+        for ( final String m : modules )
+        {
+            final int index = m.indexOf( ':' );
+            pomExcludedModules.put( m.substring( 0, index ), m.substring( index + 1 ) );
+        }
+    }
+
+    Map<String, String> getPomExcludeModules()
+    {
+        return pomExcludedModules;
+    }
+
+    public void setPomExcludeModules( final Map<String, String> excludes )
+    {
+        this.pomExcludedModules = excludes;
     }
 
 }

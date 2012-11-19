@@ -62,40 +62,29 @@
     <slf4jVersion>1.6.1</slf4jVersion>
     <maeVersion>1.0-alpha-1</maeVersion>
   </properties>
-  
+
   <dependencyManagement>
     <dependencies>
       <dependency>
-        <groupId>org.apache.maven.mae</groupId>
-        <artifactId>mae-app-bom</artifactId>
-        <version>${maeVersion}</version>
-        <type>pom</type>
+        <groupId>org.apache.maven</groupId>
+        <artifactId>maven</artifactId>
+        <version>3.0.4</version>
         <scope>import</scope>
+        <type>pom</type>
       </dependency>
     </dependencies>
-  </dependencyManagement>
+  </dependencyManagement>  
 
   <dependencies>
     <dependency>
-        <groupId>org.apache.maven.mae</groupId>
-        <artifactId>mae-booter</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>org.apache.maven.mae.components</groupId>
-        <artifactId>mae-project-tools</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>org.apache.maven.mae.components</groupId>
-        <artifactId>mae-graph-support</artifactId>
-        <version>${maeVersion}</version>
-    </dependency>
-    <dependency>
         <groupId>org.apache.maven</groupId>
         <artifactId>maven-core</artifactId>
+        <scope>provided</scope>
     </dependency>
     <dependency>
         <groupId>org.apache.maven</groupId>
         <artifactId>maven-model-builder</artifactId>
+        <scope>provided</scope>
     </dependency>
     
     <dependency>
@@ -152,6 +141,7 @@
     <dependency>
       <groupId>log4j</groupId>
       <artifactId>log4j</artifactId>
+      <version>1.2.12</version>
     </dependency>
     
     <dependency>
@@ -169,6 +159,7 @@
     <dependency>
     	<groupId>commons-io</groupId>
     	<artifactId>commons-io</artifactId>
+      <version>2.1</version>
     </dependency>
     <dependency>
     	<groupId>commons-lang</groupId>
@@ -193,6 +184,22 @@
       <artifactId>jetty-server</artifactId>
       <version>8.1.5.v20120716</version>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.maven.mae</groupId>
+      <artifactId>mae-api</artifactId>
+      <version>1.0-alpha-1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.maven.mae.components</groupId>
+      <artifactId>mae-project-tools</artifactId>
+      <version>1.0-alpha-1</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.maven.mae</groupId>
+          <artifactId>mae-booter</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
   </dependencies>
   

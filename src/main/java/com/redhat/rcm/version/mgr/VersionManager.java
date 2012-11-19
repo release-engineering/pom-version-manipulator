@@ -25,7 +25,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -34,15 +33,10 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
-import org.apache.maven.mae.MAEException;
-import org.apache.maven.mae.app.AbstractMAEApplication;
-import org.apache.maven.mae.boot.embed.MAEEmbedderBuilder;
-import org.apache.maven.mae.internal.container.ComponentSelector;
 import org.apache.maven.mae.project.ModelLoader;
 import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
-import org.apache.maven.mae.project.session.SessionInitializer;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
 import org.codehaus.plexus.component.annotations.Component;
@@ -62,7 +56,7 @@ import com.redhat.rcm.version.report.Report;
 
 @Component( role = VersionManager.class )
 public class VersionManager
-    extends AbstractMAEApplication
+//    extends AbstractMAEApplication
 {
 
     private static final Logger LOGGER = Logger.getLogger( VersionManager.class );
@@ -85,28 +79,26 @@ public class VersionManager
     @Requirement
     private SessionConfigurator sessionConfigurator;
 
-    private HashMap<String, String> pomExcludedModules;
-
-    private static boolean useClasspathScanning = false;
-
-    private static Object lock = new Object();
-
-    private static VersionManager instance;
-
-    public static VersionManager getInstance()
-        throws MAEException
-    {
-        synchronized ( lock )
-        {
-            if ( instance == null )
-            {
-                instance = new VersionManager();
-                instance.load();
-            }
-        }
-
-        return instance;
-    }
+    //    private static boolean useClasspathScanning = false;
+    //
+    //    private static Object lock = new Object();
+    //
+    //    private static VersionManager instance;
+    //
+    //    public static VersionManager getInstance()
+    //        throws MAEException
+    //    {
+    //        synchronized ( lock )
+    //        {
+    //            if ( instance == null )
+    //            {
+    //                instance = new VersionManager();
+    //                instance.load();
+    //            }
+    //        }
+    //
+    //        return instance;
+    //    }
 
     public void generateReports( final File reportsDir, final VersionManagerSession sessionData )
     {
@@ -240,6 +232,7 @@ public class VersionManager
             session.setProcessPomPlugins( processPomPlugins );
         }
 
+        final Map<String, String> pomExcludedModules = session.getPomExcludeModules();
         if ( pomExcludedModules != null )
         {
             for ( final Iterator<Model> i = models.iterator(); i.hasNext(); )
@@ -427,63 +420,45 @@ public class VersionManager
         return writeModifiedPom( model, pom, coord, version, basedir, session, relocatePom );
     }
 
-    @Override
-    public String getId()
-    {
-        return "rh.vmod";
-    }
-
-    @Override
-    public String getName()
-    {
-        return "RedHat POM Version Modifier";
-    }
-
-    @Override
-    protected void configureBuilder( final MAEEmbedderBuilder builder )
-        throws MAEException
-    {
-        super.configureBuilder( builder );
-        if ( useClasspathScanning )
-        {
-            builder.withClassScanningEnabled( true );
-        }
-    }
-
-    public static void setClasspathScanning( final boolean scanning )
-    {
-        if ( instance == null )
-        {
-            useClasspathScanning = scanning;
-        }
-    }
+    //    @Override
+    //    public String getId()
+    //    {
+    //        return "rh.vmod";
+    //    }
+    //
+    //    @Override
+    //    public String getName()
+    //    {
+    //        return "RedHat POM Version Modifier";
+    //    }
+    //
+    //    @Override
+    //    protected void configureBuilder( final MAEEmbedderBuilder builder )
+    //        throws MAEException
+    //    {
+    //        super.configureBuilder( builder );
+    //        if ( useClasspathScanning )
+    //        {
+    //            builder.withClassScanningEnabled( true );
+    //        }
+    //    }
+    //
+    //    public static void setClasspathScanning( final boolean scanning )
+    //    {
+    //        if ( instance == null )
+    //        {
+    //            useClasspathScanning = scanning;
+    //        }
+    //    }
 
     public Map<String, ProjectModder> getModders()
     {
         return modders;
     }
 
-    public void setPomExcludeModules( final String pomExcludeModules )
-    {
-        if ( pomExcludeModules == null )
-        {
-            return;
-        }
-
-        final String[] modules = pomExcludeModules.split( "," );
-
-        pomExcludedModules = new HashMap<String, String>();
-
-        for ( final String m : modules )
-        {
-            final int index = m.indexOf( ':' );
-            pomExcludedModules.put( m.substring( 0, index ), m.substring( index + 1 ) );
-        }
-    }
-
-    @Override
-    public ComponentSelector getComponentSelector()
-    {
-        return new ComponentSelector().setSelection( SessionInitializer.class, "vman" );
-    }
+    //    @Override
+    //    public ComponentSelector getComponentSelector()
+    //    {
+    //        return new ComponentSelector().setSelection( SessionInitializer.class, "vman" );
+    //    }
 }
