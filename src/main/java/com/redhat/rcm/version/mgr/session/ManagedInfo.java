@@ -47,6 +47,7 @@ import org.apache.maven.project.MavenProject;
 
 import com.redhat.rcm.version.Cli;
 import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.maven.WildcardProjectKey;
 import com.redhat.rcm.version.model.Project;
 
 class ManagedInfo
@@ -79,7 +80,7 @@ class ManagedInfo
 
     private final Set<VersionlessProjectKey> removedPlugins = new HashSet<VersionlessProjectKey>();
 
-    private final Set<VersionlessProjectKey> removedTests = new HashSet<VersionlessProjectKey>();
+    private final List<WildcardProjectKey> removedTests = new ArrayList<WildcardProjectKey>();
 
     private final Set<VersionlessProjectKey> extensionsWhitelist = new HashSet<VersionlessProjectKey>();
 
@@ -111,7 +112,7 @@ class ManagedInfo
         {
             for ( final String rm : removedTests )
             {
-                this.removedTests.add( new VersionlessProjectKey( rm ) );
+                this.removedTests.add( new WildcardProjectKey( rm ) );
             }
         }
         if ( extensionsWhitelist != null )
@@ -292,7 +293,7 @@ class ManagedInfo
         return removedPlugins;
     }
 
-    Set<VersionlessProjectKey> getRemovedTests()
+    List<WildcardProjectKey> getRemovedTests()
     {
         return removedTests;
     }

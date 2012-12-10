@@ -22,10 +22,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
-import java.util.Set;
 
 import org.apache.log4j.Logger;
-import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Activation;
 import org.apache.maven.model.ActivationProperty;
 import org.apache.maven.model.Dependency;
@@ -33,6 +31,7 @@ import org.apache.maven.model.Model;
 import org.apache.maven.model.Profile;
 import org.codehaus.plexus.component.annotations.Component;
 
+import com.redhat.rcm.version.maven.WildcardProjectKey;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
@@ -57,9 +56,9 @@ public class TestRemovalModder
     {
         final Model model = project.getModel();
         boolean changed = false;
-        final Set<VersionlessProjectKey> removedTests = session.getRemovedTests();
-        final VersionlessProjectKey projectkey =
-            new VersionlessProjectKey( project.getGroupId(), project.getArtifactId() );
+        final List<WildcardProjectKey> removedTests = session.getRemovedTests();
+        final WildcardProjectKey projectkey =
+            new WildcardProjectKey( project.getGroupId(), project.getArtifactId() );
 
         if ( removedTests.contains( projectkey ) )
         {

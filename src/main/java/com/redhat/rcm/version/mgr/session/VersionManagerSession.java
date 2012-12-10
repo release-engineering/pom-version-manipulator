@@ -45,6 +45,7 @@ import org.apache.maven.project.MavenProject;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.maven.VManWorkspaceReader;
+import com.redhat.rcm.version.maven.WildcardProjectKey;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.model.ProjectAncestryGraph;
 import com.redhat.rcm.version.util.ActivityLog;
@@ -329,7 +330,7 @@ public class VersionManagerSession
         return managedInfo.getRemovedPlugins();
     }
 
-    public Set<VersionlessProjectKey> getRemovedTests()
+    public List<WildcardProjectKey> getRemovedTests()
     {
         return managedInfo.getRemovedTests();
     }
