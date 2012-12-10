@@ -24,7 +24,6 @@ import java.io.File;
 import java.util.Iterator;
 import java.util.List;
 
-import org.commonjava.util.logging.Logger;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
@@ -33,15 +32,14 @@ import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Exclusion;
 import org.apache.maven.model.Model;
 import org.codehaus.plexus.component.annotations.Component;
+import org.codehaus.plexus.component.annotations.Requirement;
+import org.commonjava.util.logging.Logger;
 
-import com.redhat.rcm.version.mgr.session.VersionManagerSession;
-import com.redhat.rcm.version.model.Project;
-import com.redhat.rcm.version.model.ReadOnlyDependency;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.maven.EffectiveModelBuilder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
-import org.codehaus.plexus.component.annotations.Requirement;
+import com.redhat.rcm.version.model.ReadOnlyDependency;
 
 @Component( role = ProjectModder.class, hint = "bom-realignment" )
 public class BomModder
@@ -66,19 +64,6 @@ public class BomModder
 
         DependencyManagement dm = null;
         boolean changed = false;
-
-        if ( modelBuilder != null )
-        {
-            try
-            {
-                project.setEffectiveModel (modelBuilder.getEffectiveModel( project, session ) );
-            }
-            catch ( final VManException e )
-            {
-                logger.error( "Failed to build effective model for: %s. Reason: %s", e, project.getKey(), e.getMessage() );
-                session.addError( e );
-            }
-        }
 
         if ( model.getDependencies() != null )
         {
@@ -253,14 +238,33 @@ public class BomModder
         {
             d.setVersion( null );
 
-            if ( isManaged &&
-                ( dep.getScope() == null && (dep.getExclusions() == null || dep.getExclusions().isEmpty() ) ))
+            if ( isManaged && ( dep.getScope() == null && ( dep.getExclusions() == null || dep.getExclusions()
+                                                                                              .isEmpty() ) ) )
             {
                 result = DepModResult.DELETED;
             }
             else
             {
-                d.setVersion (session.replacePropertyVersion (project, d.getGroupId (), d.getArtifactId ()));
+                // This is expensive, so only do it on demand.
+                // NOTE: After this, the project's effective model will be set (by the effective model builder)
+                if ( project.getEffectiveModel() == null )
+                {
+                    if ( modelBuilder != null )
+                    {
+                        try
+                        {
+                            modelBuilder.getEffectiveModel( project, session );
+                        }
+                        catch ( final VManException e )
+                        {
+                            logger.error( "Failed to build effective model for: %s. Reason: %s", e, project.getKey(),
+                                          e.getMessage() );
+                            session.addError( e );
+                        }
+                    }
+                }
+
+                d.setVersion( session.replacePropertyVersion( project, d.getGroupId(), d.getArtifactId() ) );
                 result = DepModResult.MODIFIED;
             }
         }

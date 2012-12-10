@@ -40,6 +40,9 @@ public class ExtensionsRemovalModder
 {
     private final Logger logger = new Logger( getClass() );
 
+    @Requirement
+    private EffectiveModelBuilder modelBuilder;
+
     @Override
     public String getDescription()
     {
@@ -58,6 +61,20 @@ public class ExtensionsRemovalModder
         final Model model = project.getModel();
 
         boolean changed = false;
+
+        if ( modelBuilder != null )
+        {
+            try
+            {
+                modelBuilder.getEffectiveModel( project, session );
+            }
+            catch ( final VManException e )
+            {
+                logger.error( "Failed to build effective model for: %s. Reason: %s", e, project.getKey(),
+                              e.getMessage() );
+                session.addError( e );
+            }
+        }
 
         if ( model.getBuild() != null && model.getBuild()
                                               .getExtensions() != null && !model.getBuild()
@@ -85,6 +102,25 @@ public class ExtensionsRemovalModder
                     }
                     else
                     {
+                        // This is expensive, so only do it on demand.
+                        // NOTE: After this, the project's effective model will be set (by the effective model builder)
+                        if ( project.getEffectiveModel() == null )
+                        {
+                            if ( modelBuilder != null )
+                            {
+                                try
+                                {
+                                    modelBuilder.getEffectiveModel( project, session );
+                                }
+                                catch ( final VManException error )
+                                {
+                                    logger.error( "Failed to build effective model for: %s. Reason: %s", error,
+                                                  project.getKey(), error.getMessage() );
+                                    session.addError( error );
+                                }
+                            }
+                        }
+
                         e.setVersion( session.replacePropertyVersion( project, e.getGroupId(), e.getArtifactId() ) );
                         changed = true;
                     }
