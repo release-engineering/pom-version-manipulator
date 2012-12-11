@@ -200,8 +200,11 @@ The optional ones are:
     reporting-removal        Remove reporting elements from the POM.
 
     testremoval              For each module, disable test compilation and execution and move
-                             any test scoped dependencies into a separate profile.
+                             any test scoped dependencies into a separate profile. The modules
+                             may be specified explicitly as groupId:artifactId or by using wildcards
+                             using the Java regex syntax.
 
+Details on the Java regex pattern syntax may be found [here](http://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html).
 
 In order to add optional modifiers to the standard list use either
 

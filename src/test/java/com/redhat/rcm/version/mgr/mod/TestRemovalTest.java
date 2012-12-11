@@ -39,9 +39,26 @@ import com.redhat.rcm.version.model.Project;
 public class TestRemovalTest
     extends AbstractModderTest
 {
+    @Test
+    public void testRemoveTestWildcard()
+        throws Exception
+    {
+        final Model model = loadModel( "test-removal/pom-test-deps.xml" );
+
+        assertThat( model.getProperties()
+                         .size(), equalTo( 0 ) );
+
+        final boolean changed =
+            new TestRemovalModder().inject( new Project( model ),
+                                            newVersionManagerSession( workspace, reports, null,
+                                                                      Collections.<String> emptyList(),
+                                                                      Collections.singletonList( ".*:.*" ) ) );
+        checkTestRemoval (model, changed);
+    }
+
 
     @Test
-    public void testRemoveTest()
+    public void testRemoveTestExplicit()
         throws Exception
     {
         final Model model = loadModel( "test-removal/pom-test-deps.xml" );
@@ -55,6 +72,12 @@ public class TestRemovalTest
                                                                       Collections.<String> emptyList(),
                                                                       Collections.singletonList( "test:pom-test-deps" ) ) );
 
+        checkTestRemoval (model, changed);
+    }
+
+
+    private void checkTestRemoval (Model model, boolean changed)
+    {
         assertThat( changed, equalTo( true ) );
         assertThat( model.getProperties()
                          .size(), equalTo( 1 ) );
