@@ -21,8 +21,10 @@ package com.redhat.rcm.version.mgr.mod;
 import static com.redhat.rcm.version.mgr.mod.Interpolations.interpolate;
 
 import java.io.File;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.mae.project.key.FullProjectKey;
@@ -91,6 +93,20 @@ public class BomModder
 
             if ( model.getDependencyManagement() != null && dm.getDependencies() != null )
             {
+                if ( modelBuilder != null && project.getEffectiveModel() == null )
+                {
+                    try
+                    {
+                        modelBuilder.getEffectiveModel( project, session );
+                    }
+                    catch ( final VManException e )
+                    {
+                        logger.error( "Failed to build effective model for: %s. Reason: %s", e, project.getKey(),
+                                      e.getMessage() );
+                        session.addError( e );
+                    }
+                }
+
                 logger.info( "Processing dependencyManagement for '" + project.getKey() + "'..." );
                 for ( final Iterator<Dependency> it = dm.getDependencies()
                                                         .iterator(); it.hasNext(); )
@@ -220,7 +236,7 @@ public class BomModder
             logger.info( "No relocation available for: " + key );
         }
 
-        String version = d.getVersion();
+        final String version = d.getVersion();
 
         if ( version == null )
         {
@@ -229,51 +245,30 @@ public class BomModder
             return result;
         }
 
-        version = session.getArtifactVersion( key );
+        final Dependency managed = session.getManagedDependency( key );
 
         // wipe this out, and use the one in the BOM implicitly...DRY-style.
         // If in non-strict mode (default), wipe it out even if the dependency isn't in the BOM
         // ...assume it will be added from the capture POM.
-        if ( version != null || !session.isStrict() )
+        if ( managed != null || !session.isStrict() )
         {
             d.setVersion( null );
 
-            if ( isManaged && ( dep.getScope() == null && ( dep.getExclusions() == null || dep.getExclusions()
-                                                                                              .isEmpty() ) ) )
+            if ( isManaged )
             {
-                if ( dep.getScope() == null && ( dep.getExclusions() == null || dep.getExclusions()
-                                                                                   .isEmpty() ) )
+                if ( !overridesManagedInfo( dep, managed ) )
                 {
                     result = DepModResult.DELETED;
                 }
                 else
                 {
-                    // FIXME: This is a BAD place to be...we can't remove the managed dep, but we also can't leave it.
-                    // Leaving it means dependency version info will cause cascading build problems when versions shift.
+                    d.setVersion( session.replacePropertyVersion( project, d.getGroupId(), d.getArtifactId() ) );
+                    result = DepModResult.MODIFIED;
                 }
-            }
-            else
-            {
-                if ( modelBuilder != null && project.getEffectiveModel() == null )
-                {
-                    try
-                    {
-                        modelBuilder.getEffectiveModel( project, session );
-                    }
-                    catch ( final VManException e )
-                    {
-                        logger.error( "Failed to build effective model for: %s. Reason: %s", e, project.getKey(),
-                                      e.getMessage() );
-                        session.addError( e );
-                    }
-                }
-
-                d.setVersion( session.replacePropertyVersion( project, d.getGroupId(), d.getArtifactId() ) );
-                result = DepModResult.MODIFIED;
             }
         }
 
-        if ( version == null )
+        if ( managed == null )
         {
             // if we're in strict mode and this is a BOM, don't add it to the missing list.
             if ( !session.isStrict() || !"pom".equals( dep.getType() ) || !"import".equals( dep.getScope() ) )
@@ -284,6 +279,50 @@ public class BomModder
         }
 
         return result;
+    }
+
+    private boolean overridesManagedInfo( final Dependency dep, final Dependency managed )
+    {
+        //    if ( dep.getScope() == null && ( dep.getExclusions() == null || dep.getExclusions()
+        //                                                                       .isEmpty() ) )
+
+        String depScope = dep.getScope();
+        if ( depScope == null )
+        {
+            depScope = "compile";
+        }
+
+        String mgdScope = managed.getScope();
+        if ( mgdScope == null )
+        {
+            mgdScope = "compile";
+        }
+
+        if ( !depScope.equals( mgdScope ) )
+        {
+            return true;
+        }
+
+        final Set<Exclusion> depExclusions =
+            dep.getExclusions() == null ? new HashSet<Exclusion>() : new HashSet<Exclusion>( dep.getExclusions() );
+
+        if ( depExclusions.isEmpty() )
+        {
+            return false;
+        }
+
+        final Set<Exclusion> mgdExclusions =
+            managed.getExclusions() == null ? new HashSet<Exclusion>()
+                            : new HashSet<Exclusion>( managed.getExclusions() );
+
+        // Compare to see if the exclusions are the same...if not, then the list differs and the local dep is overriding the managed one.
+        final Set<Exclusion> depOnly = new HashSet<Exclusion>( depExclusions );
+        depOnly.removeAll( mgdExclusions );
+
+        final Set<Exclusion> mgdOnly = new HashSet<Exclusion>( mgdExclusions );
+        mgdOnly.removeAll( depExclusions );
+
+        return !depOnly.isEmpty() || !mgdOnly.isEmpty();
     }
 
     private static enum DepModResult

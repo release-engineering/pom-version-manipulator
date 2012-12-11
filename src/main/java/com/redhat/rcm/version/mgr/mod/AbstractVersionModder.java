@@ -20,6 +20,7 @@ package com.redhat.rcm.version.mgr.mod;
 import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
+import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
 import org.commonjava.util.logging.Logger;
@@ -75,7 +76,8 @@ public abstract class AbstractVersionModder
             {
                 final ProjectKey tk = session.getToolchainKey();
                 final VersionlessProjectKey vpk = new VersionlessProjectKey( parent );
-                final String version = session.getArtifactVersion( vpk );
+                final Dependency managed = session.getManagedDependency( vpk );
+                final String version = managed == null ? null : managed.getVersion();
 
                 // if the parent references a project in the current vman modification session...
                 if ( session.inCurrentSession( parent ) )

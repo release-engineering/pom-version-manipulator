@@ -40,8 +40,6 @@ import org.apache.maven.settings.building.SettingsBuildingResult;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.component.annotations.Requirement;
 import org.commonjava.util.logging.Logger;
-import org.sonatype.aether.RepositorySystemSession;
-import org.sonatype.aether.util.DefaultRepositorySystemSession;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.maven.VManWorkspaceReader;
@@ -145,16 +143,7 @@ public class DefaultSessionConfigurator
             return;
         }
 
-        final RepositorySystemSession rss = session.getRepositorySystemSession();
-
-        final DefaultRepositorySystemSession drss =
-            (DefaultRepositorySystemSession) ( ( rss instanceof DefaultRepositorySystemSession ) ? rss
-                            : new DefaultRepositorySystemSession( rss ) );
-
         final VManWorkspaceReader workspaceReader = new VManWorkspaceReader( session );
-        drss.setWorkspaceReader( workspaceReader );
-        session.initialize( drss, session.getProjectBuildingRequest(), session.getArtifactRepositoriesForResolution(),
-                            session.getRemoteRepositoriesForResolution() );
         session.setWorkspaceReader( workspaceReader );
     }
 

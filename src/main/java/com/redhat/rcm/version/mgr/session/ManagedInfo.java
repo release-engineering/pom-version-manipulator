@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import org.commonjava.util.logging.Logger;
 import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.ProjectKey;
@@ -44,6 +43,7 @@ import org.apache.maven.model.Parent;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginManagement;
 import org.apache.maven.project.MavenProject;
+import org.commonjava.util.logging.Logger;
 
 import com.redhat.rcm.version.Cli;
 import com.redhat.rcm.version.VManException;
@@ -65,7 +65,7 @@ class ManagedInfo
 
     private final PropertyMappings propertyMappings;
 
-    private final Map<VersionlessProjectKey, String> depMap = new HashMap<VersionlessProjectKey, String>();
+    private final Map<VersionlessProjectKey, Dependency> depMap = new HashMap<VersionlessProjectKey, Dependency>();
 
     private final Map<File, Map<VersionlessProjectKey, String>> bomDepMap =
         new HashMap<File, Map<VersionlessProjectKey, String>>();
@@ -136,7 +136,7 @@ class ManagedInfo
         return !depMap.isEmpty();
     }
 
-    String getArtifactVersion( final ProjectKey key )
+    Dependency getManagedDependency( final ProjectKey key )
     {
         return depMap.get( key );
     }
@@ -153,7 +153,7 @@ class ManagedInfo
 
         if ( !depMap.containsKey( key ) )
         {
-            depMap.put( key, version );
+            depMap.put( key, dep );
 
             Map<VersionlessProjectKey, String> bomMap = bomDepMap.get( srcBom );
             if ( bomMap == null )
@@ -169,7 +169,15 @@ class ManagedInfo
     private void startBomMap( final File srcBom, final String groupId, final String artifactId, final String version )
     {
         final VersionlessProjectKey bomKey = new VersionlessProjectKey( groupId, artifactId );
-        depMap.put( bomKey, version );
+
+        final Dependency dep = new Dependency();
+        dep.setGroupId( groupId );
+        dep.setArtifactId( artifactId );
+        dep.setVersion( version );
+        dep.setScope( "import" );
+        dep.setType( "pom" );
+
+        depMap.put( bomKey, dep );
 
         Map<VersionlessProjectKey, String> bomMap = bomDepMap.get( srcBom );
         if ( bomMap == null )

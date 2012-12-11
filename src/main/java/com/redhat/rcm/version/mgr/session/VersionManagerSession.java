@@ -44,6 +44,8 @@ import org.apache.maven.model.ReportPlugin;
 import org.apache.maven.model.Repository;
 import org.apache.maven.project.MavenProject;
 import org.commonjava.util.logging.Logger;
+import org.sonatype.aether.RepositorySystemSession;
+import org.sonatype.aether.util.DefaultRepositorySystemSession;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.maven.VManWorkspaceReader;
@@ -272,9 +274,9 @@ public class VersionManagerSession
         return managedInfo.hasDependencyMap();
     }
 
-    public String getArtifactVersion( final ProjectKey key )
+    public Dependency getManagedDependency( final ProjectKey key )
     {
-        return managedInfo.getArtifactVersion( key );
+        return managedInfo.getManagedDependency( key );
     }
 
     public Map<File, Map<VersionlessProjectKey, String>> getMappedDependenciesByBom()
@@ -506,6 +508,25 @@ public class VersionManagerSession
     public void setWorkspaceReader( final VManWorkspaceReader workspaceReader )
     {
         this.workspaceReader = workspaceReader;
+        final RepositorySystemSession rss = getRepositorySystemSession();
+
+        final DefaultRepositorySystemSession drss;
+        if ( rss == null )
+        {
+            drss = new DefaultRepositorySystemSession();
+        }
+        else if ( rss instanceof DefaultRepositorySystemSession )
+        {
+            drss = (DefaultRepositorySystemSession) rss;
+        }
+        else
+        {
+            drss = new DefaultRepositorySystemSession( rss );
+        }
+
+        drss.setWorkspaceReader( workspaceReader );
+        initialize( drss, getProjectBuildingRequest(), getArtifactRepositoriesForResolution(),
+                    getRemoteRepositoriesForResolution() );
     }
 
     public VManWorkspaceReader getWorkspaceReader()

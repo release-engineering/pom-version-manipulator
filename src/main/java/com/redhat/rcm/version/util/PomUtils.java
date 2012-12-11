@@ -30,8 +30,11 @@ import java.util.List;
 import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.jdom.MavenJDOMWriter;
+import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 import org.codehaus.plexus.util.IOUtil;
 import org.codehaus.plexus.util.WriterFactory;
+import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.commonjava.util.logging.Logger;
 import org.jdom.Attribute;
 import org.jdom.Document;
@@ -54,6 +57,27 @@ public final class PomUtils
 
     private PomUtils()
     {
+    }
+
+    public static Model cloneModel( final Model src )
+        throws VManException
+    {
+        try
+        {
+            final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            new MavenXpp3Writer().write( baos, src );
+            return new MavenXpp3Reader().read( new ByteArrayInputStream( baos.toByteArray() ) );
+        }
+        catch ( final IOException e )
+        {
+            throw new VManException( "Failed to clone model %s via serialization/deserialization. Reason: %s", e, src,
+                                     e.getMessage() );
+        }
+        catch ( final XmlPullParserException e )
+        {
+            throw new VManException( "Failed to clone model %s via serialization/deserialization. Reason: %s", e, src,
+                                     e.getMessage() );
+        }
     }
 
     public static File writeModifiedPom( final Model model, final File pom, final ProjectKey coord,

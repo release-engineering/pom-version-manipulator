@@ -179,6 +179,6 @@ public class ExtensionsRemovalModderTest
         final Extension ext = model.getBuild()
                                    .getExtensions()
                                    .get( 0 );
-        assertThat( ext.getVersion(), equalTo( "${versionmapper.org.foo-bar-ext}" ) );
+        assertThat( ext.getVersion(), equalTo( "${version.org.foo-bar-ext}" ) );
     }
 }
