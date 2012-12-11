@@ -237,6 +237,7 @@ public class BomModder
         if ( version != null || !session.isStrict() )
         {
             d.setVersion( null );
+
             if ( isManaged && ( dep.getScope() == null && ( dep.getExclusions() == null || dep.getExclusions()
                                                                                               .isEmpty() ) ) )
             {
@@ -253,22 +254,17 @@ public class BomModder
             }
             else
             {
-                // This is expensive, so only do it on demand.
-                // NOTE: After this, the project's effective model will be set (by the effective model builder)
-                if ( project.getEffectiveModel() == null )
+                if ( modelBuilder != null && project.getEffectiveModel() == null )
                 {
-                    if ( modelBuilder != null )
+                    try
                     {
-                        try
-                        {
-                            modelBuilder.getEffectiveModel( project, session );
-                        }
-                        catch ( final VManException e )
-                        {
-                            logger.error( "Failed to build effective model for: %s. Reason: %s", e, project.getKey(),
-                                          e.getMessage() );
-                            session.addError( e );
-                        }
+                        modelBuilder.getEffectiveModel( project, session );
+                    }
+                    catch ( final VManException e )
+                    {
+                        logger.error( "Failed to build effective model for: %s. Reason: %s", e, project.getKey(),
+                                      e.getMessage() );
+                        session.addError( e );
                     }
                 }
 

@@ -42,7 +42,6 @@ import org.apache.maven.model.Parent;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.ReportPlugin;
 import org.apache.maven.model.Repository;
-import org.apache.maven.model.building.ModelBuilder;
 import org.apache.maven.project.MavenProject;
 import org.commonjava.util.logging.Logger;
 
@@ -551,7 +550,17 @@ public class VersionManagerSession
                 result = "${" + direct + "}";
             }
         }
-        logger.info ( "### Injecting property: " + result);
+        logger.info( "### Injecting property: " + result );
+
+        if ( result == null )
+        {
+            project.getModel()
+                   .getProperties()
+                   .setProperty( direct, "MISSING VERSION" );
+
+            result = "${" + direct + "}";
+        }
+
         return result;
     }
 
