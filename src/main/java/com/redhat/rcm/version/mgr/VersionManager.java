@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
 import org.apache.maven.mae.MAEException;
 import org.apache.maven.mae.app.AbstractMAEApplication;
 import org.apache.maven.mae.boot.embed.MAEEmbedderBuilder;
@@ -49,6 +48,7 @@ import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.component.annotations.Requirement;
 import org.codehaus.plexus.util.FileUtils;
 import org.codehaus.plexus.util.StringUtils;
+import org.commonjava.util.logging.Logger;
 import org.sonatype.aether.util.DefaultRequestTrace;
 
 import com.redhat.rcm.version.VManException;
@@ -65,7 +65,7 @@ public class VersionManager
     extends AbstractMAEApplication
 {
 
-    private static final Logger LOGGER = Logger.getLogger( VersionManager.class );
+    private final Logger logger = new Logger( getClass() );
 
     @Requirement
     private ModelLoader modelLoader;
@@ -127,12 +127,12 @@ public class VersionManager
                     }
                     catch ( final VManException e )
                     {
-                        LOGGER.error( "Failed to generate report: " + id, e );
+                        logger.error( "Failed to generate report: " + id, e );
                     }
                 }
             }
 
-            LOGGER.info( "Wrote reports: [" + StringUtils.join( ids.iterator(), ", " ) + "] to:\n\t" + reportsDir );
+            logger.info( "Wrote reports: [" + StringUtils.join( ids.iterator(), ", " ) + "] to:\n\t" + reportsDir );
         }
     }
 
@@ -160,7 +160,7 @@ public class VersionManager
 
             if ( !pomFiles.contains( pom ) )
             {
-                LOGGER.info( "Loading POM: '" + pom + "'" );
+                logger.info( "Loading POM: '" + pom + "'" );
                 pomFiles.add( pom );
             }
         }
@@ -168,7 +168,7 @@ public class VersionManager
         final Set<File> outFiles =
             modVersions( dir, session, session.isPreserveFiles(), pomFiles.toArray( new File[] {} ) );
 
-        LOGGER.info( "Modified " + outFiles.size() + " POM versions in directory.\n\n\tDirectory: " + dir
+        logger.info( "Modified " + outFiles.size() + " POM versions in directory.\n\n\tDirectory: " + dir
             + "\n\tBOMs:\t" + StringUtils.join( boms.iterator(), "\n\t\t" ) + "\n\tPOM Backups: "
             + session.getBackups() + "\n\n" );
 
@@ -196,7 +196,7 @@ public class VersionManager
             final File out = result.iterator()
                                    .next();
 
-            LOGGER.info( "Modified POM versions.\n\n\tTop POM: " + out + "\n\tBOMs:\t"
+            logger.info( "Modified POM versions.\n\n\tTop POM: " + out + "\n\tBOMs:\t"
                 + ( boms == null ? "-NONE-" : StringUtils.join( boms.iterator(), "\n\t\t" ) ) + "\n\tPOM Backups: "
                 + session.getBackups() + "\n\n" );
         }
@@ -228,7 +228,6 @@ public class VersionManager
         try
         {
             models = modelLoader.loadRawModels( session, true, new DefaultRequestTrace( "VMan ROOT" ), pomFiles );
-            // projects = modelLoader.buildModels( session, pomFiles );
         }
         catch ( final ProjectToolsException e )
         {
@@ -249,7 +248,7 @@ public class VersionManager
                 String groupId;
                 if ( m.getGroupId() == null && m.getParent() == null )
                 {
-                    LOGGER.warn( "Unable to determine groupId for model " + m );
+                    logger.warn( "Unable to determine groupId for model " + m );
                     continue;
                 }
                 else
@@ -273,19 +272,20 @@ public class VersionManager
         }
         catch ( final ProjectToolsException e )
         {
-            LOGGER.info( "Cannot construct project key. Error: " + e.getMessage() );
+            logger.info( "Cannot construct project key. Error: " + e.getMessage() );
             session.addError( e );
             return result;
         }
 
-        LOGGER.info( "Modifying " + models.size() + " project(s)..." );
-        // TODO: Projects may need to be sorted to parents-first if we have to use modelBuilder where there are parent-child relationships.
+        logger.info( "Modifying " + models.size() + " project(s)..." );
         for ( final Project project : session.getCurrentProjects() )
         {
-            LOGGER.info( "Modifying '" + project.getKey() + "'..." );
+            logger.info( "Modifying '" + project.getKey() + "'..." );
 
             final List<String> modderKeys = session.getModderKeys();
+            System.out.println( "### ModderKeys " + modderKeys );
             Collections.sort( modderKeys, ProjectModder.KEY_COMPARATOR );
+            System.out.println( "### ModderKeys (postsort): " + modderKeys );
 
             boolean changed = false;
             if ( modders != null )
@@ -296,12 +296,12 @@ public class VersionManager
                     final ProjectModder modder = modders.get( key );
                     if ( modder == null )
                     {
-                        LOGGER.info( "Skipping missing project modifier: '" + key + "'" );
+                        logger.info( "Skipping missing project modifier: '" + key + "'" );
                         session.addError( new VManException( "Cannot find modder for key: '%s'. Skipping...", key ) );
                         continue;
                     }
 
-                    LOGGER.info( "Modifying '" + project.getKey() + " using: '" + key + "'" );
+                    logger.info( "Modifying '" + project.getKey() + " using: '" + key + "'" );
                     changed = modder.inject( project, session ) || changed;
                 }
             }
@@ -313,12 +313,12 @@ public class VersionManager
                     final ProjectVerifier verifier = verifiers.get( key );
                     if ( verifier != null )
                     {
-                        LOGGER.info( "Verifying '" + project.getKey() + "' (" + key + ")..." );
+                        logger.info( "Verifying '" + project.getKey() + "' (" + key + ")..." );
                         verifier.verify( project, session );
                     }
                 }
 
-                LOGGER.info( "Writing modified '" + project.getKey() + "'..." );
+                logger.info( "Writing modified '" + project.getKey() + "'..." );
 
                 final Model model = project.getModel();
                 final Parent parent = model.getParent();
@@ -349,7 +349,7 @@ public class VersionManager
             }
             else
             {
-                LOGGER.info( project.getKey() + " NOT modified." );
+                logger.info( project.getKey() + " NOT modified." );
             }
         }
 
@@ -357,7 +357,7 @@ public class VersionManager
         {
             capturer.captureMissing( session );
 
-            LOGGER.warn( "\n\n\n\nMissing version information has been logged to:\n\n\t" + session.getCapturePom()
+            logger.warn( "\n\n\n\nMissing version information has been logged to:\n\n\t" + session.getCapturePom()
                                                                                                   .getAbsolutePath()
                 + "\n\n\n\n" );
         }
@@ -436,7 +436,7 @@ public class VersionManager
     @Override
     public String getName()
     {
-        return "RedHat POM Version Modifier";
+        return "Red Hat POM Version Modifier";
     }
 
     @Override

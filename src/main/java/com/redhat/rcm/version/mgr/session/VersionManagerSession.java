@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import org.apache.maven.mae.project.ProjectToolsException;
@@ -41,7 +42,9 @@ import org.apache.maven.model.Parent;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.ReportPlugin;
 import org.apache.maven.model.Repository;
+import org.apache.maven.model.building.ModelBuilder;
 import org.apache.maven.project.MavenProject;
+import org.commonjava.util.logging.Logger;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.maven.VManWorkspaceReader;
@@ -509,6 +512,47 @@ public class VersionManagerSession
     public VManWorkspaceReader getWorkspaceReader()
     {
         return workspaceReader;
+    }
+
+    /*
+     * This should search through the defined properties. It will look for
+     * versionmapper.<groupId>-<artifactId>
+     * version.<groupId>-<artifactId>
+     * and return the value held there.
+     */
+    private final Logger logger = new Logger( getClass() );
+
+    public String replacePropertyVersion( final Project project, final String groupId, final String artifactId )
+    {
+        String result = null;
+        final Model model = project.getEffectiveModel();
+
+        if ( model == null )
+        {
+            // TODO: This needs more thought.
+            return null;
+        }
+
+        final Properties props = model.getProperties();
+        final Set<String> commonKeys = props.stringPropertyNames();
+        final String mapper = "versionmapper." + groupId + '-' + artifactId;
+        final String direct = "version." + groupId + '-' + artifactId;
+
+        logger.info( "### Current projects " + getCurrentProjects() );
+        logger.info( "### Got direct " + direct + " and " + mapper + " and commonKeys" + commonKeys );
+        for ( final String key : commonKeys )
+        {
+            if ( key.equals( mapper ) )
+            {
+                result = "${" + props.getProperty( key ) + "}";
+            }
+            else if ( key.equals( direct ) )
+            {
+                result = "${" + direct + "}";
+            }
+        }
+        logger.info ( "### Injecting property: " + result);
+        return result;
     }
 
 }

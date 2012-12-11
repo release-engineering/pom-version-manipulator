@@ -24,7 +24,6 @@ import java.io.File;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.log4j.Logger;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
@@ -33,7 +32,11 @@ import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Exclusion;
 import org.apache.maven.model.Model;
 import org.codehaus.plexus.component.annotations.Component;
+import org.codehaus.plexus.component.annotations.Requirement;
+import org.commonjava.util.logging.Logger;
 
+import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.maven.EffectiveModelBuilder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.model.ReadOnlyDependency;
@@ -42,7 +45,10 @@ import com.redhat.rcm.version.model.ReadOnlyDependency;
 public class BomModder
     implements ProjectModder
 {
-    private static final Logger LOGGER = Logger.getLogger( BomModder.class );
+    private final Logger logger = new Logger( getClass() );
+
+    @Requirement
+    private EffectiveModelBuilder modelBuilder;
 
     @Override
     public String getDescription()
@@ -61,7 +67,7 @@ public class BomModder
 
         if ( model.getDependencies() != null )
         {
-            LOGGER.info( "Processing dependencies for '" + project.getKey() + "'..." );
+            logger.info( "Processing dependencies for '" + project.getKey() + "'..." );
             for ( final Iterator<Dependency> it = model.getDependencies()
                                                        .iterator(); it.hasNext(); )
             {
@@ -85,7 +91,7 @@ public class BomModder
 
             if ( model.getDependencyManagement() != null && dm.getDependencies() != null )
             {
-                LOGGER.info( "Processing dependencyManagement for '" + project.getKey() + "'..." );
+                logger.info( "Processing dependencyManagement for '" + project.getKey() + "'..." );
                 for ( final Iterator<Dependency> it = dm.getDependencies()
                                                         .iterator(); it.hasNext(); )
                 {
@@ -133,7 +139,7 @@ public class BomModder
                 dm.getDependencies()
                   .add( insertCounter++, dep );
 
-                LOGGER.info( "Injecting BOM " + dep.toString() + " into " + model );
+                logger.info( "Injecting BOM " + dep.toString() + " into " + model );
             }
         }
         else if ( model.getDependencyManagement() != null )
@@ -187,7 +193,7 @@ public class BomModder
 
         if ( session.isCurrentProject( key ) )
         {
-            LOGGER.info( "NOT CHANGING version for interdependency from current project set: " + key );
+            logger.info( "NOT CHANGING version for interdependency from current project set: " + key );
 
             session.getLog( pom )
                    .add( "NOT changing version for: %s%s. This is an interdependency in the current project set.", key,
@@ -199,7 +205,7 @@ public class BomModder
         final FullProjectKey newKey = session.getRelocation( key );
         if ( newKey != null && !key.equals( newKey ) )
         {
-            LOGGER.info( "Relocating dependency: " + key + " to: " + newKey );
+            logger.info( "Relocating dependency: " + key + " to: " + newKey );
             session.addRelocatedCoordinate( pom, key, newKey );
 
             d.setGroupId( newKey.getGroupId() );
@@ -211,7 +217,7 @@ public class BomModder
         }
         else
         {
-            LOGGER.info( "No relocation available for: " + key );
+            logger.info( "No relocation available for: " + key );
         }
 
         String version = d.getVersion();
@@ -231,7 +237,8 @@ public class BomModder
         if ( version != null || !session.isStrict() )
         {
             d.setVersion( null );
-            if ( isManaged )
+            if ( isManaged && ( dep.getScope() == null && ( dep.getExclusions() == null || dep.getExclusions()
+                                                                                              .isEmpty() ) ) )
             {
                 if ( dep.getScope() == null && ( dep.getExclusions() == null || dep.getExclusions()
                                                                                    .isEmpty() ) )
@@ -246,6 +253,26 @@ public class BomModder
             }
             else
             {
+                // This is expensive, so only do it on demand.
+                // NOTE: After this, the project's effective model will be set (by the effective model builder)
+                if ( project.getEffectiveModel() == null )
+                {
+                    if ( modelBuilder != null )
+                    {
+                        try
+                        {
+                            modelBuilder.getEffectiveModel( project, session );
+                        }
+                        catch ( final VManException e )
+                        {
+                            logger.error( "Failed to build effective model for: %s. Reason: %s", e, project.getKey(),
+                                          e.getMessage() );
+                            session.addError( e );
+                        }
+                    }
+                }
+
+                d.setVersion( session.replacePropertyVersion( project, d.getGroupId(), d.getArtifactId() ) );
                 result = DepModResult.MODIFIED;
             }
         }

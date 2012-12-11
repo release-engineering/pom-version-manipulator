@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.commonjava.util.logging.Logger;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Build;
@@ -48,7 +48,7 @@ public class ToolchainModder
     implements ProjectModder
 {
 
-    private static final Logger LOGGER = Logger.getLogger( ToolchainModder.class );
+    private final Logger logger = new Logger( getClass() );
 
     private final InjectionMerger merger = new InjectionMerger();
 
@@ -181,7 +181,7 @@ public class ToolchainModder
         {
             if ( parent == null )
             {
-                LOGGER.info( "Injecting toolchain as parent for: " + project.getKey() );
+                logger.info( "Injecting toolchain as parent for: " + project.getKey() );
 
                 parent = new Parent();
                 parent.setGroupId( toolchainKey.getGroupId() );
@@ -199,7 +199,7 @@ public class ToolchainModder
                 final FullProjectKey relocation = session.getRelocation( fullParentKey );
                 if ( relocation != null )
                 {
-                    LOGGER.info( "Relocating parent: " + parent + " to: " + relocation );
+                    logger.info( "Relocating parent: " + parent + " to: " + relocation );
 
                     parent.setGroupId( relocation.getGroupId() );
                     parent.setArtifactId( relocation.getArtifactId() );
@@ -221,7 +221,7 @@ public class ToolchainModder
         }
         else
         {
-            LOGGER.info( "Toolchain not specified. Skipping toolchain-parent injection..." );
+            logger.info( "Toolchain not specified. Skipping toolchain-parent injection..." );
         }
 
         return changed;
@@ -230,7 +230,7 @@ public class ToolchainModder
     private boolean injectPluginManagement( final Project project, final Set<VersionlessProjectKey> pluginRefs,
                                             final VersionManagerSession session )
     {
-        LOGGER.info( "Injecting pluginManagement section from toolchain for: " + project.getKey() );
+        logger.info( "Injecting pluginManagement section from toolchain for: " + project.getKey() );
 
         boolean changed = false;
         if ( pluginRefs.isEmpty() )
@@ -262,13 +262,13 @@ public class ToolchainModder
             final Plugin existing = pluginMap.get( pluginRef.getId() );
             if ( existing == null )
             {
-                LOGGER.info( "Adding plugin: " + pluginRef );
+                logger.info( "Adding plugin: " + pluginRef );
 
                 pm.addPlugin( managed );
             }
             else
             {
-                LOGGER.info( "Merging plugin: " + pluginRef );
+                logger.info( "Merging plugin: " + pluginRef );
 
                 merger.mergePlugin( managed, existing );
             }
@@ -282,7 +282,7 @@ public class ToolchainModder
     private boolean injectPluginUsages( final Project project, final Set<VersionlessProjectKey> pluginRefs,
                                         final VersionManagerSession session )
     {
-        LOGGER.info( "Injecting plugin usages from toolchain for project: " + project.getKey() );
+        logger.info( "Injecting plugin usages from toolchain for project: " + project.getKey() );
 
         boolean changed = false;
         final Map<VersionlessProjectKey, Plugin> injectedPlugins = session.getInjectedPlugins();
@@ -311,14 +311,14 @@ public class ToolchainModder
 
             if ( existing == null )
             {
-                LOGGER.info( "Adding plugin: " + key );
+                logger.info( "Adding plugin: " + key );
 
                 build.addPlugin( injected );
                 pluginRefs.add( key );
             }
             else
             {
-                LOGGER.info( "Merging plugin: " + key );
+                logger.info( "Merging plugin: " + key );
 
                 merger.mergePlugin( injected, existing );
             }
@@ -331,7 +331,7 @@ public class ToolchainModder
 
     private boolean stripRemovedPlugins( final Project project, final VersionManagerSession session )
     {
-        LOGGER.info( "Deleting plugins marked for removal for project: " + project.getKey() );
+        logger.info( "Deleting plugins marked for removal for project: " + project.getKey() );
 
         boolean changed = false;
         final Set<VersionlessProjectKey> removedPlugins = session.getRemovedPlugins();
@@ -354,7 +354,7 @@ public class ToolchainModder
 
                 if ( existing != null )
                 {
-                    LOGGER.info( "Removing plugin: " + key );
+                    logger.info( "Removing plugin: " + key );
                     build.removePlugin( existing );
 
                     changed = true;
@@ -372,7 +372,7 @@ public class ToolchainModder
 
                     if ( existing != null )
                     {
-                        LOGGER.info( "Removing managed plugin: " + key );
+                        logger.info( "Removing managed plugin: " + key );
                         pm.removePlugin( existing );
 
                         changed = true;
@@ -392,7 +392,7 @@ public class ToolchainModder
                 final ReportPlugin existing = pluginMap.get( key.getId() );
                 if ( existing != null )
                 {
-                    LOGGER.info( "Removing report plugin: " + key );
+                    logger.info( "Removing report plugin: " + key );
                     reporting.removePlugin( existing );
 
                     changed = true;
@@ -406,11 +406,11 @@ public class ToolchainModder
     private boolean stripToolchainPluginInfo( final Project project, final Set<VersionlessProjectKey> pluginRefs,
                                               final VersionManagerSession session )
     {
-        LOGGER.info( "Stripping toolchain plugin info for project: " + project.getKey() );
+        logger.info( "Stripping toolchain plugin info for project: " + project.getKey() );
 
         boolean changed = stripToolchainPluginInfo( project, project.getPlugins(), pluginRefs, session );
 
-        LOGGER.info( "Stripping toolchain pluginManagement info for project: " + project.getKey() );
+        logger.info( "Stripping toolchain pluginManagement info for project: " + project.getKey() );
 
         changed = stripToolchainPluginInfo( project, project.getManagedPlugins(), pluginRefs, session ) || changed;
 
@@ -483,12 +483,12 @@ public class ToolchainModder
 
                 if ( managedPlugin != null )
                 {
-                    LOGGER.info( "Stripping plugin version from: " + pluginKey );
+                    logger.info( "Stripping plugin version from: " + pluginKey );
 
                     if ( isEmpty( plugin.getDependencies() ) && isEmpty( plugin.getExecutions() )
                         && plugin.getConfiguration() == null )
                     {
-                        LOGGER.info( "Removing plugin: " + pluginKey );
+                        logger.info( "Removing plugin: " + pluginKey );
 
                         plugins.remove( plugin );
                     }

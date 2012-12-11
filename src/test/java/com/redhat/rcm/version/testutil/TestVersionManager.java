@@ -18,12 +18,14 @@
 package com.redhat.rcm.version.testutil;
 
 import java.util.List;
+import java.util.Map;
 
 import org.apache.maven.mae.MAEException;
 import org.codehaus.plexus.component.annotations.Component;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.VersionManager;
+import com.redhat.rcm.version.mgr.mod.ProjectModder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
 @Component( role = TestVersionManager.class )
@@ -55,6 +57,20 @@ public class TestVersionManager
         throws VManException
     {
         super.configureSession( boms, toolchain, session );
+    }
+
+    public <T extends ProjectModder> T getModder( final Class<T> type )
+    {
+        final Map<String, ProjectModder> modders = getModders();
+        for ( final ProjectModder modder : modders.values() )
+        {
+            if ( type.isInstance( modder ) )
+            {
+                return type.cast( modder );
+            }
+        }
+
+        return null;
     }
 
 }

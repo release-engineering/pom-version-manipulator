@@ -32,7 +32,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.commonjava.util.logging.Logger;
 import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.ProjectKey;
@@ -52,7 +52,7 @@ import com.redhat.rcm.version.model.Project;
 
 class ManagedInfo
 {
-    private static final Logger LOGGER = Logger.getLogger( VersionManagerSession.class );
+    private final Logger logger = new Logger( getClass() );
 
     private static final String RELOCATIONS_KEY = "relocations";
 
@@ -209,10 +209,10 @@ class ManagedInfo
         if ( properties != null )
         {
             final String relocations = properties.getProperty( RELOCATIONS_KEY );
-            LOGGER.info( "Got relocations:\n\n" + relocations );
+            logger.info( "Got relocations:\n\n" + relocations );
             if ( relocations != null )
             {
-                LOGGER.warn( "[DEPRECATED] BOM-based coordinate relocations have been replaced by the "
+                logger.warn( "[DEPRECATED] BOM-based coordinate relocations have been replaced by the "
                     + Cli.RELOCATIONS_PROPERTY
                     + " configuration, which specifies a URL to a properties file. Please use this instead." );
 
@@ -220,10 +220,10 @@ class ManagedInfo
             }
 
             final String mappings = properties.getProperty( MAPPINGS_KEY );
-            LOGGER.info( "Got mappings:\n\n" + mappings );
+            logger.info( "Got mappings:\n\n" + mappings );
             if ( mappings != null )
             {
-                LOGGER.warn( "[DEPRECATED] BOM-based property mappings have been replaced by the "
+                logger.warn( "[DEPRECATED] BOM-based property mappings have been replaced by the "
                     + Cli.PROPERTY_MAPPINGS_PROPERTY
                     + " configuration, which specifies a URL to a properties file. Please use this instead." );
 
@@ -231,7 +231,7 @@ class ManagedInfo
             }
         }
 
-        LOGGER.info( "Updating property mappings from " + project.getId() );
+        logger.info( "Updating property mappings from " + project.getId() );
 
         // NOTE: parent properties are inherited into the BOM by the time the MavenProject instance
         // is created, so we don't need to traverse up to the parent; we should have everything here.
