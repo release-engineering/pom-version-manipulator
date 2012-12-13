@@ -547,6 +547,8 @@ public class VersionManagerSession
         String result = null;
         final Model model = project.getEffectiveModel();
 
+        logger.info( "### VersionManagerSession::replacePropertyVersion::project " + project + " group/artifact" + groupId + '/' + artifactId + " and model " + model);
+
         if ( model == null )
         {
             // TODO: This needs more thought.
@@ -564,7 +566,17 @@ public class VersionManagerSession
         {
             if ( key.equals( mapper ) )
             {
-                result = "${" + props.getProperty( key ) + "}";
+            	logger.info( "### About to inject " + props.getProperty(key) );
+                String value = props.getProperty( key );
+                if (Character.isDigit (value.charAt (0)))
+                {
+                    // Versionmapper references an explicit version e.g. 2.0.
+                    result = value;
+                }
+                else
+                {
+                    result = "${" + value + "}";
+                }
             }
             else if ( key.equals( direct ) )
             {

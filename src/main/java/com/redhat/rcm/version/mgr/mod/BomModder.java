@@ -21,6 +21,7 @@ package com.redhat.rcm.version.mgr.mod;
 import static com.redhat.rcm.version.mgr.mod.Interpolations.interpolate;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -256,6 +257,7 @@ public class BomModder
 
             if ( isManaged )
             {
+                logger.info("### Checking override for " + d.getGroupId() + " and " + d.getArtifactId());
                 if ( !overridesManagedInfo( dep, managed ) )
                 {
                     result = DepModResult.DELETED;
@@ -281,11 +283,17 @@ public class BomModder
         return result;
     }
 
-    private boolean overridesManagedInfo( final Dependency dep, final Dependency managed )
+    /**
+     * Determines whether dependency dep overrides the mananged dependency (i.e.
+     * is different).
+     *
+     * @param dep
+     * @param managed
+     * @return true if dep overrides.
+     */
+        @SuppressWarnings("unchecked")
+        private boolean overridesManagedInfo( final Dependency dep, final Dependency managed )
     {
-        //    if ( dep.getScope() == null && ( dep.getExclusions() == null || dep.getExclusions()
-        //                                                                       .isEmpty() ) )
-
         String depScope = dep.getScope();
         if ( depScope == null )
         {
@@ -300,29 +308,40 @@ public class BomModder
 
         if ( !depScope.equals( mgdScope ) )
         {
+            logger.info("### overridesManagedInfo :: dep scopes differ");
             return true;
         }
 
-        final Set<Exclusion> depExclusions =
-            dep.getExclusions() == null ? new HashSet<Exclusion>() : new HashSet<Exclusion>( dep.getExclusions() );
+        final Set<ComparableExclusion>depExclusions  = new HashSet<ComparableExclusion>(  );
+
+        Iterator<Exclusion> it = (Iterator<Exclusion>) (dep.getExclusions() == null ? Collections.emptyIterator() : dep.getExclusions().iterator());
+        while (it.hasNext())
+        {
+            depExclusions.add(new ComparableExclusion(it.next()));
+        }
 
         if ( depExclusions.isEmpty() )
         {
+            logger.info("### overridesManagedInfo :: depExclusions is empty");
             return false;
         }
 
-        final Set<Exclusion> mgdExclusions =
-            managed.getExclusions() == null ? new HashSet<Exclusion>()
-                            : new HashSet<Exclusion>( managed.getExclusions() );
+        final Set<ComparableExclusion>mgdExclusions  = new HashSet<ComparableExclusion>(  );
 
-        // Compare to see if the exclusions are the same...if not, then the list differs and the local dep is overriding the managed one.
-        final Set<Exclusion> depOnly = new HashSet<Exclusion>( depExclusions );
-        depOnly.removeAll( mgdExclusions );
+        it = (Iterator<Exclusion>) (managed.getExclusions() == null ? Collections.emptyIterator() : managed.getExclusions().iterator());
+        while (it.hasNext())
+        {
+            mgdExclusions.add(new ComparableExclusion(it.next()));
+        }
 
-        final Set<Exclusion> mgdOnly = new HashSet<Exclusion>( mgdExclusions );
-        mgdOnly.removeAll( depExclusions );
+        // Compare to see if the exclusions are the same...if not, then the list differs and the local dep is overriding the managed one.#
+        if ( ! mgdExclusions.equals( depExclusions ))
+        {
+            logger.info("### overridesManagedInfo :: mgd exclusions differ depExclusions " + depExclusions + " and " + mgdExclusions);
+            return true;
+        }
 
-        return !depOnly.isEmpty() || !mgdOnly.isEmpty();
+        return false;
     }
 
     private static enum DepModResult
@@ -330,4 +349,75 @@ public class BomModder
         UNCHANGED, MODIFIED, DELETED;
     }
 
+
+    private static class ComparableExclusion extends Exclusion
+    {
+        private static final long serialVersionUID = 8470840709131335264L;
+
+        public ComparableExclusion (Exclusion e)
+        {
+            super ();
+            super.setGroupId(e.getGroupId());
+            super.setArtifactId(e.getArtifactId());
+        }
+
+        @Override
+        public boolean equals (Object obj)
+        {
+            if ( this == obj )
+            {
+                return true;
+            }
+            if ( obj == null )
+            {
+                return false;
+            }
+            if (! (obj instanceof Exclusion))
+            {
+                return false;
+            }
+            final ComparableExclusion other = (ComparableExclusion)obj;
+            if ( getArtifactId() == null )
+            {
+                if ( other.getArtifactId() != null )
+                {
+                    return false;
+                }
+            }
+            else if ( !getArtifactId().equals( other.getArtifactId() ))
+            {
+                return false;
+            }
+            if ( getGroupId() == null )
+            {
+                if ( other.getGroupId () != null )
+                {
+                    return false;
+                }
+            }
+            else if ( !getGroupId ().equals( other.getGroupId() ))
+            {
+                return false;
+            }
+
+            return true;
+
+        }
+
+        @Override
+        public int hashCode ()
+        {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + ( ( getArtifactId () == null ) ? 0 : getArtifactId ().hashCode() );
+            result = prime * result + ( ( getGroupId () == null ) ? 0 : getGroupId ().hashCode() );
+            return result;
+        }
+
+        @Override
+        public String toString ()
+        {
+            return "Exclusion : " + getGroupId () + ":" + getArtifactId ();
+        }
+    }
 }
