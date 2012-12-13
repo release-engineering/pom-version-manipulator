@@ -280,6 +280,13 @@ public class VersionManager
         logger.info( "Modifying " + models.size() + " project(s)..." );
         for ( final Project project : session.getCurrentProjects() )
         {
+            if ( project.getGroupId()
+                        .startsWith( "${" ) && project.getArtifactId()
+                                                      .startsWith( "${" ) )
+            {
+                logger.info( "Skipping " + project.getPom() + " as its a template file." );
+                continue;
+            }
             logger.info( "Modifying '" + project.getKey() + "'..." );
 
             final List<String> modderKeys = session.getModderKeys();
