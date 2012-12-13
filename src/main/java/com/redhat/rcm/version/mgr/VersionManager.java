@@ -282,6 +282,11 @@ public class VersionManager
         // TODO: Projects may need to be sorted to parents-first if we have to use modelBuilder where there are parent-child relationships.
         for ( final Project project : session.getCurrentProjects() )
         {
+            if (project.getGroupId().startsWith("${") && project.getArtifactId().startsWith("${"))
+            {
+                LOGGER.info("Skipping " + project.getPom() + " as its a template file.");
+                continue;
+            }
             LOGGER.info( "Modifying '" + project.getKey() + "'..." );
 
             final List<String> modderKeys = session.getModderKeys();
