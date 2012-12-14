@@ -257,7 +257,6 @@ public class BomModder
 
             if ( isManaged )
             {
-                logger.info("### Checking override for " + d.getGroupId() + " and " + d.getArtifactId());
                 if ( !overridesManagedInfo( dep, managed ) )
                 {
                     result = DepModResult.DELETED;
@@ -291,8 +290,7 @@ public class BomModder
      * @param managed
      * @return true if dep overrides.
      */
-        @SuppressWarnings("unchecked")
-        private boolean overridesManagedInfo( final Dependency dep, final Dependency managed )
+    private boolean overridesManagedInfo( final Dependency dep, final Dependency managed )
     {
         String depScope = dep.getScope();
         if ( depScope == null )
@@ -308,36 +306,34 @@ public class BomModder
 
         if ( !depScope.equals( mgdScope ) )
         {
-            logger.info("### overridesManagedInfo :: dep scopes differ");
             return true;
         }
 
-        final Set<ComparableExclusion>depExclusions  = new HashSet<ComparableExclusion>(  );
+        final Set<ComparableExclusion>depExclusions = new HashSet<ComparableExclusion>();
+        final Set<ComparableExclusion>mgdExclusions = new HashSet<ComparableExclusion>();
 
-        Iterator<Exclusion> it = (Iterator<Exclusion>) (dep.getExclusions() == null ? Collections.emptyIterator() : dep.getExclusions().iterator());
-        while (it.hasNext())
+        @SuppressWarnings("unchecked")
+        Iterator<Exclusion> itd = (Iterator<Exclusion>) (dep.getExclusions() == null ? Collections.emptyIterator() : dep.getExclusions().iterator());
+        while (itd.hasNext())
         {
-            depExclusions.add(new ComparableExclusion(it.next()));
+            depExclusions.add(new ComparableExclusion(itd.next()));
         }
 
+        @SuppressWarnings("unchecked")
+        Iterator<Exclusion> itm = (Iterator<Exclusion>) (managed.getExclusions() == null ? Collections.emptyIterator() : managed.getExclusions().iterator());
+        while (itm.hasNext())
+        {
+            mgdExclusions.add(new ComparableExclusion(itm.next()));
+        }
+        
         if ( depExclusions.isEmpty() )
         {
-            logger.info("### overridesManagedInfo :: depExclusions is empty");
             return false;
         }
-
-        final Set<ComparableExclusion>mgdExclusions  = new HashSet<ComparableExclusion>(  );
-
-        it = (Iterator<Exclusion>) (managed.getExclusions() == null ? Collections.emptyIterator() : managed.getExclusions().iterator());
-        while (it.hasNext())
-        {
-            mgdExclusions.add(new ComparableExclusion(it.next()));
-        }
-
-        // Compare to see if the exclusions are the same...if not, then the list differs and the local dep is overriding the managed one.#
+        
+        // Compare to see if the exclusions are the same...if not, then the list differs and the local dep is overriding the managed one.
         if ( ! mgdExclusions.equals( depExclusions ))
         {
-            logger.info("### overridesManagedInfo :: mgd exclusions differ depExclusions " + depExclusions + " and " + mgdExclusions);
             return true;
         }
 

@@ -56,6 +56,8 @@ import com.redhat.rcm.version.util.ActivityLog;
 public class VersionManagerSession
     extends SimpleProjectToolsSession
 {
+    private final Logger logger = new Logger( getClass() );
+    
     private final List<Throwable> errors = new ArrayList<Throwable>();
 
     private final Map<File, ActivityLog> logs = new LinkedHashMap<File, ActivityLog>();
@@ -540,14 +542,10 @@ public class VersionManagerSession
      * version.<groupId>-<artifactId>
      * and return the value held there.
      */
-    private final Logger logger = new Logger( getClass() );
-
     public String replacePropertyVersion( final Project project, final String groupId, final String artifactId )
     {
         String result = null;
         final Model model = project.getEffectiveModel();
-
-        logger.info( "### VersionManagerSession::replacePropertyVersion::project " + project + " group/artifact" + groupId + '/' + artifactId + " and model " + model);
 
         if ( model == null )
         {
@@ -555,46 +553,72 @@ public class VersionManagerSession
             return null;
         }
 
-        final Properties props = model.getProperties();
-        final Set<String> commonKeys = props.stringPropertyNames();
         final String mapper = "versionmapper." + groupId + '-' + artifactId;
         final String direct = "version." + groupId + '-' + artifactId;
 
-        logger.info( "### Current projects " + getCurrentProjects() );
-        logger.info( "### Got direct " + direct + " and " + mapper + " and commonKeys" + commonKeys );
+        Properties props = model.getProperties();
+        Set<String> commonKeys = props.stringPropertyNames();
+
         for ( final String key : commonKeys )
         {
-            if ( key.equals( mapper ) )
+            result = evaluateKey (props, direct, mapper, key);
+            if (result != null )
             {
-            	logger.info( "### About to inject " + props.getProperty(key) );
-                String value = props.getProperty( key );
-                if (Character.isDigit (value.charAt (0)))
-                {
-                    // Versionmapper references an explicit version e.g. 2.0.
-                    result = value;
-                }
-                else
-                {
-                    result = "${" + value + "}";
-                }
-            }
-            else if ( key.equals( direct ) )
-            {
-                result = "${" + direct + "}";
+                break;
             }
         }
-        logger.info( "### Injecting property: " + result );
-
+        // Can't find a matching substitution in current pom chain; check the toolchain.
+        if ( result == null )
+        {
+            props = getToolchainProject().getProperties();
+            commonKeys = props.stringPropertyNames();
+            for ( final String key : commonKeys )
+            {
+                result = evaluateKey (props, direct, mapper, key);
+                if (result != null )
+                {
+                    break;
+                }
+            }
+        }
+        
         if ( result == null )
         {
             project.getModel()
-                   .getProperties()
-                   .setProperty( direct, "MISSING VERSION" );
+                .getProperties()
+                .setProperty( direct, "MISSING VERSION" );
 
             result = "${" + direct + "}";
+        }
+        else
+        {
+            logger.info( "Successfully located mapper property: " + result + " for " + groupId + ':' + artifactId);
         }
 
         return result;
     }
 
+    private String evaluateKey (Properties props, String direct, String mapper, String key)
+    {
+        String result = null;
+
+        if ( key.equals( mapper ) )
+        {
+            String value = props.getProperty( key );
+            if (Character.isDigit (value.charAt (0)))
+            {
+                // Versionmapper references an explicit version e.g. 2.0.
+                result = value;
+            }
+            else
+            {
+                result = "${" + value + "}";
+            }
+        }
+        else if ( key.equals( direct ) )
+        {
+            result = "${" + direct + "}";
+        }
+        return result;
+    }
 }
