@@ -228,6 +228,24 @@ In this example the two forms are:
    from the injected BOM (or its parent).
 *  Replace the value of version.productY with the literal 1.0.11.Final.
 
+### VersionMapper
+In order to work around the following issues
+
+* When a dependencyManagement section in a pom has scopes and v-man removes the local dependency management to replace it with an external dependency management the scopes were lost.
+* Extensions do not use dependencyManagement and therefore versions in whitelisted extensions need special handling.
+
+mapping properties may be added to a toolchain pom. These properties will be used to either inject an explicit version for a given group/artifact (`org.apache.maven.archetype-archetype-packaging` below) or used to map to another property (`org.jboss.weld.se-weld-se-core` below).
+
+    <properties>
+       <versionmapper.org.apache.maven.archetype-archetype-packaging>
+            2.0
+        </versionmapper.org.apache.maven.archetype-archetype-packaging>
+        <versionmapper.org.jboss.weld.se-weld-se-core>
+            version.org.jboss.weld.weld
+        </versionmapper.org.jboss.weld.se-weld-se-core>
+
+
+
 SIMPLE EXAMPLE
 --------------
 

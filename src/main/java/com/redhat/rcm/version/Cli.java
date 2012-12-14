@@ -62,13 +62,13 @@ import org.apache.log4j.FileAppender;
 import org.apache.log4j.Layout;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.apache.log4j.spi.Configurator;
 import org.apache.log4j.spi.LoggerRepository;
 import org.apache.maven.mae.MAEException;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.codehaus.plexus.util.StringUtils;
+import org.commonjava.util.logging.Logger;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
@@ -165,7 +165,7 @@ public class Cli
     @Option( name = "-Z", aliases = { "--no-system-exit" }, usage = "Don't call System.exit(..) with the return value (for embedding/testing)." )
     private boolean noSystemExit;
 
-    private static final Logger LOGGER = Logger.getLogger( Cli.class );
+    private final Logger logger = new Logger( getClass() );
 
     private static final File DEFAULT_CONFIG_FILE = new File( System.getProperty( "user.home" ), ".vman.properties" );
 
@@ -234,7 +234,6 @@ public class Cli
     private File logFile = new File( workspace, "vman.log" );
 
     private static int exitValue = Integer.MIN_VALUE;
-
 
     public static void main( final String[] args )
     {
@@ -422,16 +421,19 @@ public class Cli
 
                 repo.setThreshold( level );
 
-                repo.getRootLogger().removeAllAppenders();
+                repo.getRootLogger()
+                    .removeAllAppenders();
 
-                repo.getRootLogger().setLevel( level );
+                repo.getRootLogger()
+                    .setLevel( level );
 
-                repo.getRootLogger().addAppender( appender );
+                repo.getRootLogger()
+                    .addAppender( appender );
 
                 @SuppressWarnings( "unchecked" )
-                final List<Logger> loggers = Collections.list( repo.getCurrentLoggers() );
+                final List<org.apache.log4j.Logger> loggers = Collections.list( repo.getCurrentLoggers() );
 
-                for ( final Logger logger : loggers )
+                for ( final org.apache.log4j.Logger logger : loggers )
                 {
                     logger.setLevel( level );
                 }
@@ -457,13 +459,14 @@ public class Cli
 
         if ( boms == null || boms.isEmpty() )
         {
-            LOGGER.error( "You must specify at least one BOM." );
+            logger.error( "You must specify at least one BOM." );
             return -2;
         }
 
-        if ( session.getErrors().isEmpty() )
+        if ( session.getErrors()
+                    .isEmpty() )
         {
-            LOGGER.info( "Modifying POM(s).\n\nTarget:\n\t" + target + "\n\nBOMs:\n\t"
+            logger.info( "Modifying POM(s).\n\nTarget:\n\t" + target + "\n\nBOMs:\n\t"
                 + StringUtils.join( boms.iterator(), "\n\t" ) + "\n\nWorkspace:\n\t" + workspace + "\n\nReports:\n\t"
                 + reports );
 
@@ -484,7 +487,7 @@ public class Cli
 
         if ( capturePom != null && capturePom.exists() )
         {
-            LOGGER.warn( "\n\n\n\n\nMissing dependency/plugin information has been captured in:\n\n\t"
+            logger.warn( "\n\n\n\n\nMissing dependency/plugin information has been captured in:\n\n\t"
                 + capturePom.getAbsolutePath() + "\n\n\n\n" );
 
             return -1;
@@ -494,12 +497,12 @@ public class Cli
             final List<Throwable> errors = session.getErrors();
             if ( errors != null && !errors.isEmpty() )
             {
-                LOGGER.error( errors.size() + " errors detected!\n\n" );
+                logger.error( errors.size() + " errors detected!\n\n" );
 
                 int i = 1;
                 for ( final Throwable error : errors )
                 {
-                    LOGGER.error( "\n\n" + i, error );
+                    logger.error( "\n\n" + i, error );
                     i++;
                 }
 
@@ -521,7 +524,7 @@ public class Cli
 
         loadAndNormalizeModifications();
 
-        LOGGER.info( "modifications = " + join( modders, " " ) );
+        logger.info( "modifications = " + join( modders, " " ) );
 
         final VersionManagerSession session =
             new VersionManagerSession( workspace, reports, versionSuffix, versionModifier, removedPlugins,
@@ -564,7 +567,10 @@ public class Cli
     private static void printVersionInfo()
     {
         final StringBuilder sb = new StringBuilder();
-        sb.append( APP_NAME ).append( "\n\n" ).append( APP_DESCRIPTION ).append( "\n\n" );
+        sb.append( APP_NAME )
+          .append( "\n\n" )
+          .append( APP_DESCRIPTION )
+          .append( "\n\n" );
 
         final LinkedHashMap<String, Object> map = new LinkedHashMap<String, Object>();
         map.put( "Built By:", APP_BUILDER );
@@ -588,7 +594,8 @@ public class Cli
         final LinkedHashMap<String, Object> props = new LinkedHashMap<String, Object>();
         for ( final String key : keys )
         {
-            props.put( key, modders.get( key ).getDescription() );
+            props.put( key, modders.get( key )
+                                   .getDescription() );
         }
 
         final StringBuilder sb = new StringBuilder();
@@ -721,7 +728,8 @@ public class Cli
                 {
                     if ( key.length() > 1 )
                     {
-                        mods.add( key.substring( 1 ).trim() );
+                        mods.add( key.substring( 1 )
+                                     .trim() );
                     }
                 }
                 else
@@ -782,7 +790,7 @@ public class Cli
 
                 props.list( new PrintWriter( sWriter ) );
 
-                LOGGER.info( "Loading configuration from: " + config + ":\n\n" + sWriter );
+                logger.info( "Loading configuration from: " + config + ":\n\n" + sWriter );
 
                 final File downloadsDir = VersionManagerSession.getDownloadsDir( workspace );
                 final List<String> relocations = readListProperty( props, RELOCATIONS_PROPERTY );
@@ -823,7 +831,7 @@ public class Cli
                 if ( modifications == null )
                 {
                     final List<String> lst = readListProperty( props, MODIFICATIONS );
-                    LOGGER.info( "modifications from properties: '" + join( lst, " " ) + "'" );
+                    logger.info( "modifications from properties: '" + join( lst, " " ) + "'" );
                     if ( lst != null )
                     {
                         modders = modders == null ? new ArrayList<String>() : new ArrayList<String>( modders );
@@ -885,7 +893,7 @@ public class Cli
 
                         if ( remoteRepositories != null )
                         {
-                            LOGGER.warn( "Using deprecated " + REMOTE_REPOSITORY_PROPERTY );
+                            logger.warn( "Using deprecated " + REMOTE_REPOSITORY_PROPERTY );
                             remoteRepositories = remoteRepositories.trim();
                         }
                     }
@@ -958,14 +966,14 @@ public class Cli
         {
             if ( DEFAULT_BOOTSTRAP_CONFIG.exists() && DEFAULT_BOOTSTRAP_CONFIG.canRead() )
             {
-                LOGGER.info( "Reading bootstrap info from: " + DEFAULT_BOOTSTRAP_CONFIG );
+                logger.info( "Reading bootstrap info from: " + DEFAULT_BOOTSTRAP_CONFIG );
                 bootstrapLocation = "file:" + DEFAULT_BOOTSTRAP_CONFIG.getAbsolutePath();
 
                 bootProps = readProperties( DEFAULT_BOOTSTRAP_CONFIG );
             }
             else
             {
-                LOGGER.info( "Reading bootstrap info from classpath resource: " + BOOTSTRAP_PROPERTIES );
+                logger.info( "Reading bootstrap info from classpath resource: " + BOOTSTRAP_PROPERTIES );
                 final URL resource = getClasspathResource( BOOTSTRAP_PROPERTIES );
                 if ( resource != null )
                 {
@@ -983,7 +991,7 @@ public class Cli
             }
             else
             {
-                LOGGER.info( "Reading bootstrap info from: " + bootstrapConfig );
+                logger.info( "Reading bootstrap info from: " + bootstrapConfig );
                 bootstrapLocation = "file:" + bootstrapConfig.getAbsolutePath();
 
                 bootProps = readProperties( bootstrapConfig );
@@ -997,18 +1005,18 @@ public class Cli
             configLocation = bootProps.get( BOOT_CONFIG_PROPERTY );
             if ( configLocation != null )
             {
-                LOGGER.info( "Reading configuration from: " + configLocation );
+                logger.info( "Reading configuration from: " + configLocation );
                 try
                 {
                     final File file =
                         getFile( configLocation, new File( System.getProperty( "java.io.tmpdir" ) ), true );
 
-                    LOGGER.info( "...downloaded to file: " + file );
+                    logger.info( "...downloaded to file: " + file );
                     return file;
                 }
                 catch ( final VManException e )
                 {
-                    LOGGER.error( "Failed to download configuration from: " + configLocation + ". Reason: "
+                    logger.error( "Failed to download configuration from: " + configLocation + ". Reason: "
                                       + e.getMessage(), e );
                     throw e;
                 }
@@ -1046,10 +1054,6 @@ public class Cli
             {
                 closeQuietly( reader );
             }
-        }
-        else
-        {
-            LOGGER.error( "No such BOM list file: '" + bomList + "'." );
         }
     }
 

@@ -24,7 +24,6 @@ import static com.redhat.rcm.version.util.InputUtils.getFiles;
 import java.io.File;
 import java.util.List;
 
-import org.apache.log4j.Logger;
 import org.apache.maven.execution.DefaultMavenExecutionRequest;
 import org.apache.maven.execution.MavenExecutionRequest;
 import org.apache.maven.execution.MavenExecutionRequestPopulationException;
@@ -40,8 +39,7 @@ import org.apache.maven.settings.building.SettingsBuildingException;
 import org.apache.maven.settings.building.SettingsBuildingResult;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.component.annotations.Requirement;
-import org.sonatype.aether.RepositorySystemSession;
-import org.sonatype.aether.util.DefaultRepositorySystemSession;
+import org.commonjava.util.logging.Logger;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.maven.VManWorkspaceReader;
@@ -52,7 +50,7 @@ public class DefaultSessionConfigurator
     implements SessionConfigurator
 {
 
-    private static final Logger LOGGER = Logger.getLogger( DefaultSessionConfigurator.class );
+    private final Logger logger = new Logger( getClass() );
 
     @Requirement
     private ProjectLoader projectLoader;
@@ -145,16 +143,7 @@ public class DefaultSessionConfigurator
             return;
         }
 
-        final RepositorySystemSession rss = session.getRepositorySystemSession();
-
-        final DefaultRepositorySystemSession drss =
-            (DefaultRepositorySystemSession) ( ( rss instanceof DefaultRepositorySystemSession ) ? rss
-                            : new DefaultRepositorySystemSession( rss ) );
-
         final VManWorkspaceReader workspaceReader = new VManWorkspaceReader( session );
-        drss.setWorkspaceReader( workspaceReader );
-        session.initialize( drss, session.getProjectBuildingRequest(), session.getArtifactRepositoriesForResolution(),
-                            session.getRemoteRepositoriesForResolution() );
         session.setWorkspaceReader( workspaceReader );
     }
 
@@ -221,7 +210,7 @@ public class DefaultSessionConfigurator
                 {
                     final File bom = project.getFile();
 
-                    LOGGER.info( "Adding BOM to session: " + bom + "; " + project );
+                    logger.info( "Adding BOM to session: " + bom + "; " + project );
                     try
                     {
                         session.addBOM( bom, project );

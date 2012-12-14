@@ -22,6 +22,21 @@ import static org.apache.commons.io.IOUtils.closeQuietly;
 import static org.apache.commons.lang.StringUtils.isEmpty;
 import static org.apache.commons.lang.StringUtils.isNotEmpty;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.Writer;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Build;
@@ -44,21 +59,6 @@ import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.Writer;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 @Component( role = MissingInfoCapture.class )
 public class MissingInfoCapture
 {
@@ -80,7 +80,8 @@ public class MissingInfoCapture
             final Model model = new Model();
             model.setModelVersion( "4.0.0" );
 
-            model.setGroupId( Cli.class.getPackage().getName() );
+            model.setGroupId( Cli.class.getPackage()
+                                       .getName() );
             model.setArtifactId( "vman-missing-capture" );
             model.setVersion( format.format( new Date() ) );
 
@@ -111,7 +112,8 @@ public class MissingInfoCapture
                 Writer writer = null;
                 try
                 {
-                    final File dir = capturePom.getAbsoluteFile().getParentFile();
+                    final File dir = capturePom.getAbsoluteFile()
+                                               .getParentFile();
                     if ( dir != null && !dir.exists() )
                     {
                         dir.mkdirs();
@@ -122,9 +124,7 @@ public class MissingInfoCapture
                 }
                 catch ( final IOException e )
                 {
-                    session.addError( new VManException( "Failed to write capture POM: %s. Reason: %s",
-                                                         e,
-                                                         capturePom,
+                    session.addError( new VManException( "Failed to write capture POM: %s. Reason: %s", e, capturePom,
                                                          e.getMessage() ) );
                 }
                 finally
@@ -141,8 +141,8 @@ public class MissingInfoCapture
         boolean changed = false;
         for ( final Project project : session.getCurrentProjects() )
         {
-            final String version = session.getArtifactVersion( project.getKey() );
-            if ( version == null )
+            final Dependency managed = session.getManagedDependency( project.getKey() );
+            if ( managed == null )
             {
                 final Dependency dep = new Dependency();
                 dep.setGroupId( project.getGroupId() );
@@ -245,7 +245,8 @@ public class MissingInfoCapture
             }
         }
 
-        if ( pm.getPlugins() != null && !pm.getPlugins().isEmpty() )
+        if ( pm.getPlugins() != null && !pm.getPlugins()
+                                           .isEmpty() )
         {
             Collections.sort( pm.getPlugins(), new PluginArtifactIdComparator() );
 
@@ -291,7 +292,8 @@ public class MissingInfoCapture
             }
         }
 
-        if ( dm.getDependencies() != null && !dm.getDependencies().isEmpty() )
+        if ( dm.getDependencies() != null && !dm.getDependencies()
+                                                .isEmpty() )
         {
             Collections.sort( dm.getDependencies(), new DependencyArtifactIdComparator() );
 
@@ -422,7 +424,8 @@ public class MissingInfoCapture
         @Override
         public int compare( final Dependency o1, final Dependency o2 )
         {
-            return o1.getArtifactId().compareTo( o2.getArtifactId() );
+            return o1.getArtifactId()
+                     .compareTo( o2.getArtifactId() );
         }
     }
 
@@ -432,7 +435,8 @@ public class MissingInfoCapture
         @Override
         public int compare( final Plugin o1, final Plugin o2 )
         {
-            return o1.getArtifactId().compareTo( o2.getArtifactId() );
+            return o1.getArtifactId()
+                     .compareTo( o2.getArtifactId() );
         }
     }
 

@@ -18,7 +18,7 @@
 
 package com.redhat.rcm.version.mgr.mod;
 
-import org.apache.log4j.Logger;
+import org.commonjava.util.logging.Logger;
 import org.apache.maven.model.Model;
 import org.codehaus.plexus.component.annotations.Component;
 
@@ -33,7 +33,7 @@ import java.util.Set;
 public class PropertyModder
     implements ProjectModder
 {
-    private static final Logger LOGGER = Logger.getLogger( BomModder.class );
+    private final Logger logger = new Logger( getClass() );
 
     public String getDescription()
     {
@@ -56,7 +56,7 @@ public class PropertyModder
         {
             final String value = propertyMappings.getMappedValue( key );
 
-            LOGGER.info( "Replacing " + key + '/' + currentModel.get( key ) + " with: '" + value + "'" );
+            logger.info( "Replacing " + key + '/' + currentModel.get( key ) + " with: '" + value + "'" );
             currentModel.put( key, value );
             changed = true;
         }

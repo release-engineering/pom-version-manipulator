@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import org.apache.maven.mae.project.ProjectToolsException;
@@ -42,17 +43,21 @@ import org.apache.maven.model.Plugin;
 import org.apache.maven.model.ReportPlugin;
 import org.apache.maven.model.Repository;
 import org.apache.maven.project.MavenProject;
+import org.commonjava.util.logging.Logger;
+import org.sonatype.aether.RepositorySystemSession;
+import org.sonatype.aether.util.DefaultRepositorySystemSession;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.maven.VManWorkspaceReader;
 import com.redhat.rcm.version.maven.WildcardProjectKey;
 import com.redhat.rcm.version.model.Project;
-import com.redhat.rcm.version.model.ProjectAncestryGraph;
 import com.redhat.rcm.version.util.ActivityLog;
 
 public class VersionManagerSession
     extends SimpleProjectToolsSession
 {
+    private final Logger logger = new Logger( getClass() );
+    
     private final List<Throwable> errors = new ArrayList<Throwable>();
 
     private final Map<File, ActivityLog> logs = new LinkedHashMap<File, ActivityLog>();
@@ -69,8 +74,6 @@ public class VersionManagerSession
     private final File workspace;
 
     private final File reports;
-
-    private ProjectAncestryGraph ancestryGraph;
 
     private final String versionSuffix;
 
@@ -273,9 +276,9 @@ public class VersionManagerSession
         return managedInfo.hasDependencyMap();
     }
 
-    public String getArtifactVersion( final ProjectKey key )
+    public Dependency getManagedDependency( final ProjectKey key )
     {
-        return managedInfo.getArtifactVersion( key );
+        return managedInfo.getManagedDependency( key );
     }
 
     public Map<File, Map<VersionlessProjectKey, String>> getMappedDependenciesByBom()
@@ -386,48 +389,15 @@ public class VersionManagerSession
         return managedInfo.hasBom( key );
     }
 
-    // public boolean hasToolchainAncestor( final Project project )
-    // {
-    // return toolchainKey == null ? false : getAncestryGraph().hasAncestor( toolchainKey, project );
-    // }
-    //
-    // public boolean hasParentInGraph( final Project project )
-    // {
-    // return getAncestryGraph().hasParentInGraph( project );
-    // }
-
-    // public VersionManagerSession addProject( final Project project )
-    // {
-    // getAncestryGraph().connect( project );
-    // managedInfo.getCurrentProjects().add( project );
-    //
-    // return this;
-    // }
-    //
-    private synchronized ProjectAncestryGraph getAncestryGraph()
-    {
-        if ( ancestryGraph == null )
-        {
-            ancestryGraph = new ProjectAncestryGraph( managedInfo.getToolchainKey() );
-        }
-
-        return ancestryGraph;
-    }
-
-    public boolean ancestryGraphContains( final FullProjectKey key )
-    {
-        return getAncestryGraph().contains( key );
-    }
-
     public void setRemoteRepositories( final String remoteRepositories )
         throws MalformedURLException
     {
         String id = "vman";
         int repoIndex = 1;
-        String repos[] = remoteRepositories.split( "," );
-        ArrayList<Repository> resolveRepos = new ArrayList<Repository>();
-        
-        for (String repository : repos)
+        final String repos[] = remoteRepositories.split( "," );
+        final ArrayList<Repository> resolveRepos = new ArrayList<Repository>();
+
+        for ( final String repository : repos )
         {
             String u = repository;
             final int idx = u.indexOf( '|' );
@@ -438,7 +408,7 @@ public class VersionManagerSession
             }
 
             final Repository resolveRepo = new Repository();
-            resolveRepo.setId( id+'-'+repoIndex++ );
+            resolveRepo.setId( id + '-' + repoIndex++ );
             resolveRepo.setUrl( u );
 
             resolveRepos.add( resolveRepo );
@@ -540,6 +510,25 @@ public class VersionManagerSession
     public void setWorkspaceReader( final VManWorkspaceReader workspaceReader )
     {
         this.workspaceReader = workspaceReader;
+        final RepositorySystemSession rss = getRepositorySystemSession();
+
+        final DefaultRepositorySystemSession drss;
+        if ( rss == null )
+        {
+            drss = new DefaultRepositorySystemSession();
+        }
+        else if ( rss instanceof DefaultRepositorySystemSession )
+        {
+            drss = (DefaultRepositorySystemSession) rss;
+        }
+        else
+        {
+            drss = new DefaultRepositorySystemSession( rss );
+        }
+
+        drss.setWorkspaceReader( workspaceReader );
+        initialize( drss, getProjectBuildingRequest(), getArtifactRepositoriesForResolution(),
+                    getRemoteRepositoriesForResolution() );
     }
 
     public VManWorkspaceReader getWorkspaceReader()
@@ -547,4 +536,89 @@ public class VersionManagerSession
         return workspaceReader;
     }
 
+    /*
+     * This should search through the defined properties. It will look for
+     * versionmapper.<groupId>-<artifactId>
+     * version.<groupId>-<artifactId>
+     * and return the value held there.
+     */
+    public String replacePropertyVersion( final Project project, final String groupId, final String artifactId )
+    {
+        String result = null;
+        final Model model = project.getEffectiveModel();
+
+        if ( model == null )
+        {
+            // TODO: This needs more thought.
+            return null;
+        }
+
+        final String mapper = "versionmapper." + groupId + '-' + artifactId;
+        final String direct = "version." + groupId + '-' + artifactId;
+
+        Properties props = model.getProperties();
+        Set<String> commonKeys = props.stringPropertyNames();
+
+        for ( final String key : commonKeys )
+        {
+            result = evaluateKey (props, direct, mapper, key);
+            if (result != null )
+            {
+                break;
+            }
+        }
+        // Can't find a matching substitution in current pom chain; check the toolchain.
+        if ( result == null )
+        {
+            props = getToolchainProject().getProperties();
+            commonKeys = props.stringPropertyNames();
+            for ( final String key : commonKeys )
+            {
+                result = evaluateKey (props, direct, mapper, key);
+                if (result != null )
+                {
+                    break;
+                }
+            }
+        }
+        
+        if ( result == null )
+        {
+            project.getModel()
+                .getProperties()
+                .setProperty( direct, "MISSING VERSION" );
+
+            result = "${" + direct + "}";
+        }
+        else
+        {
+            logger.info( "Successfully located mapper property: " + result + " for " + groupId + ':' + artifactId);
+        }
+
+        return result;
+    }
+
+    private String evaluateKey (Properties props, String direct, String mapper, String key)
+    {
+        String result = null;
+
+        if ( key.equals( mapper ) )
+        {
+            String value = props.getProperty( key );
+            if (Character.isDigit (value.charAt (0)))
+            {
+                // Versionmapper references an explicit version e.g. 2.0.
+                result = value;
+            }
+            else
+            {
+                result = "${" + value + "}";
+            }
+        }
+        else if ( key.equals( direct ) )
+        {
+            result = "${" + direct + "}";
+        }
+        return result;
+    }
 }
