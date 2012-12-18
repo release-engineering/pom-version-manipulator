@@ -584,9 +584,17 @@ public class VersionManagerSession
         
         if ( result == null )
         {
+            String version = "MISSING VERSION";
+
+            Dependency managedDep = getManagedDependency( new VersionlessProjectKey( groupId, artifactId ) );
+            if ( managedDep != null )
+            {
+                version = managedDep.getVersion();
+            }
+
             project.getModel()
-                .getProperties()
-                .setProperty( direct, "MISSING VERSION" );
+                   .getProperties()
+                   .setProperty( direct, version );
 
             result = "${" + direct + "}";
         }
