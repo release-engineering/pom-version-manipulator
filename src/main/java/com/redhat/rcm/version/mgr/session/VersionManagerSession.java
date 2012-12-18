@@ -57,7 +57,7 @@ public class VersionManagerSession
     extends SimpleProjectToolsSession
 {
     private final Logger logger = new Logger( getClass() );
-    
+
     private final List<Throwable> errors = new ArrayList<Throwable>();
 
     private final Map<File, ActivityLog> logs = new LinkedHashMap<File, ActivityLog>();
@@ -561,8 +561,8 @@ public class VersionManagerSession
 
         for ( final String key : commonKeys )
         {
-            result = evaluateKey (props, direct, mapper, key);
-            if (result != null )
+            result = evaluateKey( props, direct, mapper, key );
+            if ( result != null )
             {
                 break;
             }
@@ -574,19 +574,19 @@ public class VersionManagerSession
             commonKeys = props.stringPropertyNames();
             for ( final String key : commonKeys )
             {
-                result = evaluateKey (props, direct, mapper, key);
-                if (result != null )
+                result = evaluateKey( props, direct, mapper, key );
+                if ( result != null )
                 {
                     break;
                 }
             }
         }
-        
+
         if ( result == null )
         {
             String version = "MISSING VERSION";
 
-            Dependency managedDep = getManagedDependency( new VersionlessProjectKey( groupId, artifactId ) );
+            final Dependency managedDep = getManagedDependency( new VersionlessProjectKey( groupId, artifactId ) );
             if ( managedDep != null )
             {
                 version = managedDep.getVersion();
@@ -600,20 +600,20 @@ public class VersionManagerSession
         }
         else
         {
-            logger.info( "Successfully located mapper property: " + result + " for " + groupId + ':' + artifactId);
+            logger.info( "Successfully located mapper property: " + result + " for " + groupId + ':' + artifactId );
         }
 
         return result;
     }
 
-    private String evaluateKey (Properties props, String direct, String mapper, String key)
+    private String evaluateKey( final Properties props, final String direct, final String mapper, final String key )
     {
         String result = null;
 
         if ( key.equals( mapper ) )
         {
-            String value = props.getProperty( key );
-            if (Character.isDigit (value.charAt (0)))
+            final String value = props.getProperty( key );
+            if ( Character.isDigit( value.charAt( 0 ) ) )
             {
                 // Versionmapper references an explicit version e.g. 2.0.
                 result = value;
