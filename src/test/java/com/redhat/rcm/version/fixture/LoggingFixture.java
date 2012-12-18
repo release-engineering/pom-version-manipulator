@@ -18,20 +18,19 @@
 
 package com.redhat.rcm.version.fixture;
 
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-import org.apache.log4j.SimpleLayout;
-import org.apache.log4j.spi.Configurator;
-import org.apache.log4j.spi.LoggerRepository;
-
 import java.net.URL;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.SimpleLayout;
+import org.apache.log4j.spi.Configurator;
+import org.apache.log4j.spi.LoggerRepository;
 
 public class LoggingFixture
 {
@@ -63,18 +62,22 @@ public class LoggingFixture
                 // appender.setImmediateFlush( true );
                 appender.setThreshold( Level.TRACE );
 
-                repo.getRootLogger().removeAllAppenders();
-                repo.getRootLogger().addAppender( appender );
-                repo.getRootLogger().setLevel( defaultLevel );
+                repo.getRootLogger()
+                    .removeAllAppenders();
+                repo.getRootLogger()
+                    .addAppender( appender );
+                repo.getRootLogger()
+                    .setLevel( defaultLevel );
 
                 final Set<String> processed = new HashSet<String>();
                 if ( levels != null )
                 {
                     for ( final Map.Entry<Class<?>, Level> entry : levels.entrySet() )
                     {
-                        final String name = entry.getKey().getName();
+                        final String name = entry.getKey()
+                                                 .getName();
 
-                        final Logger logger = repo.getLogger( name );
+                        final org.apache.log4j.Logger logger = repo.getLogger( name );
                         if ( logger != null )
                         {
                             logger.removeAllAppenders();
@@ -86,10 +89,10 @@ public class LoggingFixture
                     }
                 }
 
-                final Enumeration<Logger> loggers = repo.getCurrentLoggers();
+                final Enumeration<org.apache.log4j.Logger> loggers = repo.getCurrentLoggers();
                 while ( loggers.hasMoreElements() )
                 {
-                    final Logger logger = loggers.nextElement();
+                    final org.apache.log4j.Logger logger = loggers.nextElement();
                     final String name = logger.getName();
 
                     if ( !processed.contains( name ) )

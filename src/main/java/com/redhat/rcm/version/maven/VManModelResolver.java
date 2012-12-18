@@ -9,6 +9,7 @@ import org.apache.maven.model.building.ModelSource;
 import org.apache.maven.model.resolution.InvalidRepositoryException;
 import org.apache.maven.model.resolution.ModelResolver;
 import org.apache.maven.model.resolution.UnresolvableModelException;
+import org.commonjava.util.logging.Logger;
 import org.sonatype.aether.RepositorySystemSession;
 import org.sonatype.aether.impl.ArtifactResolver;
 import org.sonatype.aether.impl.RemoteRepositoryManager;
@@ -22,7 +23,7 @@ public class VManModelResolver
     implements ModelResolver
 {
 
-    private SimpleModelResolver delegate;
+    private final SimpleModelResolver delegate;
 
     private VManWorkspaceReader workspaceReader;
 
@@ -43,7 +44,9 @@ public class VManModelResolver
         }
         else
         {
+            new Logger( getClass() ).warn( "No workspace reader found in session! Initializing one now..." );
             this.workspaceReader = new VManWorkspaceReader( session );
+            session.setWorkspaceReader( workspaceReader );
         }
     }
 

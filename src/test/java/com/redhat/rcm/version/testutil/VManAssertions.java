@@ -171,8 +171,8 @@ public final class VManAssertions
                     }
                     else if ( !skipKeys.contains( key ) )
                     {
-                        assertNull( "Managed Dependency version was NOT nullified: " + dep.getManagementKey()
-                            + "\nPOM: " + model.getId(), dep.getVersion() );
+                        assertNull( "Managed Dependency version was NOT nullified: " + dep + "\nPOM: " + model.getId(),
+                                    dep.getVersion() );
                     }
                     else
                     {

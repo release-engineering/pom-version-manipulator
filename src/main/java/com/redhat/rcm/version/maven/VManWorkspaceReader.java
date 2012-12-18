@@ -30,9 +30,9 @@ public class VManWorkspaceReader
 
     private final WorkspaceRepository repo = new WorkspaceRepository( "vman", "vman" );
 
-    private VersionManagerSession session;
+    private final VersionManagerSession session;
 
-    private Map<FullProjectKey, File> projectFiles = new HashMap<FullProjectKey, File>();
+    private final Map<FullProjectKey, File> projectFiles = new HashMap<FullProjectKey, File>();
 
     public VManWorkspaceReader( final VersionManagerSession session )
     {
@@ -63,7 +63,7 @@ public class VManWorkspaceReader
 
             if ( project != null )
             {
-                final Model m = project.getModel();
+                final Model m = project.getOriginalModel();
                 Writer writer = null;
                 try
                 {
@@ -96,13 +96,13 @@ public class VManWorkspaceReader
         if ( project == null && key.equals( session.getToolchainKey() ) )
         {
             final MavenProject p = session.getToolchainProject();
-            project = new Project( key, p.getFile(), p.getOriginalModel() );
+            project = new Project( key, p.getFile(), p.getOriginalModel(), p.getOriginalModel() );
         }
 
         if ( project == null && session.isBom( key ) )
         {
             final MavenProject p = session.getBOMProject( key );
-            project = new Project( key, p.getFile(), p.getOriginalModel() );
+            project = new Project( key, p.getFile(), p.getOriginalModel(), p.getOriginalModel() );
         }
 
         return project;

@@ -18,6 +18,7 @@
 package com.redhat.rcm.version.mgr.session;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
 import java.io.File;
@@ -60,7 +61,8 @@ public class ManagedInfoTest
         final SessionBuilder sb = new SessionBuilder( null );
         final VersionManagerSession session = sb.build();
         final ManagedInfo info =
-            new ManagedInfo( session, Collections.<String> emptyList(), Collections.<String> emptyList(), Collections.<String> emptyList(), Collections.<String> emptyList(),
+            new ManagedInfo( session, Collections.<String> emptyList(), Collections.<String> emptyList(),
+                             Collections.<String> emptyList(), Collections.<String> emptyList(),
                              Collections.<String, String> emptyMap(), Collections.<String, String> emptyMap() );
 
         final Dependency dep1 = new Dependency();
@@ -102,7 +104,10 @@ public class ManagedInfoTest
         info.addBOM( new File( "pom.2.xml" ), project2 );
 
         final VersionlessProjectKey pk = new VersionlessProjectKey( "org.foo", "bar" );
-        assertThat( info.getArtifactVersion( pk ), equalTo( "1.0" ) );
+
+        final Dependency dep = info.getManagedDependency( pk );
+        assertThat( dep, notNullValue() );
+        assertThat( dep.getVersion(), equalTo( "1.0" ) );
     }
 
 }

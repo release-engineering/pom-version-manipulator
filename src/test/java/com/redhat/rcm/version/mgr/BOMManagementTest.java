@@ -28,7 +28,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -275,103 +274,6 @@ public class BOMManagementTest
         {
             assertThat( "Dependency: " + dep + " should NOT be modified!", dep.getVersion(), notNullValue() );
         }
-
-        System.out.println( "\n\n" );
-    }
-
-    @Test
-    public void modifyCompleteRepositoryVersions()
-        throws Exception
-    {
-        System.out.println( "Complete repository test..." );
-
-        final File srcRepo = getResourceFile( "repository" );
-        final String bom = getResourceFile( "bom.xml" ).getAbsolutePath();
-
-        FileUtils.copyDirectoryStructure( srcRepo, repo );
-
-        modifyRepo( false, bom );
-
-        System.out.println( "\n\n" );
-    }
-
-    @Test
-    public void modifyRepositoryVersionsWithoutChangingTheRest()
-        throws Exception
-    {
-        System.out.println( "Repository POM non-interference test..." );
-
-        final File srcRepo = getResourceFile( "projects-with-property-refs" );
-        final String bom = getResourceFile( "bom.xml" ).getAbsolutePath();
-
-        FileUtils.copyDirectoryStructure( srcRepo, repo );
-
-        final VersionManagerSession session = createVersionManagerSession();
-
-        final Set<File> results =
-            vman.modifyVersions( repo, "**/*.pom", "", Collections.singletonList( bom ), null, session );
-        assertNoErrors( session );
-        for ( final File file : results )
-        {
-            if ( "rwx-parent-0.2.1.pom".equals( file.getName() ) )
-            {
-                final String result = FileUtils.fileRead( file );
-                assertTrue( "Non-dependency POM interpolation preserved in output!",
-                            result.contains( "<finalName>${artifactId}</finalName>" ) );
-
-                break;
-            }
-        }
-
-        System.out.println( "\n\n" );
-    }
-
-    @Test
-    public void modifyPartialRepositoryVersions()
-        throws Exception
-    {
-        System.out.println( "Partial repository test..." );
-
-        final File srcRepo = getResourceFile( "repository.partial" );
-        final String bom = getResourceFile( "bom.xml" ).getAbsolutePath();
-
-        FileUtils.copyDirectoryStructure( srcRepo, repo );
-
-        modifyRepo( false, bom );
-
-        System.out.println( "\n\n" );
-    }
-
-    @Test
-    public void modifyCompleteRepositoryVersions_UsingTwoBoms()
-        throws Exception
-    {
-        System.out.println( "Complete repository test..." );
-
-        final File srcRepo = getResourceFile( "repository" );
-        final String bom1 = getResourceFile( "bom.part1.xml" ).getAbsolutePath();
-        final String bom2 = getResourceFile( "bom.part2.xml" ).getAbsolutePath();
-
-        FileUtils.copyDirectoryStructure( srcRepo, repo );
-
-        modifyRepo( false, bom1, bom2 );
-
-        System.out.println( "\n\n" );
-    }
-
-    @Test
-    public void modifyPartialRepositoryVersions_UsingTwoBoms()
-        throws Exception
-    {
-        System.out.println( "Partial repository test..." );
-
-        final File srcRepo = getResourceFile( "repository.partial" );
-        final String bom1 = getResourceFile( "bom.part1.xml" ).getAbsolutePath();
-        final String bom2 = getResourceFile( "bom.part2.xml" ).getAbsolutePath();
-
-        FileUtils.copyDirectoryStructure( srcRepo, repo );
-
-        modifyRepo( false, bom1, bom2 );
 
         System.out.println( "\n\n" );
     }

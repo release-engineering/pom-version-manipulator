@@ -18,6 +18,8 @@
 
 package com.redhat.rcm.version.model;
 
+import static com.redhat.rcm.version.util.PomUtils.cloneModel;
+
 import java.io.File;
 import java.util.Collections;
 import java.util.List;
@@ -34,6 +36,8 @@ import org.apache.maven.model.PluginManagement;
 import org.apache.maven.model.ReportPlugin;
 import org.apache.maven.model.Reporting;
 
+import com.redhat.rcm.version.VManException;
+
 public class Project
 {
 
@@ -41,27 +45,36 @@ public class Project
 
     private final Model model;
 
+    private final Model originalModel;
+
     private FullProjectKey key;
 
     private Model effectiveModel;
 
-    public Project( final FullProjectKey key, final File pom, final Model model )
+    public Project( final FullProjectKey key, final File pom, final Model model, final Model originalModel )
     {
         this.pom = pom;
         this.model = model;
+        this.originalModel = originalModel;
         this.key = key;
+    }
+
+    public Project( final FullProjectKey key, final File pom, final Model model )
+        throws VManException
+    {
+        this( key, pom, model, cloneModel( model ) );
     }
 
     public Project( final File pom, final Model model )
         throws ProjectToolsException
     {
-        this( new FullProjectKey( model ), pom, model );
+        this( new FullProjectKey( model ), pom, model, cloneModel( model ) );
     }
 
     public Project( final Model model )
         throws ProjectToolsException
     {
-        this( new FullProjectKey( model ), model.getPomFile(), model );
+        this( new FullProjectKey( model ), model.getPomFile(), model, cloneModel( model ) );
     }
 
     public File getPom()
@@ -259,6 +272,11 @@ public class Project
     public Model getEffectiveModel()
     {
         return effectiveModel;
+    }
+
+    public Model getOriginalModel()
+    {
+        return originalModel;
     }
 
 }

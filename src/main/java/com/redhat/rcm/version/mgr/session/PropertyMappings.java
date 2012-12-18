@@ -26,11 +26,11 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.log4j.Logger;
+import org.commonjava.util.logging.Logger;
 
 public class PropertyMappings
 {
-    private static final Logger LOGGER = Logger.getLogger( PropertyMappings.class );
+    private final Logger logger = new Logger( getClass() );
 
     private static final String EXPRESSION_PATTERN = "@([^@]+)@";
 
@@ -105,7 +105,7 @@ public class PropertyMappings
 
             mappings.put( v.getKey(), value );
 
-            LOGGER.info( "Replacing " + v.getKey() + " with value from " + v.getValue() + '('
+            logger.info( "Replacing " + v.getKey() + " with value from " + v.getValue() + '('
                 + mappings.get( v.getKey() ) + ')' );
 
             i.remove();

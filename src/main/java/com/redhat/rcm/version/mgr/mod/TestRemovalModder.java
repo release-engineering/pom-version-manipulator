@@ -23,13 +23,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
-import org.apache.log4j.Logger;
 import org.apache.maven.model.Activation;
 import org.apache.maven.model.ActivationProperty;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Profile;
 import org.codehaus.plexus.component.annotations.Component;
+import org.commonjava.util.logging.Logger;
 
 import com.redhat.rcm.version.maven.WildcardProjectKey;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
@@ -39,7 +39,7 @@ import com.redhat.rcm.version.model.Project;
 public class TestRemovalModder
     implements ProjectModder
 {
-    private static final Logger LOGGER = Logger.getLogger( TestRemovalModder.class );
+    private final Logger logger = new Logger( getClass() );
 
     public static final String TEST_DEPS_PROFILE_ID = "_testDependencies";
 
@@ -57,8 +57,7 @@ public class TestRemovalModder
         final Model model = project.getModel();
         boolean changed = false;
         final List<WildcardProjectKey> removedTests = session.getRemovedTests();
-        final WildcardProjectKey projectkey =
-            new WildcardProjectKey( project.getGroupId(), project.getArtifactId() );
+        final WildcardProjectKey projectkey = new WildcardProjectKey( project.getGroupId(), project.getArtifactId() );
 
         if ( removedTests.contains( projectkey ) )
         {
@@ -73,7 +72,7 @@ public class TestRemovalModder
                     if ( dep.getScope() != null && dep.getScope()
                                                       .equals( "test" ) )
                     {
-                        LOGGER.info( "Removing scoped test dependency " + dep.toString() + " for '" + project.getKey()
+                        logger.info( "Removing scoped test dependency " + dep.toString() + " for '" + project.getKey()
                             + "'..." );
                         movedDeps.add( dep );
                         it.remove();
@@ -101,7 +100,7 @@ public class TestRemovalModder
 
             Properties props = model.getProperties();
 
-            LOGGER.info( "Injecting skip test property..." );
+            logger.info( "Injecting skip test property..." );
             if ( props == null )
             {
                 props = new Properties();
