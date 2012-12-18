@@ -309,30 +309,37 @@ public class BomModder
             return true;
         }
 
-        final Set<ComparableExclusion>depExclusions = new HashSet<ComparableExclusion>();
-        final Set<ComparableExclusion>mgdExclusions = new HashSet<ComparableExclusion>();
+        final Set<ComparableExclusion> depExclusions = new HashSet<ComparableExclusion>();
+        final Set<ComparableExclusion> mgdExclusions = new HashSet<ComparableExclusion>();
 
-        @SuppressWarnings("unchecked")
-        Iterator<Exclusion> itd = (Iterator<Exclusion>) (dep.getExclusions() == null ? Collections.emptyIterator() : dep.getExclusions().iterator());
-        while (itd.hasNext())
+        List<Exclusion> dEx = dep.getExclusions();
+        if ( dEx == null )
         {
-            depExclusions.add(new ComparableExclusion(itd.next()));
+            dEx = Collections.emptyList();
+        }
+        for ( final Exclusion exclusion : dEx )
+        {
+            depExclusions.add( new ComparableExclusion( exclusion ) );
         }
 
-        @SuppressWarnings("unchecked")
-        Iterator<Exclusion> itm = (Iterator<Exclusion>) (managed.getExclusions() == null ? Collections.emptyIterator() : managed.getExclusions().iterator());
-        while (itm.hasNext())
+        List<Exclusion> mEx = managed.getExclusions();
+        if ( mEx == null )
         {
-            mgdExclusions.add(new ComparableExclusion(itm.next()));
+            mEx = Collections.emptyList();
         }
-        
+
+        for ( final Exclusion exclusion : mEx )
+        {
+            mgdExclusions.add( new ComparableExclusion( exclusion ) );
+        }
+
         if ( depExclusions.isEmpty() )
         {
             return false;
         }
-        
+
         // Compare to see if the exclusions are the same...if not, then the list differs and the local dep is overriding the managed one.
-        if ( ! mgdExclusions.equals( depExclusions ))
+        if ( !mgdExclusions.equals( depExclusions ) )
         {
             return true;
         }
@@ -345,20 +352,20 @@ public class BomModder
         UNCHANGED, MODIFIED, DELETED;
     }
 
-
-    private static class ComparableExclusion extends Exclusion
+    private static class ComparableExclusion
+        extends Exclusion
     {
         private static final long serialVersionUID = 8470840709131335264L;
 
-        public ComparableExclusion (Exclusion e)
+        public ComparableExclusion( final Exclusion e )
         {
-            super ();
-            super.setGroupId(e.getGroupId());
-            super.setArtifactId(e.getArtifactId());
+            super();
+            super.setGroupId( e.getGroupId() );
+            super.setArtifactId( e.getArtifactId() );
         }
 
         @Override
-        public boolean equals (Object obj)
+        public boolean equals( final Object obj )
         {
             if ( this == obj )
             {
@@ -368,11 +375,11 @@ public class BomModder
             {
                 return false;
             }
-            if (! (obj instanceof Exclusion))
+            if ( !( obj instanceof Exclusion ) )
             {
                 return false;
             }
-            final ComparableExclusion other = (ComparableExclusion)obj;
+            final ComparableExclusion other = (ComparableExclusion) obj;
             if ( getArtifactId() == null )
             {
                 if ( other.getArtifactId() != null )
@@ -380,18 +387,18 @@ public class BomModder
                     return false;
                 }
             }
-            else if ( !getArtifactId().equals( other.getArtifactId() ))
+            else if ( !getArtifactId().equals( other.getArtifactId() ) )
             {
                 return false;
             }
             if ( getGroupId() == null )
             {
-                if ( other.getGroupId () != null )
+                if ( other.getGroupId() != null )
                 {
                     return false;
                 }
             }
-            else if ( !getGroupId ().equals( other.getGroupId() ))
+            else if ( !getGroupId().equals( other.getGroupId() ) )
             {
                 return false;
             }
@@ -401,19 +408,19 @@ public class BomModder
         }
 
         @Override
-        public int hashCode ()
+        public int hashCode()
         {
             final int prime = 31;
             int result = 1;
-            result = prime * result + ( ( getArtifactId () == null ) ? 0 : getArtifactId ().hashCode() );
-            result = prime * result + ( ( getGroupId () == null ) ? 0 : getGroupId ().hashCode() );
+            result = prime * result + ( ( getArtifactId() == null ) ? 0 : getArtifactId().hashCode() );
+            result = prime * result + ( ( getGroupId() == null ) ? 0 : getGroupId().hashCode() );
             return result;
         }
 
         @Override
-        public String toString ()
+        public String toString()
         {
-            return "Exclusion : " + getGroupId () + ":" + getArtifactId ();
+            return "Exclusion : " + getGroupId() + ":" + getArtifactId();
         }
     }
 }
