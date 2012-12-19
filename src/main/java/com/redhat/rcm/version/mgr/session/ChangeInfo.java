@@ -18,6 +18,12 @@
 
 package com.redhat.rcm.version.mgr.session;
 
+import java.io.File;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
@@ -26,12 +32,6 @@ import org.apache.maven.model.Plugin;
 
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.model.ReadOnlyDependency;
-
-import java.io.File;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 class ChangeInfo
 {
@@ -55,6 +55,18 @@ class ChangeInfo
 
     private final Map<VersionlessProjectKey, Set<Plugin>> unmanagedPluginRefs =
         new HashMap<VersionlessProjectKey, Set<Plugin>>();
+
+    private final Map<String, String> missingVersionProperties = new HashMap<String, String>();
+
+    void addMissingVersionProperty( final String key, final String version )
+    {
+        missingVersionProperties.put( key, version );
+    }
+
+    Map<String, String> getMissingVersionProperties()
+    {
+        return missingVersionProperties;
+    }
 
     void addUnmanagedPlugin( final File pom, final Plugin plugin )
     {

@@ -70,11 +70,14 @@ public class MissingInfoCapture
         final Map<VersionlessProjectKey, Set<Dependency>> missingDeps = session.getMissingDependencies();
         final Map<VersionlessProjectKey, Set<Plugin>> missingPlugins = session.getUnmanagedPluginRefs();
         final Set<Project> missingParents = session.getProjectsWithMissingParent();
+        final Map<String, String> missingVersionProps = session.getMissingVersionProperties();
 
         final boolean procDeps = notEmpty( missingDeps );
         final boolean procPlugs = notEmpty( missingPlugins );
         final boolean procParents = notEmpty( missingParents );
-        if ( procDeps || procPlugs )
+        final boolean procProps = notEmpty( missingVersionProps );
+
+        if ( procProps || procDeps || procPlugs )
         {
             final SimpleDateFormat format = new SimpleDateFormat( VERSION_DATE_PATTERN );
             final Model model = new Model();
@@ -90,6 +93,11 @@ public class MissingInfoCapture
             boolean write = false;
 
             write = processCurrentProjects( session, model ) || write;
+
+            if ( procProps )
+            {
+                write = processProperties( missingVersionProps, model ) || write;
+            }
 
             if ( procDeps )
             {
@@ -133,6 +141,17 @@ public class MissingInfoCapture
                 }
             }
         }
+    }
+
+    private boolean processProperties( final Map<String, String> props, final Model model )
+    {
+        for ( final Map.Entry<String, String> entry : props.entrySet() )
+        {
+            model.getProperties()
+                 .setProperty( entry.getKey(), entry.getValue() );
+        }
+
+        return true;
     }
 
     private boolean processCurrentProjects( final VersionManagerSession session, final Model model )

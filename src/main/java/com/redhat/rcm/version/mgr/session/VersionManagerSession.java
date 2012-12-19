@@ -221,6 +221,16 @@ public class VersionManagerSession
         return preserveFiles;
     }
 
+    public void addMissingVersionProperty( final String key, final String version )
+    {
+        changeInfo.addMissingVersionProperty( key, version );
+    }
+
+    public Map<String, String> getMissingVersionProperties()
+    {
+        return changeInfo.getMissingVersionProperties();
+    }
+
     public Map<VersionlessProjectKey, Set<Plugin>> getUnmanagedPluginRefs()
     {
         return changeInfo.getUnmanagedPluginRefs();
