@@ -159,7 +159,7 @@ public class BomModder
                 logger.info( "Injecting BOM " + dep.toString() + " into " + model );
             }
         }
-        else if ( model.getDependencyManagement() != null )
+        else if ( !session.isStrict() && model.getDependencyManagement() != null )
         {
             model.setDependencyManagement( null );
             changed = true;
@@ -248,7 +248,6 @@ public class BomModder
 
         final Dependency managed = session.getManagedDependency( key );
 
-        // wipe this out, and use the one in the BOM implicitly...DRY-style.
         // If in non-strict mode (default), wipe it out even if the dependency isn't in the BOM
         // ...assume it will be added from the capture POM.
         if ( managed != null || !session.isStrict() )

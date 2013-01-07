@@ -69,6 +69,10 @@ public class TestRemovalModder
                                                            .iterator(); it.hasNext(); )
                 {
                     final Dependency dep = it.next();
+
+                    // TODO: Try to retrieve the corresponding managed dependency, to see if it specifies a scope...
+                    // This means checking the BOM(s) + the ancestry, since if we're operating in strict mode
+                    // a parent POM could provide a managed dependency affecting the current one we're inspecting.
                     if ( dep.getScope() != null && dep.getScope()
                                                       .equals( "test" ) )
                     {
