@@ -306,7 +306,7 @@ public class VersionManager
                         continue;
                     }
 
-                    logger.info( "Modifying '" + project.getKey() + " using: '" + key + "'" );
+                    logger.info( "Modifying '" + project.getKey() + " using: '" + key + "' with modder " + modder.getClass().getName() );
                     changed = modder.inject( project, session ) || changed;
                 }
             }
