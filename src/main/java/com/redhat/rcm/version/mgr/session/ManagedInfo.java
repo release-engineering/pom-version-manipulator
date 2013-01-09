@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -368,6 +369,24 @@ class ManagedInfo
             final Project project = new Project( model );
             currentProjects.add( project );
             currentProjectsByKey.put( toVersionlessKey( project.getKey() ), project );
+        }
+        //Top the parent module 
+        for (final Iterator<Project> i = currentProjects.iterator(); i.hasNext(); ){
+        	final Project p = i.next();
+        	final Parent parent = p.getParent();
+        	if (parent != null){
+	        	final VersionlessProjectKey vpk = new VersionlessProjectKey( p.getParent());
+	        	//The top module has an outside parent. Didn't handle the case that the project has two modules both using outside parent which is weird.
+	        	if( !isCurrentProject(vpk) ){
+	        		LinkedHashSet<Project> t = new LinkedHashSet<Project> ();
+	        		t.add(p);
+	        		currentProjects.remove(p);
+	        		t.addAll(currentProjects);
+	        		currentProjects.clear();
+	        		currentProjects.addAll(t);   	
+	        		break;
+	        	}
+        	}
         }
     }
 
