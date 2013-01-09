@@ -39,9 +39,6 @@ public class MinimizingModder
 {
     private final Logger logger = new Logger( getClass() );
 
-    @Requirement
-    private EffectiveModelBuilder modelBuilder;
-
     /**
      * {@inheritDoc}
      * @see com.redhat.rcm.version.mgr.mod.ProjectModder#inject(com.redhat.rcm.version.model.Project, com.redhat.rcm.version.mgr.session.VersionManagerSession)
@@ -51,20 +48,6 @@ public class MinimizingModder
     {
         boolean changed = false;
         final Model model = project.getModel();
-
-        if ( modelBuilder != null )
-        {
-            try
-            {
-                modelBuilder.getEffectiveModel( project, session );
-            }
-            catch ( final VManException e )
-            {
-                logger.error( "Failed to build effective model for: %s. Reason: %s", e, project.getKey(),
-                              e.getMessage() );
-                session.addError( e );
-            }
-        }
 
         changed = ( new ReportingRemovalModder().inject( project, session ) );
         changed = ( new RepoRemovalModder().inject( project, session ) ) || changed;
