@@ -29,7 +29,7 @@ public interface ProjectModder
 
     String[] STANDARD_MODIFICATIONS = {"version-suffix", "toolchain-realignment", "bom-realignment", "repo-removal" };
 
-    String[] MODIFICATION_ORDER = { "toolchain-realignment", "version-suffix", "version" };
+    String[] MODIFICATION_ORDER = { "toolchain-realignment", "version-suffix", "version", "bom-realignment" };
 
     Comparator<String> KEY_COMPARATOR = new Comparator<String>()
     {
