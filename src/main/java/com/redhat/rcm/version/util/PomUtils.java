@@ -25,6 +25,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.maven.mae.project.key.ProjectKey;
@@ -42,6 +43,7 @@ import org.jdom.Document;
 import org.jdom.Element;
 import org.jdom.JDOMException;
 import org.jdom.Namespace;
+import org.jdom.filter.ContentFilter;
 import org.jdom.input.SAXBuilder;
 import org.jdom.output.Format;
 import org.jdom.output.Format.TextMode;
@@ -117,13 +119,25 @@ public final class PomUtils
 
             normalizeNamespace( doc );
 
-            doc.getRootElement()
-               .addContent( new Comment( " Modified by " + com.redhat.rcm.version.stats.VersionInfo.APP_NAME
+            Iterator<?> it = doc.getRootElement().getContent( new ContentFilter (ContentFilter.COMMENT) ).iterator();
+            boolean vmaninfo = false;
+            while (it.hasNext())
+            {
+                Comment c = (Comment) it.next();
+                if (c.toString().startsWith( "[Comment: <!-- Modified by " + com.redhat.rcm.version.stats.VersionInfo.APP_NAME))
+                {
+                    vmaninfo = true;
+                }
+            }
+            if ( ! vmaninfo )
+            {
+                doc.getRootElement()
+                    .addContent( new Comment( " Modified by " + com.redhat.rcm.version.stats.VersionInfo.APP_NAME
                                 + " version " + com.redhat.rcm.version.stats.VersionInfo.APP_VERSION + " ("
                                 + com.redhat.rcm.version.stats.VersionInfo.APP_COMMIT_ID + ") " ) );
-            doc.getRootElement()
-               .addContent( "\n" );
-
+                doc.getRootElement()
+                    .addContent( "\n" );
+            }
             session.getLog( pom )
                    .add( "Writing modified POM: %s", out );
 
