@@ -71,12 +71,12 @@ public class TestRemovalModder
         {
             try
             {
-                modelBuilder.getEffectiveModel( project, session );
+                modelBuilder.loadEffectiveModel( project, session );
             }
             catch ( final VManException error )
             {
-                logger.error( "Failed to build effective model for: %s. Reason: %s", error,
-                              project.getKey(), error.getMessage() );
+                logger.error( "Failed to build effective model for: %s. Reason: %s", error, project.getKey(),
+                              error.getMessage() );
                 session.addError( error );
             }
         }
@@ -89,11 +89,9 @@ public class TestRemovalModder
                 for ( final Iterator<Dependency> it = model.getDependencies()
                                                            .iterator(); it.hasNext(); )
                 {
-                    Dependency managedDep;
                     final Dependency dep = it.next();
-                    final VersionlessProjectKey depvpk = new VersionlessProjectKey( dep.getGroupId(), dep.getArtifactId() );
-
-                    logger.info( "### dep for testremovalmodder " + dep + " and " + dep.getScope());
+                    final VersionlessProjectKey depvpk =
+                        new VersionlessProjectKey( dep.getGroupId(), dep.getArtifactId() );
 
                     if ( dep.getScope() != null && dep.getScope()
                                                       .equals( "test" ) )
@@ -104,33 +102,25 @@ public class TestRemovalModder
                         it.remove();
                     }
 
-                    // TODO: Try to retrieve the corresponding managed dependency, to see if it specifies a scope...
-                    // This means checking the BOM(s) + the ancestry, since if we're operating in strict mode
-                    // a parent POM could provide a managed dependency affecting the current one we're inspecting.
-
                     // If we are inheriting the default scope from the managed dependency and that
                     // is test also move this to the inactive profile.
                     final Model effectivemodel = project.getEffectiveModel();
-                    if (effectivemodel != null)
+                    if ( effectivemodel != null )
                     {
                         final DependencyManagement depMgmt = effectivemodel.getDependencyManagement();
-                        logger.info( "### model dep mgmt " + depMgmt);
-                        if (depMgmt != null)
+                        if ( depMgmt != null )
                         {
-                            logger.info( "### depmgmt for testremovalmodder " + dep);
-
-                            for (final Iterator<Dependency> itMgmt = depMgmt.getDependencies().iterator(); itMgmt.hasNext(); )
+                            for ( final Dependency managedDep : depMgmt.getDependencies() )
                             {
-                                managedDep = itMgmt.next();
-                                VersionlessProjectKey depmgmtvpk = new VersionlessProjectKey
-                                                ( managedDep.getGroupId(), managedDep.getArtifactId() );
+                                final VersionlessProjectKey depmgmtvpk =
+                                    new VersionlessProjectKey( managedDep.getGroupId(), managedDep.getArtifactId() );
 
-                                if ( depvpk.equals (depmgmtvpk) &&
-                                     dep.getScope () == null && managedDep.getScope() != null && managedDep.getScope()
-                                     .equals( "test" ) )
+                                if ( depvpk.equals( depmgmtvpk ) && dep.getScope() == null
+                                    && managedDep.getScope() != null && managedDep.getScope()
+                                                                                  .equals( "test" ) )
                                 {
-                                    logger.info( "Removing scoped test dependency " + managedDep.toString() + " for '" + project.getKey()
-                                                 + "'..." );
+                                    logger.info( "Removing scoped test dependency " + managedDep.toString() + " for '"
+                                        + project.getKey() + "'..." );
                                     movedDeps.add( managedDep );
                                     it.remove();
                                     break;
