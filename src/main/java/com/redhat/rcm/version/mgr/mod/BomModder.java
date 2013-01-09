@@ -98,7 +98,7 @@ public class BomModder
                 {
                     try
                     {
-                        modelBuilder.getEffectiveModel( project, session );
+                        modelBuilder.loadEffectiveModel( project, session );
                     }
                     catch ( final VManException e )
                     {

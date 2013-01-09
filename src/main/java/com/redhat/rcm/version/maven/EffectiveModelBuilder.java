@@ -28,7 +28,7 @@ public class EffectiveModelBuilder
     @Requirement
     private RemoteRepositoryManager remoteRepositoryManager;
 
-    public Model getEffectiveModel( final Project project, final VersionManagerSession session )
+    public void loadEffectiveModel( final Project project, final VersionManagerSession session )
         throws VManException
     {
         Model effModel = project.getEffectiveModel();
@@ -57,8 +57,6 @@ public class EffectiveModelBuilder
                                          project.getKey(), project.getPom(), e.getMessage() );
             }
         }
-
-        return effModel;
     }
 
 }

@@ -37,18 +37,53 @@ import org.apache.maven.model.ReportPlugin;
 import org.apache.maven.model.Reporting;
 
 import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.maven.EffectiveModelBuilder;
+import com.redhat.rcm.version.mgr.mod.ProjectModder;
 
+/**
+ * Provides a convenient way of passing around related information about a Maven
+ * project without passing multiple parameters. The models in this class 
+ * represent two basic concepts: a model that is being modified by VMan, and 
+ * other forms of that model used for comparison. Also stored is the key and
+ * original POM file related to these models.
+ * 
+ * @author jdcasey
+ */
 public class Project
 {
 
+    /**
+     * Original POM file from which this model information was loaded.
+     */
     private final File pom;
 
+    /**
+     * Model undergoing modification during VMan execution. This model is what
+     * will eventually be written back to disk.
+     */
     private final Model model;
 
+    /**
+     * Original (raw) model loaded from the POM file. This has NO interpolation,
+     * inheritance, or profile injection in it...it is literally the Model 
+     * resulting from parsing the POM file.
+     * 
+     * It is kept for comparison purposes ONLY.
+     */
     private final Model originalModel;
 
     private FullProjectKey key;
 
+    /**
+     * In cases where comparison vs. the original, raw model isn't sufficient,
+     * this model instance MAY contain the full effective model resulting from
+     * loading the POM, its full ancestry, and its referenced BOMs, then injecting
+     * the profiles that are active by default.
+     * 
+     * It is kept for reference ONLY.
+     * 
+     * @see EffectiveModelBuilder#loadEffectiveModel(Project, com.redhat.rcm.version.mgr.session.VersionManagerSession)
+     */
     private Model effectiveModel;
 
     public Project( final FullProjectKey key, final File pom, final Model model, final Model originalModel )
@@ -230,6 +265,17 @@ public class Project
         return dm.getDependencies();
     }
 
+    /**
+     * In the event the groupId or version changes in the model being modified 
+     * (represented by this Project instance), this method will update the stored
+     * key with the new coordinate information.
+     * 
+     * This can be important if the model doesn't specify a groupId and its 
+     * parent reference is relocated (which will result in this project's 
+     * groupId changing, since it's inherited under these circumstances).
+     * 
+     * @throws ProjectToolsException If the new coordinate's version doesn't parse.
+     */
     public void updateCoord()
         throws ProjectToolsException
     {
@@ -243,6 +289,15 @@ public class Project
         }
     }
 
+    /**
+     * In cases where plugin configuration has been injected or removed, this
+     * method will update the map of plugin keys to plugin instances within the
+     * modified {@link Model} instance itself to reflect the changes.
+     * 
+     * This may be necessary to make the updates available to other 
+     * {@link ProjectModder} instances that will run after the one making the 
+     * change.
+     */
     public void flushPluginMaps()
     {
         final Build build = model.getBuild();
@@ -264,16 +319,39 @@ public class Project
         }
     }
 
+    /**
+     * Set the effective model related to this project, which has inheritance
+     * and profile/BOM injection applied.
+     * 
+     * @see EffectiveModelBuilder#loadEffectiveModel(Project, com.redhat.rcm.version.mgr.session.VersionManagerSession)
+     */
     public void setEffectiveModel( final Model effModel )
     {
         this.effectiveModel = effModel;
     }
 
+    /**
+     * FOR REFERENCE ONLY.
+     * 
+     * If set, return the effective {@link Model} instance.
+     * 
+     * This model has had interpolation, inheritance, and profile/BOM
+     * injection calculated.
+     * 
+     * @see EffectiveModelBuilder#loadEffectiveModel(Project, com.redhat.rcm.version.mgr.session.VersionManagerSession)
+     */
     public Model getEffectiveModel()
     {
         return effectiveModel;
     }
 
+    /**
+     * FOR REFERENCE ONLY.
+     * 
+     * Return the original {@link Model} instance AS IT WAS PARSED FROM THE POM.
+     * This is the RAW POM, without interpolation, inheritance, or profile
+     * injection calculated.
+     */
     public Model getOriginalModel()
     {
         return originalModel;

@@ -66,7 +66,7 @@ public class ExtensionsRemovalModder
         {
             try
             {
-                modelBuilder.getEffectiveModel( project, session );
+                modelBuilder.loadEffectiveModel( project, session );
             }
             catch ( final VManException e )
             {
@@ -110,7 +110,7 @@ public class ExtensionsRemovalModder
                             {
                                 try
                                 {
-                                    modelBuilder.getEffectiveModel( project, session );
+                                    modelBuilder.loadEffectiveModel( project, session );
                                 }
                                 catch ( final VManException error )
                                 {
