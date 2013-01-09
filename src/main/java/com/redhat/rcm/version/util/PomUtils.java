@@ -120,24 +120,21 @@ public final class PomUtils
             normalizeNamespace( doc );
 
             Iterator<?> it = doc.getRootElement().getContent( new ContentFilter (ContentFilter.COMMENT) ).iterator();
-            boolean vmaninfo = false;
             while (it.hasNext())
             {
                 Comment c = (Comment) it.next();
                 if (c.toString().startsWith( "[Comment: <!-- Modified by " + com.redhat.rcm.version.stats.VersionInfo.APP_NAME))
                 {
-                    vmaninfo = true;
+                    it.remove();
                 }
             }
-            if ( ! vmaninfo )
-            {
-                doc.getRootElement()
-                    .addContent( new Comment( " Modified by " + com.redhat.rcm.version.stats.VersionInfo.APP_NAME
+            doc.getRootElement()
+               .addContent( new Comment( " Modified by " + com.redhat.rcm.version.stats.VersionInfo.APP_NAME
                                 + " version " + com.redhat.rcm.version.stats.VersionInfo.APP_VERSION + " ("
                                 + com.redhat.rcm.version.stats.VersionInfo.APP_COMMIT_ID + ") " ) );
-                doc.getRootElement()
-                    .addContent( "\n" );
-            }
+            doc.getRootElement()
+               .addContent( "\n" );
+
             session.getLog( pom )
                    .add( "Writing modified POM: %s", out );
 
