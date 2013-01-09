@@ -280,9 +280,12 @@ public class VersionManager
         logger.info( "Modifying " + models.size() + " project(s)..." );
         for ( final Project project : session.getCurrentProjects() )
         {
-            if ( project.getGroupId()
+            if ( ( project.getGroupId()
                         .startsWith( "${" ) && project.getArtifactId()
-                                                      .startsWith( "${" ) )
+                                                      .startsWith( "${" ) ) ||
+                 // Handle drools template XML file.
+                 ( project.getGroupId().equals ( "groupId" ) && project.getParent().getVersion().equals( "parentVersion" ) )
+                 )
             {
                 logger.info( "Skipping " + project.getPom() + " as its a template file." );
                 continue;
