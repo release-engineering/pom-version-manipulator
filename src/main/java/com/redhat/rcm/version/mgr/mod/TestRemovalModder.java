@@ -23,14 +23,19 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
+import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Activation;
 import org.apache.maven.model.ActivationProperty;
 import org.apache.maven.model.Dependency;
+import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Profile;
 import org.codehaus.plexus.component.annotations.Component;
+import org.codehaus.plexus.component.annotations.Requirement;
 import org.commonjava.util.logging.Logger;
 
+import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.maven.EffectiveModelBuilder;
 import com.redhat.rcm.version.maven.WildcardProjectKey;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
@@ -44,6 +49,9 @@ public class TestRemovalModder
     public static final String TEST_DEPS_PROFILE_ID = "_testDependencies";
 
     public static final String SKIP_TEST = "maven.test.skip";
+
+    @Requirement
+    private EffectiveModelBuilder modelBuilder;
 
     @Override
     public String getDescription()
@@ -59,6 +67,19 @@ public class TestRemovalModder
         final List<WildcardProjectKey> removedTests = session.getRemovedTests();
         final WildcardProjectKey projectkey = new WildcardProjectKey( project.getGroupId(), project.getArtifactId() );
 
+        if ( modelBuilder != null )
+        {
+            try
+            {
+                modelBuilder.getEffectiveModel( project, session );
+            }
+            catch ( final VManException error )
+            {
+                logger.error( "Failed to build effective model for: %s. Reason: %s", error,
+                              project.getKey(), error.getMessage() );
+                session.addError( error );
+            }
+        }
         if ( removedTests.contains( projectkey ) )
         {
             if ( model.getDependencies() != null )
@@ -68,11 +89,12 @@ public class TestRemovalModder
                 for ( final Iterator<Dependency> it = model.getDependencies()
                                                            .iterator(); it.hasNext(); )
                 {
+                    Dependency managedDep;
                     final Dependency dep = it.next();
+                    final VersionlessProjectKey depvpk = new VersionlessProjectKey( dep.getGroupId(), dep.getArtifactId() );
 
-                    // TODO: Try to retrieve the corresponding managed dependency, to see if it specifies a scope...
-                    // This means checking the BOM(s) + the ancestry, since if we're operating in strict mode
-                    // a parent POM could provide a managed dependency affecting the current one we're inspecting.
+                    logger.info( "### dep for testremovalmodder " + dep + " and " + dep.getScope());
+
                     if ( dep.getScope() != null && dep.getScope()
                                                       .equals( "test" ) )
                     {
@@ -81,6 +103,42 @@ public class TestRemovalModder
                         movedDeps.add( dep );
                         it.remove();
                     }
+
+                    // TODO: Try to retrieve the corresponding managed dependency, to see if it specifies a scope...
+                    // This means checking the BOM(s) + the ancestry, since if we're operating in strict mode
+                    // a parent POM could provide a managed dependency affecting the current one we're inspecting.
+
+                    // If we are inheriting the default scope from the managed dependency and that
+                    // is test also move this to the inactive profile.
+                    final Model effectivemodel = project.getEffectiveModel();
+                    if (effectivemodel != null)
+                    {
+                        final DependencyManagement depMgmt = effectivemodel.getDependencyManagement();
+                        logger.info( "### model dep mgmt " + depMgmt);
+                        if (depMgmt != null)
+                        {
+                            logger.info( "### depmgmt for testremovalmodder " + dep);
+
+                            for (final Iterator<Dependency> itMgmt = depMgmt.getDependencies().iterator(); itMgmt.hasNext(); )
+                            {
+                                managedDep = itMgmt.next();
+                                VersionlessProjectKey depmgmtvpk = new VersionlessProjectKey
+                                                ( managedDep.getGroupId(), managedDep.getArtifactId() );
+
+                                if ( depvpk.equals (depmgmtvpk) &&
+                                     dep.getScope () == null && managedDep.getScope() != null && managedDep.getScope()
+                                     .equals( "test" ) )
+                                {
+                                    logger.info( "Removing scoped test dependency " + managedDep.toString() + " for '" + project.getKey()
+                                                 + "'..." );
+                                    movedDeps.add( managedDep );
+                                    it.remove();
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
                 }
 
                 if ( !movedDeps.isEmpty() )

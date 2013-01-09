@@ -25,11 +25,7 @@ import org.apache.maven.model.DistributionManagement;
 import org.apache.maven.model.MailingList;
 import org.apache.maven.model.Model;
 import org.codehaus.plexus.component.annotations.Component;
-import org.codehaus.plexus.component.annotations.Requirement;
-import org.commonjava.util.logging.Logger;
 
-import com.redhat.rcm.version.VManException;
-import com.redhat.rcm.version.maven.EffectiveModelBuilder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
@@ -37,8 +33,6 @@ import com.redhat.rcm.version.model.Project;
 public class MinimizingModder
     implements ProjectModder
 {
-    private final Logger logger = new Logger( getClass() );
-
     /**
      * {@inheritDoc}
      * @see com.redhat.rcm.version.mgr.mod.ProjectModder#inject(com.redhat.rcm.version.model.Project, com.redhat.rcm.version.mgr.session.VersionManagerSession)
