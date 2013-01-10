@@ -144,6 +144,7 @@ You can override any of the options in your .vman.properties file on the command
      -e VAL                                 : POM file path exclude pattern (glob)
 
      -E VAL                                 : POM module exclude list (format: <groupId:artifactId>[,<groupId:artifactId>])
+                                              Property file equivalent: pom-module-excludes
 
      -M (--enable-modifications) VAL        : List of modifications to enable for this execution (see --help-modifications
                                               for more information).
