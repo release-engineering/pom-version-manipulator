@@ -96,7 +96,7 @@ public class Cli
     @Option( name = "-e", usage = "POM exclude path pattern (glob)" )
     private String pomExcludePattern;
 
-    @Option( name = "-E", usage = "POM exclude module list (groupId:artifactId,groupId:artifactId...)" )
+    @Option( name = "-E", usage = "POM exclude module list (groupId:artifactId,groupId:artifactId...)\nProperty file equivalent: pom-module-excludes" )
     private String pomExcludeModules;
 
     @Option( name = "-h", aliases = { "--help" }, usage = "Print this message and quit" )
@@ -187,6 +187,8 @@ public class Cli
     public static final String REMOVED_PLUGINS_PROPERTY = "removed-plugins";
 
     public static final String EXTENSIONS_WHITELIST_PROPERTY = "extensions-whitelist";
+
+    public static final String POM_EXCLUDE_MODULE_PROPERTY = "pom-module-excludes";
 
     public static final String REMOVED_TESTS_PROPERTY = "removed-tests";
 
@@ -826,6 +828,11 @@ public class Cli
                 if ( extensionsWhitelistList == null )
                 {
                     extensionsWhitelist = readListProperty( props, EXTENSIONS_WHITELIST_PROPERTY );
+                }
+
+                if ( pomExcludeModules == null)
+                {
+                    vman.setPomExcludeModules( props.getProperty( POM_EXCLUDE_MODULE_PROPERTY ) );
                 }
 
                 if ( modifications == null )
