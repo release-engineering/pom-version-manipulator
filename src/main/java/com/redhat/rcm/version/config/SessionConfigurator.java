@@ -18,6 +18,7 @@
 
 package com.redhat.rcm.version.config;
 
+import java.io.File;
 import java.util.List;
 
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
@@ -25,6 +26,6 @@ import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 public interface SessionConfigurator
 {
 
-    void configureSession( List<String> boms, String toolchain, VersionManagerSession session );
+    void configureSession( List<String> boms, String toolchain, VersionManagerSession session, File[] pomFiles );
 
 }

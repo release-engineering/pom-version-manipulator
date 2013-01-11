@@ -1,7 +1,6 @@
 package com.redhat.rcm.version.mgr.mod;
 
 import java.io.File;
-import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
@@ -11,8 +10,6 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 
 import com.redhat.rcm.version.fixture.LoggingFixture;
-import com.redhat.rcm.version.mgr.session.VersionManagerSession;
-import com.redhat.rcm.version.testutil.TestVersionManager;
 
 public class AbstractModderTest
 {
@@ -65,14 +62,6 @@ public class AbstractModderTest
     public final void logTestNameEnd()
     {
         System.out.println( "\n\nEND: " + name.getMethodName() );
-    }
-
-    protected void configureSession( final List<String> boms, final String toolchain,
-                                     final VersionManagerSession session )
-        throws Exception
-    {
-        TestVersionManager.getInstance()
-                          .configureSession( boms, toolchain, session );
     }
 
 }

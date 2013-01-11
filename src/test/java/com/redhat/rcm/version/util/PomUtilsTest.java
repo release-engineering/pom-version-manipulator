@@ -17,9 +17,9 @@
 
 package com.redhat.rcm.version.util;
 
-import static com.redhat.rcm.version.testutil.TestProjectUtils.getResourceFile;
-import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModel;
-import static com.redhat.rcm.version.testutil.TestProjectUtils.newVersionManagerSession;
+import static com.redhat.rcm.version.testutil.TestProjectFixture.getResourceFile;
+import static com.redhat.rcm.version.testutil.TestProjectFixture.loadModel;
+import static com.redhat.rcm.version.testutil.TestProjectFixture.newVersionManagerSession;
 import static org.apache.commons.io.FileUtils.readFileToString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;

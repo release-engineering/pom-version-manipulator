@@ -17,9 +17,9 @@
 
 package com.redhat.rcm.version.mgr.mod;
 
-import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModel;
-import static com.redhat.rcm.version.testutil.TestProjectUtils.loadProject;
-import static com.redhat.rcm.version.testutil.TestProjectUtils.newVersionManagerSession;
+import static com.redhat.rcm.version.testutil.TestProjectFixture.getResourceFile;
+import static com.redhat.rcm.version.testutil.TestProjectFixture.loadModel;
+import static com.redhat.rcm.version.testutil.TestProjectFixture.newVersionManagerSession;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
@@ -39,7 +39,7 @@ import com.redhat.rcm.version.fixture.LoggingFixture;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.testutil.SessionBuilder;
-import com.redhat.rcm.version.testutil.TestVersionManager;
+import com.redhat.rcm.version.testutil.TestProjectFixture;
 
 public class ExtensionsRemovalModderTest
     extends AbstractModderTest
@@ -52,7 +52,8 @@ public class ExtensionsRemovalModderTest
 
     protected File reports;
 
-    private TestVersionManager testVman;
+    @Rule
+    public TestProjectFixture fixture = new TestProjectFixture();
 
     @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();
@@ -67,8 +68,6 @@ public class ExtensionsRemovalModderTest
     public void setup()
         throws Exception
     {
-        testVman = TestVersionManager.getInstance();
-
         if ( repo == null )
         {
             repo = tempFolder.newFolder( "repository" );
@@ -96,8 +95,9 @@ public class ExtensionsRemovalModderTest
                          .size(), equalTo( 1 ) );
 
         final boolean changed =
-            testVman.getModder( ExtensionsRemovalModder.class )
-                    .inject( new Project( model ), newVersionManagerSession( workspace, reports, "-rebuild-1" ) );
+            fixture.getVman()
+                   .getModder( ExtensionsRemovalModder.class )
+                   .inject( new Project( model ), newVersionManagerSession( workspace, reports, "-rebuild-1" ) );
 
         assertThat( changed, equalTo( true ) );
         assertThat( model.getBuild()
@@ -110,7 +110,17 @@ public class ExtensionsRemovalModderTest
     public void preserveWhitelistedExtensionWithDirectVersionProperty()
         throws Exception
     {
-        final Project project = loadProject( BASE + "pom-whitelisted-with-prop.xml" );
+        final VersionManagerSession session =
+            new SessionBuilder( workspace, reports ).withExtensionsWhitelist( Collections.singletonList( "org.foo:bar-ext" ) )
+                                                    .build();
+
+        final File pomFile = getResourceFile( BASE + "pom-whitelisted-with-prop.xml" );
+        final File toolchainFile = getResourceFile( BASE + "toolchain-with-prop.pom" );
+
+        fixture.getVman()
+               .configureSession( null, null, session, pomFile, toolchainFile );
+
+        final Project project = fixture.loadProject( pomFile, session );
 
         System.out.println( "Model parent is: " + project.getParent() );
         final Model model = project.getModel();
@@ -119,19 +129,16 @@ public class ExtensionsRemovalModderTest
                          .getExtensions()
                          .size(), equalTo( 1 ) );
 
-        final VersionManagerSession session =
-            new SessionBuilder( workspace, reports ).withExtensionsWhitelist( Collections.singletonList( "org.foo:bar-ext" ) )
-                                                    .build();
-
-        final Project toolchain = loadProject( BASE + "toolchain-with-prop.pom" );
+        final Project toolchain = fixture.loadProject( toolchainFile, session );
         final MavenProject toolchainM = new MavenProject( toolchain.getModel() );
         toolchainM.setFile( toolchain.getPom() );
         toolchainM.setOriginalModel( toolchain.getModel() );
 
         session.setToolchain( toolchain.getPom(), toolchainM );
 
-        final boolean changed = testVman.getModder( ExtensionsRemovalModder.class )
-                                        .inject( project, session );
+        final boolean changed = fixture.getVman()
+                                       .getModder( ExtensionsRemovalModder.class )
+                                       .inject( project, session );
 
         assertThat( changed, equalTo( true ) );
         assertThat( model.getBuild()
@@ -148,7 +155,17 @@ public class ExtensionsRemovalModderTest
     public void preserveWhitelistedExtensionWithGeneratedVersionProperty()
         throws Exception
     {
-        final Project project = loadProject( BASE + "pom-whitelisted-no-prop.xml" );
+        final VersionManagerSession session =
+            new SessionBuilder( workspace, reports ).withExtensionsWhitelist( Collections.singletonList( "org.foo:bar-ext" ) )
+                                                    .build();
+
+        final File pomFile = getResourceFile( BASE + "pom-whitelisted-no-prop.xml" );
+        final File toolchainFile = getResourceFile( BASE + "toolchain-no-prop.pom" );
+
+        fixture.getVman()
+               .configureSession( null, null, session, pomFile, toolchainFile );
+
+        final Project project = fixture.loadProject( pomFile, session );
 
         System.out.println( "Model parent is: " + project.getParent() );
         final Model model = project.getModel();
@@ -157,19 +174,16 @@ public class ExtensionsRemovalModderTest
                          .getExtensions()
                          .size(), equalTo( 1 ) );
 
-        final VersionManagerSession session =
-            new SessionBuilder( workspace, reports ).withExtensionsWhitelist( Collections.singletonList( "org.foo:bar-ext" ) )
-                                                    .build();
-
-        final Project toolchain = loadProject( BASE + "toolchain-no-prop.pom" );
+        final Project toolchain = fixture.loadProject( toolchainFile, session );
         final MavenProject toolchainM = new MavenProject( toolchain.getModel() );
         toolchainM.setFile( toolchain.getPom() );
         toolchainM.setOriginalModel( toolchain.getModel() );
 
         session.setToolchain( toolchain.getPom(), toolchainM );
 
-        final boolean changed = testVman.getModder( ExtensionsRemovalModder.class )
-                                        .inject( project, session );
+        final boolean changed = fixture.getVman()
+                                       .getModder( ExtensionsRemovalModder.class )
+                                       .inject( project, session );
 
         assertThat( changed, equalTo( true ) );
         assertThat( model.getBuild()

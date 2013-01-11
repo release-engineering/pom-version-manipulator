@@ -17,8 +17,8 @@
 
 package com.redhat.rcm.version.mgr.mod;
 
-import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModel;
-import static com.redhat.rcm.version.testutil.TestProjectUtils.newVersionManagerSession;
+import static com.redhat.rcm.version.testutil.TestProjectFixture.loadModel;
+import static com.redhat.rcm.version.testutil.TestProjectFixture.newVersionManagerSession;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 

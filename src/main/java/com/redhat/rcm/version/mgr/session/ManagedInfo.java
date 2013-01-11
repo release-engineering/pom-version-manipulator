@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
@@ -57,6 +56,8 @@ class ManagedInfo
     private static final String RELOCATIONS_KEY = "relocations";
 
     private static final String MAPPINGS_KEY = "mapping";
+
+    private final Map<FullProjectKey, File> peekedPoms = new HashMap<FullProjectKey, File>();
 
     private final LinkedHashMap<FullProjectKey, MavenProject> bomProjects =
         new LinkedHashMap<FullProjectKey, MavenProject>();
@@ -84,7 +85,7 @@ class ManagedInfo
 
     private final Set<VersionlessProjectKey> extensionsWhitelist = new HashSet<VersionlessProjectKey>();
 
-    private final Set<Project> currentProjects = new LinkedHashSet<Project>();
+    private final LinkedHashSet<Project> currentProjects = new LinkedHashSet<Project>();
 
     private final Map<VersionlessProjectKey, Project> currentProjectsByKey =
         new LinkedHashMap<VersionlessProjectKey, Project>();
@@ -353,25 +354,18 @@ class ManagedInfo
         }
     }
 
-    synchronized void setCurrentProjects( final Collection<Model> models )
-        throws ProjectToolsException
+    synchronized void setPeekedPoms( final Map<FullProjectKey, File> peekedPoms )
     {
-        if ( models == null || models.isEmpty() )
+        if ( peekedPoms == null || peekedPoms.isEmpty() )
         {
             return;
         }
 
-        currentProjects.clear();
-        currentProjectsByKey.clear();
-        for ( final Model model : new LinkedHashSet<Model>( models ) )
-        {
-            final Project project = new Project( model );
-            currentProjects.add( project );
-            currentProjectsByKey.put( toVersionlessKey( project.getKey() ), project );
-        }
+        this.peekedPoms.clear();
+        this.peekedPoms.putAll( peekedPoms );
     }
 
-    Set<Project> getCurrentProjects()
+    LinkedHashSet<Project> getCurrentProjects()
     {
         return currentProjects;
     }
@@ -392,19 +386,35 @@ class ManagedInfo
         return currentProjectsByKey.get( toVersionlessKey( key ) );
     }
 
+    File getPeekedPom( final FullProjectKey key )
+    {
+        logger.info( "STORE: Peeked POM for: '%s' is: %s", key, peekedPoms.get( key ) );
+        return peekedPoms.get( key );
+    }
+
     private VersionlessProjectKey toVersionlessKey( final ProjectKey key )
     {
         return (VersionlessProjectKey) ( key instanceof FullProjectKey ? new VersionlessProjectKey( key ) : key );
     }
 
-    public MavenProject getToolchainProject()
+    MavenProject getToolchainProject()
     {
         return toolchainProject;
     }
 
-    public MavenProject getBOMProject( final FullProjectKey key )
+    MavenProject getBOMProject( final FullProjectKey key )
     {
         return bomProjects.get( key );
+    }
+
+    Map<FullProjectKey, File> getPeekedPoms()
+    {
+        return peekedPoms;
+    }
+
+    void addPeekPom( final FullProjectKey key, final File pom )
+    {
+        peekedPoms.put( key, pom );
     }
 
 }

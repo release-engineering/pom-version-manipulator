@@ -18,11 +18,9 @@
 
 package com.redhat.rcm.version.mgr.mod;
 
-import static com.redhat.rcm.version.testutil.TestProjectUtils.getResourceFile;
-import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModel;
-import static com.redhat.rcm.version.testutil.TestProjectUtils.loadProject;
-import static com.redhat.rcm.version.testutil.TestProjectUtils.loadProjects;
-import static com.redhat.rcm.version.testutil.TestProjectUtils.newVersionManagerSession;
+import static com.redhat.rcm.version.testutil.TestProjectFixture.getResourceFile;
+import static com.redhat.rcm.version.testutil.TestProjectFixture.loadModel;
+import static com.redhat.rcm.version.testutil.TestProjectFixture.newVersionManagerSession;
 import static com.redhat.rcm.version.testutil.VManAssertions.assertModelsNormalizedToBOMs;
 import static com.redhat.rcm.version.testutil.VManAssertions.assertNoErrors;
 import static com.redhat.rcm.version.testutil.VManAssertions.assertProjectNormalizedToBOMs;
@@ -48,12 +46,14 @@ import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Repository;
 import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.redhat.rcm.version.mgr.capture.MissingInfoCapture;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.testutil.SessionBuilder;
+import com.redhat.rcm.version.testutil.TestProjectFixture;
 
 public class BomModderTest
     extends AbstractModderTest
@@ -61,29 +61,39 @@ public class BomModderTest
 
     private static final String TEST_DIR = "relocations/";
 
+    @Rule
+    public TestProjectFixture fixture = new TestProjectFixture();
+
     @Test
     public void modifyProjectTree_BOMInjected()
         throws Exception
     {
-        final String base = "bom-injection-multi/";
-        final Model parent = loadModel( base + "pom.xml" );
-        final Model child = loadModel( base + "child/pom.xml" );
-
-        final List<Model> models = new ArrayList<Model>( 2 );
-        models.add( child );
-        models.add( parent );
-
-        final Project bom = loadProject( base + "bom.xml" );
-
         final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
-        session.setCurrentProjects( models );
-        configureSession( Collections.singletonList( bom.getPom()
-                                                        .getAbsolutePath() ), null, session );
+
+        final String base = "bom-injection-multi/";
+
+        final File parentFile = getResourceFile( base + "pom.xml" );
+        final File childFile = getResourceFile( base + "child/pom.xml" );
+        final File bomFile = getResourceFile( base + "bom.xml" );
+
+        fixture.getVman()
+               .configureSession( Collections.singletonList( bomFile.getAbsolutePath() ), null, session, parentFile,
+                                  childFile, bomFile );
+
+        final Project parent = fixture.loadProject( parentFile, session );
+        final Project child = fixture.loadProject( childFile, session );
+
+        final Project bom = fixture.loadProject( bomFile, session );
+
+        final Set<Project> projects = new HashSet<Project>();
+        projects.add( parent );
+        projects.add( child );
+
+        session.setCurrentProjects( projects );
 
         final BomModder modder = new BomModder();
 
-        final boolean[] changed =
-            { modder.inject( new Project( child ), session ), modder.inject( new Project( parent ), session ) };
+        final boolean[] changed = { modder.inject( child, session ), modder.inject( parent, session ) };
 
         assertNoErrors( session );
 
@@ -91,25 +101,30 @@ public class BomModderTest
         assertThat( changed[0], equalTo( false ) );
         assertThat( changed[1], equalTo( true ) );
 
-        assertModelsNormalizedToBOMs( models, Collections.singleton( bom ) );
+        assertModelsNormalizedToBOMs( projects, Collections.singleton( bom ) );
     }
 
     @Test
     public void modifySinglePom_BOMInjected()
         throws Exception
     {
+        final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
+
         final String base = "bom-injection-single/";
-        final Project src = loadProject( base + "pom.xml" );
+
+        final File pomFile = getResourceFile( base + "pom.xml" );
         final File bom = getResourceFile( base + "bom.xml" );
 
-        final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
-        configureSession( Collections.singletonList( bom.getAbsolutePath() ), null, session );
+        fixture.getVman()
+               .configureSession( Collections.singletonList( bom.getAbsolutePath() ), null, session, pomFile, bom );
+
+        final Project src = fixture.loadProject( pomFile, session );
 
         final boolean changed = new BomModder().inject( src, session );
 
         assertNoErrors( session );
         assertThat( changed, equalTo( true ) );
-        assertProjectNormalizedToBOMs( src, Collections.singleton( loadProject( bom ) ) );
+        assertProjectNormalizedToBOMs( src, Collections.singleton( fixture.loadProject( bom, session ) ) );
     }
 
     @Test
@@ -119,9 +134,6 @@ public class BomModderTest
         final File srcDir = getResourceFile( "bom-parent-in-repo" );
         final File remoteRepo = new File( srcDir, "repo" );
 
-        final File bom = new File( srcDir, "bom.xml" );
-        final Project pom = loadProject( new File( srcDir, "project/pom.xml" ) );
-
         final Repository resolve = new Repository();
 
         resolve.setId( "vman" );
@@ -132,26 +144,27 @@ public class BomModderTest
 
         final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
         session.setResolveRepositories( resolve );
-        configureSession( Collections.singletonList( bom.getAbsolutePath() ), null, session );
+
+        final File bom = new File( srcDir, "bom.xml" );
+
+        fixture.getVman()
+               .configureSession( Collections.singletonList( bom.getAbsolutePath() ), null, session );
+
+        final Project pom = fixture.loadProject( new File( srcDir, "project/pom.xml" ), session );
 
         final boolean changed = new BomModder().inject( pom, session );
 
         assertThat( changed, equalTo( true ) );
         assertNoErrors( session );
-        assertProjectNormalizedToBOMs( pom, Collections.singleton( loadProject( bom ) ) );
+        assertProjectNormalizedToBOMs( pom, Collections.singleton( fixture.loadProject( bom, session ) ) );
     }
 
     @Test
     public void modifySinglePom_BOMofBOMs()
         throws Exception
     {
-        System.out.println( "BOM-of-BOMS test (normalize to BOM usage)..." );
-
         final File srcDir = getResourceFile( "bom-of-boms" );
         final File remoteRepo = new File( srcDir, "repo" );
-
-        final File bom = new File( srcDir, "bom.xml" );
-        final Project pom = loadProject( new File( srcDir, "project/pom.xml" ) );
 
         final Repository resolve = new Repository();
 
@@ -164,13 +177,18 @@ public class BomModderTest
         final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
         session.setResolveRepositories( resolve );
 
-        configureSession( Collections.singletonList( bom.getAbsolutePath() ), null, session );
+        final File bom = new File( srcDir, "bom.xml" );
+
+        fixture.getVman()
+               .configureSession( Collections.singletonList( bom.getAbsolutePath() ), null, session );
+
+        final Project pom = fixture.loadProject( new File( srcDir, "project/pom.xml" ), session );
 
         final boolean changed = new BomModder().inject( pom, session );
 
         assertThat( changed, equalTo( true ) );
         assertNoErrors( session );
-        assertProjectNormalizedToBOMs( pom, Collections.singleton( loadProject( bom ) ) );
+        assertProjectNormalizedToBOMs( pom, Collections.singleton( fixture.loadProject( bom, session ) ) );
 
         System.out.println( "\n\n" );
     }
@@ -179,14 +197,17 @@ public class BomModderTest
     public void modifySinglePom_NormalizeToBOMUsage()
         throws Exception
     {
-        System.out.println( "Single POM test (normalize to BOM usage)..." );
-
-        final Project pom = loadProject( "rwx-parent-0.2.1.pom" );
-        final Project bom = loadProject( "bom.xml" );
-
         final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
-        configureSession( Collections.singletonList( bom.getPom()
-                                                        .getAbsolutePath() ), null, session );
+
+        final File pomFile = getResourceFile( "rwx-parent-0.2.1.pom" );
+        final File bomFile = getResourceFile( "bom.xml" );
+
+        fixture.getVman()
+               .configureSession( Collections.singletonList( bomFile.getAbsolutePath() ), null, session, pomFile,
+                                  bomFile );
+
+        final Project pom = fixture.loadProject( pomFile, session );
+        final Project bom = fixture.loadProject( bomFile, session );
 
         final boolean changed = new BomModder().inject( pom, session );
 
@@ -205,11 +226,14 @@ public class BomModderTest
 
         final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
 
-        final Set<Project> poms = loadProjects( "project-dir", session );
-        final Project bom = loadProject( "bom.xml" );
+        final Set<Project> poms = fixture.loadProjects( "project-dir", session );
 
-        configureSession( Collections.singletonList( bom.getPom()
-                                                        .getAbsolutePath() ), null, session );
+        final File bomFile = getResourceFile( "bom.xml" );
+        final Project bom = fixture.loadProject( bomFile, session );
+
+        fixture.getVman()
+               .configureSession( Collections.singletonList( bomFile.getAbsolutePath() ), null, session );
+
         session.setCurrentProjects( poms );
 
         final Map<Project, Boolean> results = new HashMap<Project, Boolean>();
@@ -234,17 +258,20 @@ public class BomModderTest
 
         final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
 
-        final Set<Project> poms = loadProjects( "project-dir-with-interdep", session );
+        final Set<Project> poms = fixture.loadProjects( "project-dir-with-interdep", session );
         final Set<VersionlessProjectKey> skipped = new HashSet<VersionlessProjectKey>( poms.size() );
         for ( final Project project : poms )
         {
             skipped.add( new VersionlessProjectKey( project.getKey() ) );
         }
 
-        final Project bom = loadProject( "bom.xml" );
+        final File bomFile = getResourceFile( "bom.xml" );
 
-        configureSession( Collections.singletonList( bom.getPom()
-                                                        .getAbsolutePath() ), null, session );
+        final Project bom = fixture.loadProject( bomFile, session );
+
+        fixture.getVman()
+               .configureSession( Collections.singletonList( bomFile.getAbsolutePath() ), null, session );
+
         session.setCurrentProjects( poms );
 
         final Map<Project, Boolean> results = new HashMap<Project, Boolean>();
@@ -269,215 +296,19 @@ public class BomModderTest
     }
 
     @Test
-    public void modifyCompleteRepositoryVersions()
-        throws Exception
-    {
-        System.out.println( "Complete repository test..." );
-
-        final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
-
-        final Set<Project> poms = loadProjects( "repository", session );
-        final Set<VersionlessProjectKey> skipped = new HashSet<VersionlessProjectKey>( poms.size() );
-        for ( final Project project : poms )
-        {
-            skipped.add( new VersionlessProjectKey( project.getKey() ) );
-        }
-
-        final Project bom = loadProject( "bom.xml" );
-
-        configureSession( Collections.singletonList( bom.getPom()
-                                                        .getAbsolutePath() ), null, session );
-        session.setCurrentProjects( poms );
-
-        final Map<Project, Boolean> results = new HashMap<Project, Boolean>();
-        final BomModder modder = new BomModder();
-        for ( final Project pom : poms )
-        {
-            results.put( pom, modder.inject( pom, session ) );
-        }
-
-        assertNoErrors( session );
-        assertProjectsNormalizedToBOMs( poms, Collections.singleton( bom ),
-                                        skipped.toArray( new VersionlessProjectKey[] {} ) );
-    }
-
-    @Test
-    public void modifyRepositoryVersionsWithoutChangingTheRest()
-        throws Exception
-    {
-        System.out.println( "Repository POM non-interference test..." );
-
-        final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
-
-        final Set<Project> poms = loadProjects( "projects-with-property-refs", session );
-        final Set<VersionlessProjectKey> skipped = new HashSet<VersionlessProjectKey>( poms.size() );
-        for ( final Project project : poms )
-        {
-            skipped.add( new VersionlessProjectKey( project.getKey() ) );
-        }
-
-        final Project bom = loadProject( "bom.xml" );
-
-        configureSession( Collections.singletonList( bom.getPom()
-                                                        .getAbsolutePath() ), null, session );
-        session.setCurrentProjects( poms );
-
-        final Map<Project, Boolean> results = new HashMap<Project, Boolean>();
-        final BomModder modder = new BomModder();
-        for ( final Project pom : poms )
-        {
-            results.put( pom, modder.inject( pom, session ) );
-        }
-
-        assertNoErrors( session );
-        assertProjectsNormalizedToBOMs( poms, Collections.singleton( bom ),
-                                        skipped.toArray( new VersionlessProjectKey[] {} ) );
-        for ( final Project project : poms )
-        {
-            if ( "rwx-parent".equals( project.getArtifactId() ) )
-            {
-                assertThat( project.getModel()
-                                   .getBuild(), notNullValue() );
-                assertThat( project.getModel()
-                                   .getBuild()
-                                   .getFinalName(), equalTo( "${artifactId}" ) );
-
-                break;
-            }
-        }
-    }
-
-    @Test
-    public void modifyPartialRepositoryVersions()
-        throws Exception
-    {
-        System.out.println( "Partial repository test..." );
-
-        final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
-
-        final Set<Project> poms = loadProjects( "repository.partial", session );
-        final Set<VersionlessProjectKey> skipped = new HashSet<VersionlessProjectKey>( poms.size() );
-        for ( final Project project : poms )
-        {
-            skipped.add( new VersionlessProjectKey( project.getKey() ) );
-        }
-
-        final Project bom = loadProject( "bom.xml" );
-
-        configureSession( Collections.singletonList( bom.getPom()
-                                                        .getAbsolutePath() ), null, session );
-        session.setCurrentProjects( poms );
-
-        final Map<Project, Boolean> results = new HashMap<Project, Boolean>();
-        final BomModder modder = new BomModder();
-        for ( final Project pom : poms )
-        {
-            results.put( pom, modder.inject( pom, session ) );
-        }
-
-        assertNoErrors( session );
-
-        assertProjectsNormalizedToBOMs( poms, Collections.singleton( bom ),
-                                        skipped.toArray( new VersionlessProjectKey[] {} ) );
-    }
-
-    @Test
-    public void modifyCompleteRepositoryVersions_UsingTwoBoms()
-        throws Exception
-    {
-        System.out.println( "Complete repository test..." );
-
-        final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
-
-        final Set<Project> poms = loadProjects( "repository", session );
-
-        final Set<VersionlessProjectKey> skipped = new HashSet<VersionlessProjectKey>( poms.size() );
-        for ( final Project project : poms )
-        {
-            skipped.add( new VersionlessProjectKey( project.getKey() ) );
-        }
-
-        final Set<Project> boms = new HashSet<Project>();
-        boms.add( loadProject( "bom.part1.xml" ) );
-        boms.add( loadProject( "bom.part2.xml" ) );
-
-        final List<String> bomPaths = new ArrayList<String>();
-        for ( final Project bom : boms )
-        {
-            bomPaths.add( bom.getPom()
-                             .getAbsolutePath() );
-        }
-
-        configureSession( bomPaths, null, session );
-
-        session.setCurrentProjects( poms );
-
-        final Map<Project, Boolean> results = new HashMap<Project, Boolean>();
-        final BomModder modder = new BomModder();
-        for ( final Project pom : poms )
-        {
-            results.put( pom, modder.inject( pom, session ) );
-        }
-
-        assertNoErrors( session );
-
-        assertProjectsNormalizedToBOMs( poms, boms, skipped.toArray( new VersionlessProjectKey[] {} ) );
-    }
-
-    @Test
-    public void modifyPartialRepositoryVersions_UsingTwoBoms()
-        throws Exception
-    {
-        System.out.println( "Partial repository test..." );
-
-        final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
-
-        final Set<Project> poms = loadProjects( "repository.partial", session );
-        final Set<VersionlessProjectKey> skipped = new HashSet<VersionlessProjectKey>( poms.size() );
-        for ( final Project project : poms )
-        {
-            skipped.add( new VersionlessProjectKey( project.getKey() ) );
-        }
-
-        final Set<Project> boms = new HashSet<Project>();
-        boms.add( loadProject( "bom.part1.xml" ) );
-        boms.add( loadProject( "bom.part2.xml" ) );
-
-        final List<String> bomPaths = new ArrayList<String>();
-        for ( final Project bom : boms )
-        {
-            bomPaths.add( bom.getPom()
-                             .getAbsolutePath() );
-        }
-
-        configureSession( bomPaths, null, session );
-
-        session.setCurrentProjects( poms );
-
-        final Map<Project, Boolean> results = new HashMap<Project, Boolean>();
-        final BomModder modder = new BomModder();
-        for ( final Project pom : poms )
-        {
-            results.put( pom, modder.inject( pom, session ) );
-        }
-
-        assertNoErrors( session );
-
-        assertProjectsNormalizedToBOMs( poms, boms, skipped.toArray( new VersionlessProjectKey[] {} ) );
-    }
-
-    @Test
     public void modifySinglePomUsingInterpolatedBOM()
         throws Exception
     {
-        System.out.println( "Single POM test (interpolated BOM)..." );
-
-        final Project pom = loadProject( "rwx-parent-0.2.1.pom" );
-        final Project bom = loadProject( "bom.interp.xml" );
-
         final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
-        configureSession( Collections.singletonList( bom.getPom()
-                                                        .getAbsolutePath() ), null, session );
+
+        final File pomFile = getResourceFile( "rwx-parent-0.2.1.pom" );
+        final File bomFile = getResourceFile( "bom.interp.xml" );
+
+        fixture.getVman()
+               .configureSession( Collections.singletonList( bomFile.getAbsolutePath() ), null, session, pomFile,
+                                  bomFile );
+
+        final Project pom = fixture.loadProject( pomFile, session );
 
         final boolean changed = new BomModder().inject( pom, session );
 
@@ -489,14 +320,16 @@ public class BomModderTest
     public void modifySinglePomWithRelocations()
         throws Exception
     {
-        System.out.println( "Single POM test (with relocations)..." );
-
-        final Project pom = loadProject( "rwx-parent-0.2.1.pom" );
-        final Project bom = loadProject( "bom-relocations.xml" );
-
         final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
-        configureSession( Collections.singletonList( bom.getPom()
-                                                        .getAbsolutePath() ), null, session );
+
+        final File pomFile = getResourceFile( "rwx-parent-0.2.1.pom" );
+        final File bomFile = getResourceFile( "bom-relocations.xml" );
+
+        fixture.getVman()
+               .configureSession( Collections.singletonList( bomFile.getAbsolutePath() ), null, session, pomFile,
+                                  bomFile );
+
+        final Project pom = fixture.loadProject( pomFile, session );
 
         final boolean changed = new BomModder().inject( pom, session );
 
@@ -517,10 +350,22 @@ public class BomModderTest
     public void modifySinglePomWithRelocations_InBom()
         throws Exception
     {
-        final Project project = loadProject( TEST_DIR + "relocate-dep.pom" );
+        final VersionManagerSession session =
+            new SessionBuilder( workspace, reports ).withCoordinateRelocation( "org.test:old-dep:1.0",
+                                                                               "org.test:new-dep:1.1" )
+                                                    .withStrict( true )
+                                                    .build();
 
         final String bomPath = "bom-dep-1.0.pom";
-        final Project bom = loadProject( TEST_DIR + bomPath );
+
+        final File pomFile = getResourceFile( TEST_DIR + "relocate-dep.pom" );
+        final File bomFile = getResourceFile( TEST_DIR + bomPath );
+
+        fixture.getVman()
+               .configureSession( Collections.singletonList( bomFile.getAbsolutePath() ), null, session, pomFile,
+                                  bomFile );
+
+        final Project project = fixture.loadProject( pomFile, session );
 
         final Model model = project.getModel();
         assertThat( model.getDependencies(), notNullValue() );
@@ -532,15 +377,6 @@ public class BomModderTest
 
         assertThat( dep.getArtifactId(), equalTo( "old-dep" ) );
         assertThat( dep.getVersion(), equalTo( "1.0" ) );
-
-        final VersionManagerSession session =
-            new SessionBuilder( workspace, reports ).withCoordinateRelocation( "org.test:old-dep:1.0",
-                                                                               "org.test:new-dep:1.1" )
-                                                    .withStrict( true )
-                                                    .build();
-
-        configureSession( Collections.singletonList( bom.getPom()
-                                                        .getAbsolutePath() ), null, session );
 
         final boolean changed = new BomModder().inject( project, session );
         assertThat( changed, equalTo( true ) );
@@ -559,10 +395,21 @@ public class BomModderTest
     public void modifySinglePomWithRelocations_NotInBom_NonStrictMode()
         throws Exception
     {
-        final Project project = loadProject( TEST_DIR + "relocate-dep.pom" );
+        final VersionManagerSession session =
+            new SessionBuilder( workspace, reports ).withCoordinateRelocation( "org.test:old-dep:1.0",
+                                                                               "org.test:new-dep:1.1" )
+                                                    .withStrict( false )
+                                                    .build();
 
         final String bomPath = "bom-empty-1.0.pom";
-        final Project bom = loadProject( TEST_DIR + bomPath );
+        final File pomFile = getResourceFile( TEST_DIR + "relocate-dep.pom" );
+        final File bomFile = getResourceFile( TEST_DIR + bomPath );
+
+        fixture.getVman()
+               .configureSession( Collections.singletonList( bomFile.getAbsolutePath() ), null, session, pomFile,
+                                  bomFile );
+
+        final Project project = fixture.loadProject( pomFile, session );
 
         final Model model = project.getModel();
         assertThat( model.getDependencies(), notNullValue() );
@@ -573,15 +420,6 @@ public class BomModderTest
                               .get( 0 );
         assertThat( dep.getArtifactId(), equalTo( "old-dep" ) );
         assertThat( dep.getVersion(), equalTo( "1.0" ) );
-
-        final VersionManagerSession session =
-            new SessionBuilder( workspace, reports ).withCoordinateRelocation( "org.test:old-dep:1.0",
-                                                                               "org.test:new-dep:1.1" )
-                                                    .withStrict( false )
-                                                    .build();
-
-        configureSession( Collections.singletonList( bom.getPom()
-                                                        .getAbsolutePath() ), null, session );
 
         final boolean changed = new BomModder().inject( project, session );
         assertThat( changed, equalTo( true ) );
@@ -600,10 +438,21 @@ public class BomModderTest
     public void modifySinglePomWithRelocations_NotInBom_StrictMode()
         throws Exception
     {
-        final Project project = loadProject( TEST_DIR + "relocate-dep.pom" );
+        final VersionManagerSession session =
+            new SessionBuilder( workspace, reports ).withCoordinateRelocation( "org.test:old-dep:1.0",
+                                                                               "org.test:new-dep:1.1" )
+                                                    .withStrict( true )
+                                                    .build();
 
         final String bomPath = "bom-empty-1.0.pom";
-        final Project bom = loadProject( TEST_DIR + bomPath );
+        final File pomFile = getResourceFile( TEST_DIR + "relocate-dep.pom" );
+        final File bomFile = getResourceFile( TEST_DIR + bomPath );
+
+        fixture.getVman()
+               .configureSession( Collections.singletonList( bomFile.getAbsolutePath() ), null, session, pomFile,
+                                  bomFile );
+
+        final Project project = fixture.loadProject( pomFile, session );
 
         final Model model = project.getModel();
         assertThat( model.getDependencies(), notNullValue() );
@@ -615,15 +464,6 @@ public class BomModderTest
 
         assertThat( dep.getArtifactId(), equalTo( "old-dep" ) );
         assertThat( dep.getVersion(), equalTo( "1.0" ) );
-
-        final VersionManagerSession session =
-            new SessionBuilder( workspace, reports ).withCoordinateRelocation( "org.test:old-dep:1.0",
-                                                                               "org.test:new-dep:1.1" )
-                                                    .withStrict( true )
-                                                    .build();
-
-        configureSession( Collections.singletonList( bom.getPom()
-                                                        .getAbsolutePath() ), null, session );
 
         final boolean changed = new BomModder().inject( project, session );
         assertThat( changed, equalTo( true ) );
@@ -654,7 +494,8 @@ public class BomModderTest
                                                                                "new.group.id:new-artifact:1.0.0" )
                                                     .build();
 
-        configureSession( Collections.singletonList( bom ), null, session );
+        fixture.getVman()
+               .configureSession( Collections.singletonList( bom ), null, session );
 
         new BomModder().inject( new Project( model ), session );
 
@@ -689,7 +530,8 @@ public class BomModderTest
                                                                                "new.group.id:new-artifact:1.0.0" )
                                                     .build();
 
-        configureSession( Collections.singletonList( bom ), null, session );
+        fixture.getVman()
+               .configureSession( Collections.singletonList( bom ), null, session );
 
         new BomModder().inject( new Project( model ), session );
 
@@ -715,19 +557,24 @@ public class BomModderTest
         System.out.println( "capture missing managed deps..." );
 
         final File pom = getResourceFile( "pom-with-managed-dep.xml" );
-        final String bom = getResourceFile( "bom-min.xml" ).getAbsolutePath();
-
-        final Model model = loadModel( pom );
+        final File bom = getResourceFile( "bom-min.xml" );
 
         final VersionManagerSession session = new SessionBuilder( workspace, reports ).build();
 
+        fixture.getVman()
+               .configureSession( Collections.singletonList( bom.getAbsolutePath() ), null, session, pom, bom );
+
+        final Project project = fixture.loadProject( pom, session );
+
+        final Set<Project> projects = new HashSet<Project>();
+        projects.add( project );
+
+        session.setCurrentProjects( projects );
+
         final File capturePom = tempFolder.newFile( "capture.pom" );
         session.setCapturePom( capturePom );
-        session.setCurrentProjects( Collections.singleton( model ) );
 
-        configureSession( Collections.singletonList( bom ), null, session );
-
-        new BomModder().inject( new Project( model ), session );
+        new BomModder().inject( project, session );
         new MissingInfoCapture().captureMissing( session );
 
         assertNoErrors( session );
@@ -759,20 +606,24 @@ public class BomModderTest
         System.out.println( "capture missing managed deps..." );
 
         final File pom = getResourceFile( "pom-with-managed-dep.xml" );
-        final String bom = getResourceFile( "bom-min.xml" ).getAbsolutePath();
+        final File bom = getResourceFile( "bom-min.xml" );
 
-        final Model model = loadModel( pom );
+        final VersionManagerSession session = new SessionBuilder( workspace, reports ).build();
 
-        final VersionManagerSession session = new SessionBuilder( workspace, reports ).withStrict( false )
-                                                                                      .build();
+        fixture.getVman()
+               .configureSession( Collections.singletonList( bom.getAbsolutePath() ), null, session, pom, bom );
+
+        final Project project = fixture.loadProject( pom, session );
+
+        final Set<Project> projects = new HashSet<Project>();
+        projects.add( project );
+
+        session.setCurrentProjects( projects );
 
         final File capturePom = tempFolder.newFile( "capture.pom" );
         session.setCapturePom( capturePom );
-        session.setCurrentProjects( Collections.singleton( model ) );
 
-        configureSession( Collections.singletonList( bom ), null, session );
-
-        new BomModder().inject( new Project( model ), session );
+        new BomModder().inject( project, session );
         new MissingInfoCapture().captureMissing( session );
 
         assertNoErrors( session );
@@ -802,14 +653,26 @@ public class BomModderTest
         throws Exception
     {
         final File pom = getResourceFile( "pom-with-existing-import.xml" );
-        final String bom1 = getResourceFile( "bom-min.xml" ).getAbsolutePath();
-        final String bom2 = getResourceFile( "bom-min2.xml" ).getAbsolutePath();
+        final File originalBom = getResourceFile( "some-bom.xml" );
+        final File bom1 = getResourceFile( "bom-min.xml" );
+        final File bom2 = getResourceFile( "bom-min2.xml" );
 
         final List<String> boms = new ArrayList<String>();
-        boms.add( bom1 );
-        boms.add( bom2 );
+        boms.add( bom1.getAbsolutePath() );
+        boms.add( bom2.getAbsolutePath() );
 
-        final Model model = loadModel( pom );
+        final VersionManagerSession session = new SessionBuilder( workspace, reports ).build();
+
+        fixture.getVman()
+               .configureSession( boms, null, session, pom, bom1, bom2, originalBom );
+
+        final Project project = fixture.loadProject( pom, session );
+        final Model model = project.getModel();
+
+        final Set<Project> projects = new HashSet<Project>();
+        projects.add( project );
+
+        session.setCurrentProjects( projects );
 
         assertThat( model.getDependencyManagement(), notNullValue() );
         assertThat( model.getDependencyManagement()
@@ -827,13 +690,6 @@ public class BomModderTest
         assertThat( dep.getVersion(), equalTo( "1" ) );
         assertThat( dep.getType(), equalTo( "pom" ) );
         assertThat( dep.getScope(), equalTo( "import" ) );
-
-        final VersionManagerSession session = new SessionBuilder( workspace, reports ).withStrict( true )
-                                                                                      .build();
-
-        session.setCurrentProjects( Collections.singleton( model ) );
-
-        configureSession( boms, null, session );
 
         final boolean changed = new BomModder().inject( new Project( model ), session );
 

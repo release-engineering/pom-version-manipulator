@@ -35,9 +35,9 @@ import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginManagement;
 import org.apache.maven.model.ReportPlugin;
 import org.apache.maven.model.Reporting;
+import org.apache.maven.model.building.ModelBuildingResult;
 
 import com.redhat.rcm.version.VManException;
-import com.redhat.rcm.version.maven.EffectiveModelBuilder;
 import com.redhat.rcm.version.mgr.mod.ProjectModder;
 
 /**
@@ -110,6 +110,19 @@ public class Project
         throws ProjectToolsException
     {
         this( new FullProjectKey( model ), model.getPomFile(), model, cloneModel( model ) );
+    }
+
+    public Project( final ModelBuildingResult mbResult, final File pom )
+        throws ProjectToolsException
+    {
+        this.pom = pom;
+
+        final Model raw = mbResult.getRawModel();
+
+        this.originalModel = cloneModel( raw );
+        this.model = raw;
+        this.effectiveModel = mbResult.getEffectiveModel();
+        this.key = new FullProjectKey( raw );
     }
 
     public File getPom()

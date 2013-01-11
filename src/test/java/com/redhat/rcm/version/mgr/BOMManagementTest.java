@@ -18,9 +18,9 @@
 
 package com.redhat.rcm.version.mgr;
 
-import static com.redhat.rcm.version.testutil.TestProjectUtils.getResourceFile;
-import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModel;
-import static com.redhat.rcm.version.testutil.TestProjectUtils.newVersionManagerSession;
+import static com.redhat.rcm.version.testutil.TestProjectFixture.getResourceFile;
+import static com.redhat.rcm.version.testutil.TestProjectFixture.loadModel;
+import static com.redhat.rcm.version.testutil.TestProjectFixture.newVersionManagerSession;
 import static com.redhat.rcm.version.testutil.VManAssertions.assertPOMsNormalizedToBOMs;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -33,6 +33,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -41,6 +42,7 @@ import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Repository;
+import org.apache.maven.model.building.ModelBuildingException;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.FileUtils;
 import org.junit.After;
@@ -56,6 +58,7 @@ import com.redhat.rcm.version.mgr.mod.BomModder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.testutil.SessionBuilder;
+import com.redhat.rcm.version.testutil.TestProjectFixture;
 
 public class BOMManagementTest
     extends AbstractVersionManagerTest
@@ -65,6 +68,9 @@ public class BOMManagementTest
 
     @Rule
     public TestName name = new TestName();
+
+    @Rule
+    public TestProjectFixture fixture = new TestProjectFixture();
 
     @BeforeClass
     public static void enableLogging()
@@ -109,7 +115,7 @@ public class BOMManagementTest
 
         // NOTE: Child POM not modified...nothing to do there!
         assertThat( modified.size(), equalTo( 1 ) );
-        assertPOMsNormalizedToBOMs( modified, Collections.singleton( bom ) );
+        assertPOMsNormalizedToBOMs( modified, Collections.singleton( bom ), session, fixture );
 
         System.out.println( "\n\n" );
     }
@@ -131,7 +137,7 @@ public class BOMManagementTest
 
         assertNoErrors( session );
         assertThat( modified.size(), equalTo( 1 ) );
-        assertPOMsNormalizedToBOMs( modified, Collections.singleton( bom ) );
+        assertPOMsNormalizedToBOMs( modified, Collections.singleton( bom ), session, fixture );
 
         System.out.println( "\n\n" );
     }
@@ -161,7 +167,7 @@ public class BOMManagementTest
         final Set<File> modified =
             vman.modifyVersions( pom, Collections.singletonList( bom.getAbsolutePath() ), null, session );
         assertNoErrors( session );
-        assertPOMsNormalizedToBOMs( modified, Collections.singleton( bom ) );
+        assertPOMsNormalizedToBOMs( modified, Collections.singleton( bom ), session, fixture );
 
         System.out.println( "\n\n" );
     }
@@ -193,7 +199,7 @@ public class BOMManagementTest
         final Set<File> modified =
             vman.modifyVersions( pom, Collections.singletonList( bom.getAbsolutePath() ), null, session );
         assertNoErrors( session );
-        assertPOMsNormalizedToBOMs( modified, Collections.singleton( bom ) );
+        assertPOMsNormalizedToBOMs( modified, Collections.singleton( bom ), session, fixture );
 
         System.out.println( "\n\n" );
     }
@@ -215,7 +221,7 @@ public class BOMManagementTest
         final Set<File> modified =
             vman.modifyVersions( pom, Collections.singletonList( bom.getAbsolutePath() ), null, session );
         assertNoErrors( session );
-        assertPOMsNormalizedToBOMs( modified, Collections.singleton( bom ) );
+        assertPOMsNormalizedToBOMs( modified, Collections.singleton( bom ), session, fixture );
 
         System.out.println( "\n\n" );
     }
@@ -238,7 +244,7 @@ public class BOMManagementTest
 
         assertNoErrors( session );
 
-        assertPOMsNormalizedToBOMs( modified, Collections.singleton( bom ) );
+        assertPOMsNormalizedToBOMs( modified, Collections.singleton( bom ), session, fixture );
 
         System.out.println( "\n\n" );
     }
@@ -264,7 +270,7 @@ public class BOMManagementTest
         final String g = "org.commonjava.rwx";
 
         final Set<Dependency> skipped =
-            assertPOMsNormalizedToBOMs( modified, Collections.singleton( bom ),
+            assertPOMsNormalizedToBOMs( modified, Collections.singleton( bom ), session, fixture,
                                         new VersionlessProjectKey( g, "rwx-parent" ),
                                         new VersionlessProjectKey( g, "rwx-core" ),
                                         new VersionlessProjectKey( g, "rwx-bindings" ),
@@ -562,24 +568,29 @@ public class BOMManagementTest
 
     @Test
     public void managedDepsMissingFromBOMIncludedInCapturePOM()
-        throws IOException, ProjectToolsException
+        throws IOException, ProjectToolsException, ModelBuildingException
     {
         System.out.println( "capture missing managed deps..." );
 
         final File pom = getResourceFile( "pom-with-managed-dep.xml" );
-        final String bom = getResourceFile( "bom-min.xml" ).getAbsolutePath();
-
-        final Model model = loadModel( pom );
+        final File bom = getResourceFile( "bom-min.xml" );
 
         final VersionManagerSession session = new SessionBuilder( workspace, reports ).build();
 
+        fixture.getVman()
+               .configureSession( Collections.singletonList( bom.getAbsolutePath() ), null, session, pom, bom );
+
+        final Project project = fixture.loadProject( pom, session );
+
+        final Set<Project> projects = new HashSet<Project>();
+        projects.add( project );
+
+        session.setCurrentProjects( projects );
+
         final File capturePom = tempFolder.newFile( "capture.pom" );
         session.setCapturePom( capturePom );
-        session.setCurrentProjects( Collections.singleton( model ) );
 
-        vman.configureSession( Collections.singletonList( bom ), bom, session );
-
-        new BomModder().inject( new Project( model ), session );
+        new BomModder().inject( project, session );
         new MissingInfoCapture().captureMissing( session );
 
         assertNoErrors( session );
@@ -606,25 +617,29 @@ public class BOMManagementTest
 
     @Test
     public void managedDepsMissingFromBOMIncludedInCapturePOM_NonStrictMode()
-        throws IOException, ProjectToolsException
+        throws ProjectToolsException, ModelBuildingException, IOException
     {
         System.out.println( "capture missing managed deps..." );
 
         final File pom = getResourceFile( "pom-with-managed-dep.xml" );
-        final String bom = getResourceFile( "bom-min.xml" ).getAbsolutePath();
+        final File bom = getResourceFile( "bom-min.xml" );
 
-        final Model model = loadModel( pom );
+        final VersionManagerSession session = new SessionBuilder( workspace, reports ).build();
 
-        final VersionManagerSession session = new SessionBuilder( workspace, reports ).withStrict( false )
-                                                                                      .build();
+        fixture.getVman()
+               .configureSession( Collections.singletonList( bom.getAbsolutePath() ), null, session, pom, bom );
+
+        final Project project = fixture.loadProject( pom, session );
+
+        final Set<Project> projects = new HashSet<Project>();
+        projects.add( project );
+
+        session.setCurrentProjects( projects );
 
         final File capturePom = tempFolder.newFile( "capture.pom" );
         session.setCapturePom( capturePom );
-        session.setCurrentProjects( Collections.singleton( model ) );
 
-        vman.configureSession( Collections.singletonList( bom ), bom, session );
-
-        new BomModder().inject( new Project( model ), session );
+        new BomModder().inject( project, session );
         new MissingInfoCapture().captureMissing( session );
 
         assertNoErrors( session );
@@ -651,17 +666,29 @@ public class BOMManagementTest
 
     @Test
     public void injectBOMsAheadOfPreexistingBOMInStrictMode()
-        throws ProjectToolsException, IOException
+        throws ProjectToolsException, ModelBuildingException
     {
         final File pom = getResourceFile( "pom-with-existing-import.xml" );
-        final String bom1 = getResourceFile( "bom-min.xml" ).getAbsolutePath();
-        final String bom2 = getResourceFile( "bom-min2.xml" ).getAbsolutePath();
+        final File originalBom = getResourceFile( "some-bom.xml" );
+        final File bom1 = getResourceFile( "bom-min.xml" );
+        final File bom2 = getResourceFile( "bom-min2.xml" );
 
         final List<String> boms = new ArrayList<String>();
-        boms.add( bom1 );
-        boms.add( bom2 );
+        boms.add( bom1.getAbsolutePath() );
+        boms.add( bom2.getAbsolutePath() );
 
-        final Model model = loadModel( pom );
+        final VersionManagerSession session = new SessionBuilder( workspace, reports ).build();
+
+        fixture.getVman()
+               .configureSession( boms, null, session, pom, bom1, bom2, originalBom );
+
+        final Project project = fixture.loadProject( pom, session );
+        final Model model = project.getModel();
+
+        final Set<Project> projects = new HashSet<Project>();
+        projects.add( project );
+
+        session.setCurrentProjects( projects );
 
         assertThat( model.getDependencyManagement(), notNullValue() );
         assertThat( model.getDependencyManagement()
@@ -680,14 +707,7 @@ public class BOMManagementTest
         assertThat( dep.getType(), equalTo( "pom" ) );
         assertThat( dep.getScope(), equalTo( "import" ) );
 
-        final VersionManagerSession session = new SessionBuilder( workspace, reports ).withStrict( true )
-                                                                                      .build();
-
-        session.setCurrentProjects( Collections.singleton( model ) );
-
-        vman.configureSession( boms, null, session );
-
-        new BomModder().inject( new Project( model ), session );
+        new BomModder().inject( project, session );
 
         assertNoErrors( session );
 

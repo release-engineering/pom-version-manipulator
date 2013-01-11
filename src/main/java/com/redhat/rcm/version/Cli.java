@@ -100,10 +100,10 @@ public class Cli
     private String pomExcludeModules;
 
     @Option( name = "-h", aliases = { "--help" }, usage = "Print this message and quit" )
-    private boolean help = false;
+    private final boolean help = false;
 
     @Option( name = "-H", aliases = { "--help-modifications" }, usage = "Print the list of available modifications and quit" )
-    private boolean helpModders = false;
+    private final boolean helpModders = false;
 
     @Option( name = "--console", usage = "Log information to console instead of <workspace>/vman.log.\n" )
     private boolean console;
@@ -121,10 +121,10 @@ public class Cli
     private File capturePom;
 
     @Option( name = "-p", usage = "POM path pattern (glob).\nDefault: **/*.pom,**/pom.xml" )
-    private String pomPattern = "**/*.pom,**/pom.xml";
+    private final String pomPattern = "**/*.pom,**/pom.xml";
 
     @Option( name = "-P", aliases = { "--preserve" }, usage = "Write changed POMs back to original input files.\nDefault: false" )
-    private boolean preserveFiles = false;
+    private final boolean preserveFiles = false;
 
     @Option( name = "-r", aliases = { "--rm-plugins", "--removed-plugins" }, usage = "List of plugins (format: <groupId:artifactId>[,<groupId:artifactId>]) to REMOVE if found.\nProperty file equivalent: removed-plugins" )
     private String removedPluginsList;
@@ -136,7 +136,7 @@ public class Cli
     private String extensionsWhitelistList;
 
     @Option( name = "-R", aliases = { "--report-dir" }, usage = "Write reports here.\nDefault: <workspace>/reports" )
-    private File reports = new File( "vman-workspace/reports" );
+    private final File reports = new File( "vman-workspace/reports" );
 
     @Option( name = "-s", aliases = "--version-suffix", usage = "A suffix to append to each POM's version.\nProperty file equivalent: version-suffix" )
     private String versionSuffix;
@@ -160,7 +160,7 @@ public class Cli
     private boolean showVersion;
 
     @Option( name = "-W", aliases = { "--workspace" }, usage = "Backup original files here up before modifying.\nDefault: vman-workspace" )
-    private File workspace = new File( "vman-workspace" );
+    private final File workspace = new File( "vman-workspace" );
 
     @Option( name = "-Z", aliases = { "--no-system-exit" }, usage = "Don't call System.exit(..) with the return value (for embedding/testing)." )
     private boolean noSystemExit;
@@ -233,7 +233,7 @@ public class Cli
 
     private boolean bootstrapRead;
 
-    private File logFile = new File( workspace, "vman.log" );
+    private final File logFile = new File( workspace, "vman.log" );
 
     private static int exitValue = Integer.MIN_VALUE;
 
@@ -830,7 +830,7 @@ public class Cli
                     extensionsWhitelist = readListProperty( props, EXTENSIONS_WHITELIST_PROPERTY );
                 }
 
-                if ( pomExcludeModules == null)
+                if ( pomExcludeModules == null )
                 {
                     vman.setPomExcludeModules( props.getProperty( POM_EXCLUDE_MODULE_PROPERTY ) );
                 }

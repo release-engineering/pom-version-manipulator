@@ -1,10 +1,5 @@
 <project>
   <modelVersion>4.0.0</modelVersion>
-  <parent>
-    <groupId>org.test</groupId>
-    <artifactId>toolchain-parent</artifactId>
-    <version>1.0</version>
-  </parent>
   
   <artifactId>relocate-dep</artifactId>
   
@@ -16,4 +11,6 @@
     </dependency>
   </dependencies>
   
+  <groupId>org.test</groupId>
+  <version>1.0</version>
 </project>

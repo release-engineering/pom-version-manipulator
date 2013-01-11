@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,28 +38,37 @@ import org.apache.maven.mae.MAEException;
 import org.apache.maven.mae.app.AbstractMAEApplication;
 import org.apache.maven.mae.boot.embed.MAEEmbedderBuilder;
 import org.apache.maven.mae.internal.container.ComponentSelector;
-import org.apache.maven.mae.project.ModelLoader;
 import org.apache.maven.mae.project.ProjectToolsException;
+import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.mae.project.session.SessionInitializer;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
+import org.apache.maven.model.building.DefaultModelBuildingRequest;
+import org.apache.maven.model.building.FileModelSource;
+import org.apache.maven.model.building.ModelBuilder;
+import org.apache.maven.model.building.ModelBuildingException;
+import org.apache.maven.model.building.ModelBuildingRequest;
+import org.apache.maven.model.building.ModelBuildingResult;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.component.annotations.Requirement;
 import org.codehaus.plexus.util.FileUtils;
 import org.codehaus.plexus.util.StringUtils;
 import org.commonjava.util.logging.Logger;
-import org.sonatype.aether.util.DefaultRequestTrace;
+import org.sonatype.aether.impl.ArtifactResolver;
+import org.sonatype.aether.impl.RemoteRepositoryManager;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.config.SessionConfigurator;
+import com.redhat.rcm.version.maven.VManModelResolver;
 import com.redhat.rcm.version.mgr.capture.MissingInfoCapture;
 import com.redhat.rcm.version.mgr.mod.ProjectModder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.mgr.verify.ProjectVerifier;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.report.Report;
+import com.redhat.rcm.version.util.PomPeek;
 
 @Component( role = VersionManager.class )
 public class VersionManager
@@ -68,7 +78,13 @@ public class VersionManager
     private final Logger logger = new Logger( getClass() );
 
     @Requirement
-    private ModelLoader modelLoader;
+    private ModelBuilder modelBuilder;
+
+    @Requirement
+    private ArtifactResolver artifactResolver;
+
+    @Requirement
+    private RemoteRepositoryManager remoteRepositoryManager;
 
     @Requirement( role = Report.class )
     private Map<String, Report> reports;
@@ -86,6 +102,8 @@ public class VersionManager
     private SessionConfigurator sessionConfigurator;
 
     private HashMap<String, String> pomExcludedModules;
+
+    private DefaultModelBuildingRequest baseMbr;
 
     private static boolean useClasspathScanning = false;
 
@@ -141,8 +159,6 @@ public class VersionManager
                                      final VersionManagerSession session )
         throws VManException
     {
-        configureSession( boms, toolchain, session );
-
         final String[] includedSubpaths = getIncludedSubpaths( dir, pomNamePattern, pomExcludePattern, session );
         final List<File> pomFiles = new ArrayList<File>();
 
@@ -165,8 +181,11 @@ public class VersionManager
             }
         }
 
-        final Set<File> outFiles =
-            modVersions( dir, session, session.isPreserveFiles(), pomFiles.toArray( new File[] {} ) );
+        final File[] pomFileArray = pomFiles.toArray( new File[] {} );
+
+        configureSession( boms, toolchain, session, pomFileArray );
+
+        final Set<File> outFiles = modVersions( dir, session, session.isPreserveFiles(), pomFileArray );
 
         logger.info( "Modified " + outFiles.size() + " POM versions in directory.\n\n\tDirectory: " + dir
             + "\n\tBOMs:\t" + StringUtils.join( boms.iterator(), "\n\t\t" ) + "\n\tPOM Backups: "
@@ -179,8 +198,6 @@ public class VersionManager
                                      final VersionManagerSession session )
         throws VManException
     {
-        configureSession( boms, toolchain, session );
-
         try
         {
             pom = pom.getCanonicalFile();
@@ -189,6 +206,8 @@ public class VersionManager
         {
             pom = pom.getAbsoluteFile();
         }
+
+        configureSession( boms, toolchain, session, pom );
 
         final Set<File> result = modVersions( pom.getParentFile(), session, true, pom );
         if ( !result.isEmpty() )
@@ -204,10 +223,11 @@ public class VersionManager
         return result;
     }
 
-    public void configureSession( final List<String> boms, final String toolchain, final VersionManagerSession session )
+    public void configureSession( final List<String> boms, final String toolchain, final VersionManagerSession session,
+                                  final File... pomFiles )
         throws VManException
     {
-        sessionConfigurator.configureSession( boms, toolchain, session );
+        sessionConfigurator.configureSession( boms, toolchain, session, pomFiles );
 
         final List<Throwable> errors = session.getErrors();
         if ( errors != null && !errors.isEmpty() )
@@ -216,76 +236,139 @@ public class VersionManager
         }
     }
 
+    protected LinkedHashSet<Project> loadProjectWithModules( final File topPom, final VersionManagerSession session )
+        throws ModelBuildingException, ProjectToolsException
+    {
+        final LinkedHashSet<Project> projects = new LinkedHashSet<Project>();
+
+        final LinkedList<File> pendingPoms = new LinkedList<File>();
+        pendingPoms.add( topPom );
+
+        while ( !pendingPoms.isEmpty() )
+        {
+            final File pom = pendingPoms.removeFirst();
+
+            final PomPeek peek = new PomPeek( pom );
+            final FullProjectKey key = peek.getKey();
+            if ( key != null )
+            {
+                session.addPeekPom( key, pom );
+            }
+
+            final ModelBuildingRequest req = newModelBuildingRequest( pom, session );
+
+            final ModelBuildingResult mbResult = modelBuilder.build( req );
+            final Project project = new Project( mbResult, pom );
+
+            projects.add( project );
+
+            final File dir = pom.getParentFile();
+            final Model model = project.getEffectiveModel();
+
+            final List<String> modules = model.getModules();
+            for ( final String module : modules )
+            {
+                File modulePom = new File( dir, module );
+                if ( !modulePom.isFile() )
+                {
+                    modulePom = new File( modulePom, "pom.xml" );
+                }
+
+                if ( modulePom.isFile() )
+                {
+                    logger.info( "Adding POM from module: %s in POM: %s", modulePom, pom );
+                    pendingPoms.addLast( modulePom );
+                }
+            }
+        }
+
+        return projects;
+    }
+
+    private synchronized ModelBuildingRequest newModelBuildingRequest( final File pom,
+                                                                       final VersionManagerSession session )
+    {
+        if ( baseMbr == null )
+        {
+            final DefaultModelBuildingRequest mbr = new DefaultModelBuildingRequest();
+            mbr.setSystemProperties( System.getProperties() );
+            mbr.setValidationLevel( ModelBuildingRequest.VALIDATION_LEVEL_MINIMAL );
+            mbr.setProcessPlugins( false );
+
+            this.baseMbr = mbr;
+        }
+
+        final DefaultModelBuildingRequest req = new DefaultModelBuildingRequest( baseMbr );
+        req.setModelSource( new FileModelSource( pom ) );
+
+        final VManModelResolver resolver =
+            new VManModelResolver( session, pom, artifactResolver, remoteRepositoryManager );
+
+        req.setModelResolver( resolver );
+
+        return req;
+    }
+
     private Set<File> modVersions( final File basedir, final VersionManagerSession session, final boolean preserveDirs,
                                    final File... pomFiles )
     {
         final Set<File> result = new LinkedHashSet<File>();
 
-        final boolean processPomPlugins = session.isProcessPomPlugins();
-        session.setProcessPomPlugins( true );
+        final Set<Project> projects = new HashSet<Project>();
+        for ( final File pom : pomFiles )
+        {
+            try
+            {
+                final Set<Project> pomProjects = loadProjectWithModules( pom, session );
+                projects.addAll( pomProjects );
+            }
+            catch ( final ModelBuildingException e )
+            {
+                session.addError( e );
+            }
+            catch ( final ProjectToolsException e )
+            {
+                session.addError( e );
+            }
+        }
 
-        List<Model> models;
-        try
+        if ( !session.getErrors()
+                     .isEmpty() )
         {
-            models = modelLoader.loadRawModels( session, true, new DefaultRequestTrace( "VMan ROOT" ), pomFiles );
-        }
-        catch ( final ProjectToolsException e )
-        {
-            session.addError( e );
             return result;
-        }
-        finally
-        {
-            session.setProcessPomPlugins( processPomPlugins );
         }
 
         if ( pomExcludedModules != null )
         {
-            for ( final Iterator<Model> i = models.iterator(); i.hasNext(); )
+            for ( final Iterator<Project> i = projects.iterator(); i.hasNext(); )
             {
-                final Model m = i.next();
+                final Project p = i.next();
+                final FullProjectKey key = p.getKey();
 
-                String groupId;
-                if ( m.getGroupId() == null && m.getParent() == null )
-                {
-                    logger.warn( "Unable to determine groupId for model " + m );
-                    continue;
-                }
-                else
-                {
-                    groupId = ( m.getGroupId() == null ? m.getParent()
-                                                          .getGroupId() : m.getGroupId() );
-                }
-
-                final String v = pomExcludedModules.get( groupId );
-                if ( v != null && m.getArtifactId()
-                                   .equals( v ) )
+                final String groupId = key.getGroupId();
+                final String artifactId = key.getArtifactId();
+                if ( artifactId.equals( pomExcludedModules.get( groupId ) ) )
                 {
                     i.remove();
                 }
             }
         }
 
-        try
-        {
-            session.setCurrentProjects( models );
-        }
-        catch ( final ProjectToolsException e )
-        {
-            logger.info( "Cannot construct project key. Error: " + e.getMessage() );
-            session.addError( e );
-            return result;
-        }
+        session.setCurrentProjects( projects );
 
-        logger.info( "Modifying " + models.size() + " project(s)..." );
+        logger.info( "Modifying " + projects.size() + " project(s)..." );
+
+        // NOTE: Using sorted projects list from session instead of unsorted set from above.
         for ( final Project project : session.getCurrentProjects() )
         {
             if ( ( project.getGroupId()
-                        .startsWith( "${" ) && project.getArtifactId()
-                                                      .startsWith( "${" ) ) ||
-                 // Handle drools template XML file.
-                 ( project.getGroupId().equals ( "groupId" ) && project.getParent().getVersion().equals( "parentVersion" ) )
-                 )
+                          .startsWith( "${" ) && project.getArtifactId()
+                                                        .startsWith( "${" ) ) ||
+            // Handle drools template XML file.
+                ( project.getGroupId()
+                         .equals( "groupId" ) && project.getParent()
+                                                        .getVersion()
+                                                        .equals( "parentVersion" ) ) )
             {
                 logger.info( "Skipping " + project.getPom() + " as its a template file." );
                 continue;
@@ -298,7 +381,6 @@ public class VersionManager
             boolean changed = false;
             if ( modders != null )
             {
-                // TODO: This may need to be the outer loop, if we need to deal with parent/child relationships in modelBuilder...
                 for ( final String key : modderKeys )
                 {
                     final ProjectModder modder = modders.get( key );
@@ -309,7 +391,9 @@ public class VersionManager
                         continue;
                     }
 
-                    logger.info( "Modifying '" + project.getKey() + " using: '" + key + "' with modder " + modder.getClass().getName() );
+                    logger.info( "Modifying '" + project.getKey() + " using: '" + key + "' with modder "
+                        + modder.getClass()
+                                .getName() );
                     changed = modder.inject( project, session ) || changed;
                 }
             }

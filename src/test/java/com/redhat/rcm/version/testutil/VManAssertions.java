@@ -18,8 +18,6 @@
 
 package com.redhat.rcm.version.testutil;
 
-import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModel;
-import static com.redhat.rcm.version.testutil.TestProjectUtils.loadProjectKey;
 import static junit.framework.Assert.fail;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertNotNull;
@@ -54,25 +52,25 @@ public final class VManAssertions
     {
     }
 
-    public static Set<Dependency> assertPOMsNormalizedToBOMs( final Collection<File> modified, final Set<File> boms,
+    public static Set<Dependency> assertPOMsNormalizedToBOMs( final Collection<File> poms, final Collection<File> boms,
+                                                              final VersionManagerSession session,
+                                                              final TestProjectFixture fixture,
                                                               final VersionlessProjectKey... interdepKeys )
         throws Exception
     {
-        assertNotNull( modified );
-
-        final Set<FullProjectKey> bomKeys = new HashSet<FullProjectKey>();
-        for ( final File bom : boms )
+        final Set<Project> projects = new HashSet<Project>( poms.size() );
+        for ( final File file : poms )
         {
-            bomKeys.add( loadProjectKey( bom ) );
+            projects.add( fixture.loadProject( file, session ) );
         }
 
-        final Set<Model> models = new HashSet<Model>( modified.size() );
-        for ( final File file : modified )
+        final Set<Project> bomProjects = new HashSet<Project>( boms.size() );
+        for ( final File file : boms )
         {
-            models.add( loadModel( file ) );
+            bomProjects.add( fixture.loadProject( file, session ) );
         }
 
-        return assertNormalized( models, bomKeys, interdepKeys );
+        return assertProjectsNormalizedToBOMs( projects, bomProjects, interdepKeys );
     }
 
     public static Set<Dependency> assertProjectsNormalizedToBOMs( final Collection<Project> modified,
@@ -88,13 +86,7 @@ public final class VManAssertions
             bomKeys.add( bom.getKey() );
         }
 
-        final Set<Model> models = new HashSet<Model>( modified.size() );
-        for ( final Project project : modified )
-        {
-            models.add( project.getModel() );
-        }
-
-        return assertNormalized( models, bomKeys, interdepKeys );
+        return assertNormalized( new HashSet<Project>( modified ), bomKeys, interdepKeys );
     }
 
     public static Set<Dependency> assertProjectNormalizedToBOMs( final Project project, final Set<Project> boms,
@@ -109,12 +101,12 @@ public final class VManAssertions
             bomKeys.add( bom.getKey() );
         }
 
-        final Set<Model> models = Collections.singleton( project.getModel() );
+        final Set<Project> projects = Collections.singleton( project );
 
-        return assertNormalized( models, bomKeys, interdepKeys );
+        return assertNormalized( projects, bomKeys, interdepKeys );
     }
 
-    public static Set<Dependency> assertModelsNormalizedToBOMs( final Collection<Model> modified,
+    public static Set<Dependency> assertModelsNormalizedToBOMs( final Collection<Project> modified,
                                                                 final Set<Project> boms,
                                                                 final VersionlessProjectKey... interdepKeys )
         throws Exception
@@ -127,14 +119,14 @@ public final class VManAssertions
             bomKeys.add( bom.getKey() );
         }
 
-        return assertNormalized( new HashSet<Model>( modified ), bomKeys, interdepKeys );
+        return assertNormalized( new HashSet<Project>( modified ), bomKeys, interdepKeys );
     }
 
-    public static Set<Dependency> assertModelsNormalizedToBOMs( final Model model, final Set<Project> boms,
+    public static Set<Dependency> assertModelsNormalizedToBOMs( final Project project, final Set<Project> boms,
                                                                 final VersionlessProjectKey... interdepKeys )
         throws Exception
     {
-        assertNotNull( model );
+        assertNotNull( project );
 
         final Set<FullProjectKey> bomKeys = new HashSet<FullProjectKey>();
         for ( final Project bom : boms )
@@ -142,17 +134,19 @@ public final class VManAssertions
             bomKeys.add( bom.getKey() );
         }
 
-        return assertNormalized( Collections.singleton( model ), bomKeys, interdepKeys );
+        return assertNormalized( Collections.singleton( project ), bomKeys, interdepKeys );
     }
 
-    private static Set<Dependency> assertNormalized( final Set<Model> modified, final Set<FullProjectKey> bomKeys,
+    private static Set<Dependency> assertNormalized( final Set<Project> modified, final Set<FullProjectKey> bomKeys,
                                                      final VersionlessProjectKey... skip )
         throws Exception
     {
         final Set<VersionlessProjectKey> skipKeys = new HashSet<VersionlessProjectKey>( Arrays.asList( skip ) );
         final Set<Dependency> skippedDeps = new HashSet<Dependency>();
-        for ( final Model model : modified )
+        for ( final Project project : modified )
         {
+            final Model model = project.getModel();
+
             System.out.println( "Examining: " + model.getId() );
 
             new MavenXpp3Writer().write( System.out, model );

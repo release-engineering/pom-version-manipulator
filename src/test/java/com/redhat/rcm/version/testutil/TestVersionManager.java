@@ -17,16 +17,21 @@
 
 package com.redhat.rcm.version.testutil;
 
+import java.io.File;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.maven.mae.MAEException;
+import org.apache.maven.mae.project.ProjectToolsException;
+import org.apache.maven.model.building.ModelBuildingException;
 import org.codehaus.plexus.component.annotations.Component;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.VersionManager;
 import com.redhat.rcm.version.mgr.mod.ProjectModder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
+import com.redhat.rcm.version.model.Project;
 
 @Component( role = TestVersionManager.class )
 public class TestVersionManager
@@ -53,10 +58,11 @@ public class TestVersionManager
     }
 
     @Override
-    public void configureSession( final List<String> boms, final String toolchain, final VersionManagerSession session )
+    public void configureSession( final List<String> boms, final String toolchain, final VersionManagerSession session,
+                                  final File... pomFiles )
         throws VManException
     {
-        super.configureSession( boms, toolchain, session );
+        super.configureSession( boms, toolchain, session, pomFiles );
     }
 
     public <T extends ProjectModder> T getModder( final Class<T> type )
@@ -71,6 +77,13 @@ public class TestVersionManager
         }
 
         return null;
+    }
+
+    @Override
+    public LinkedHashSet<Project> loadProjectWithModules( final File pom, final VersionManagerSession session )
+        throws ModelBuildingException, ProjectToolsException
+    {
+        return super.loadProjectWithModules( pom, session );
     }
 
 }

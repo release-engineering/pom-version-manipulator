@@ -1,10 +1,6 @@
 package com.redhat.rcm.version.maven;
 
-import static org.apache.commons.io.IOUtils.closeQuietly;
-
 import java.io.File;
-import java.io.IOException;
-import java.io.Writer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -12,21 +8,20 @@ import java.util.Map;
 
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
-import org.apache.maven.model.Model;
-import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 import org.apache.maven.project.MavenProject;
-import org.codehaus.plexus.util.WriterFactory;
+import org.commonjava.util.logging.Logger;
 import org.sonatype.aether.artifact.Artifact;
 import org.sonatype.aether.repository.WorkspaceReader;
 import org.sonatype.aether.repository.WorkspaceRepository;
 
-import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 
 public class VManWorkspaceReader
     implements WorkspaceReader
 {
+
+    private final Logger logger = new Logger( getClass() );
 
     private final WorkspaceRepository repo = new WorkspaceRepository( "vman", "vman" );
 
@@ -59,53 +54,35 @@ public class VManWorkspaceReader
         File f = projectFiles.get( key );
         if ( f == null )
         {
-            final Project project = getSessionProject( key );
+            f = getSessionPOM( key );
 
-            if ( project != null )
+            if ( f != null )
             {
-                final Model m = project.getOriginalModel();
-                Writer writer = null;
-                try
-                {
-                    f = File.createTempFile( m.getArtifactId() + "-VMAN.", ".pom" );
-
-                    writer = WriterFactory.newXmlWriter( f );
-                    new MavenXpp3Writer().write( writer, m );
-
-                    projectFiles.put( key, f );
-                }
-                catch ( final IOException e )
-                {
-                    session.addError( new VManException(
-                                                         "Failed to create temporary file for in-memory POM: %s. Reason: %s",
-                                                         e, m, e.getMessage() ) );
-                }
-                finally
-                {
-                    closeQuietly( writer );
-                }
+                projectFiles.put( key, f );
             }
         }
 
         return f;
     }
 
-    public Project getSessionProject( final FullProjectKey key )
+    public File getSessionPOM( final FullProjectKey key )
     {
-        Project project = session.getCurrentProject( key );
-        if ( project == null && key.equals( session.getToolchainKey() ) )
+        File pom = session.getPeekedPom( key );
+        logger.info( "\n\nPeeked file for key: '%s' is: %s\n\n", key, pom );
+
+        if ( pom == null && key.equals( session.getToolchainKey() ) )
         {
             final MavenProject p = session.getToolchainProject();
-            project = new Project( key, p.getFile(), p.getOriginalModel(), p.getOriginalModel() );
+            pom = p.getFile();
         }
 
-        if ( project == null && session.isBom( key ) )
+        if ( pom == null && session.isBom( key ) )
         {
             final MavenProject p = session.getBOMProject( key );
-            project = new Project( key, p.getFile(), p.getOriginalModel(), p.getOriginalModel() );
+            pom = p.getFile();
         }
 
-        return project;
+        return pom;
     }
 
     @Override

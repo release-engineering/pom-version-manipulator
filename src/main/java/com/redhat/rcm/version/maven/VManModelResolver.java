@@ -1,10 +1,12 @@
 package com.redhat.rcm.version.maven;
 
+import java.io.File;
 import java.util.List;
 
 import org.apache.maven.mae.project.internal.SimpleModelResolver;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.model.Repository;
+import org.apache.maven.model.building.FileModelSource;
 import org.apache.maven.model.building.ModelSource;
 import org.apache.maven.model.resolution.InvalidRepositoryException;
 import org.apache.maven.model.resolution.ModelResolver;
@@ -17,7 +19,6 @@ import org.sonatype.aether.repository.RemoteRepository;
 import org.sonatype.aether.util.DefaultRequestTrace;
 
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
-import com.redhat.rcm.version.model.Project;
 
 public class VManModelResolver
     implements ModelResolver
@@ -27,7 +28,7 @@ public class VManModelResolver
 
     private VManWorkspaceReader workspaceReader;
 
-    public VManModelResolver( final VersionManagerSession session, final Project project,
+    public VManModelResolver( final VersionManagerSession session, final File pom,
                               final ArtifactResolver artifactResolver,
                               final RemoteRepositoryManager remoteRepositoryManager )
     {
@@ -35,7 +36,7 @@ public class VManModelResolver
         final List<RemoteRepository> repos = session.getRemoteRepositoriesForResolution();
 
         delegate =
-            new SimpleModelResolver( rss, repos, new DefaultRequestTrace( project.getKey() ), artifactResolver,
+            new SimpleModelResolver( rss, repos, new DefaultRequestTrace( pom.getPath() ), artifactResolver,
                                      remoteRepositoryManager );
 
         if ( session.getWorkspaceReader() != null )
@@ -55,10 +56,10 @@ public class VManModelResolver
         throws UnresolvableModelException
     {
         final FullProjectKey key = new FullProjectKey( groupId, artifactId, version );
-        final Project project = workspaceReader.getSessionProject( key );
-        if ( project != null )
+        final File pom = workspaceReader.getSessionPOM( key );
+        if ( pom != null )
         {
-            return new ProjectModelSource( project );
+            return new FileModelSource( pom );
         }
 
         return delegate.resolveModel( groupId, artifactId, version );

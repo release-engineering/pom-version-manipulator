@@ -17,8 +17,8 @@
 
 package com.redhat.rcm.version.mgr.mod;
 
-import static com.redhat.rcm.version.testutil.TestProjectUtils.getResourceFile;
-import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModel;
+import static com.redhat.rcm.version.testutil.TestProjectFixture.getResourceFile;
+import static com.redhat.rcm.version.testutil.TestProjectFixture.loadModel;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 

@@ -18,8 +18,8 @@
 
 package com.redhat.rcm.version.mgr;
 
-import static com.redhat.rcm.version.testutil.TestProjectUtils.getResourceFile;
-import static com.redhat.rcm.version.testutil.TestProjectUtils.newVersionManagerSession;
+import static com.redhat.rcm.version.testutil.TestProjectFixture.getResourceFile;
+import static com.redhat.rcm.version.testutil.TestProjectFixture.newVersionManagerSession;
 import static junit.framework.Assert.fail;
 
 import java.io.File;

@@ -35,11 +35,8 @@ import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Exclusion;
 import org.apache.maven.model.Model;
 import org.codehaus.plexus.component.annotations.Component;
-import org.codehaus.plexus.component.annotations.Requirement;
 import org.commonjava.util.logging.Logger;
 
-import com.redhat.rcm.version.VManException;
-import com.redhat.rcm.version.maven.EffectiveModelBuilder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.model.ReadOnlyDependency;
@@ -49,9 +46,6 @@ public class BomModder
     implements ProjectModder
 {
     private final Logger logger = new Logger( getClass() );
-
-    @Requirement
-    private EffectiveModelBuilder modelBuilder;
 
     @Override
     public String getDescription()
@@ -94,20 +88,6 @@ public class BomModder
 
             if ( model.getDependencyManagement() != null && dm.getDependencies() != null )
             {
-                if ( modelBuilder != null && project.getEffectiveModel() == null )
-                {
-                    try
-                    {
-                        modelBuilder.loadEffectiveModel( project, session );
-                    }
-                    catch ( final VManException e )
-                    {
-                        logger.error( "Failed to build effective model for: %s. Reason: %s", e, project.getKey(),
-                                      e.getMessage() );
-                        session.addError( e );
-                    }
-                }
-
                 logger.info( "Processing dependencyManagement for '" + project.getKey() + "'..." );
                 for ( final Iterator<Dependency> it = dm.getDependencies()
                                                         .iterator(); it.hasNext(); )

@@ -26,12 +26,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
@@ -456,13 +456,22 @@ public class VersionManagerSession
         return capturePom;
     }
 
-    public void setCurrentProjects( final Collection<Model> models )
-        throws ProjectToolsException
+    public void setPeekedPoms( final Map<FullProjectKey, File> peekedPoms )
     {
-        managedInfo.setCurrentProjects( models );
+        managedInfo.setPeekedPoms( peekedPoms );
     }
 
-    public Set<Project> getCurrentProjects()
+    public Map<FullProjectKey, File> getPeekedPoms()
+    {
+        return managedInfo.getPeekedPoms();
+    }
+
+    public File getPeekedPom( final FullProjectKey key )
+    {
+        return managedInfo.getPeekedPom( key );
+    }
+
+    public LinkedHashSet<Project> getCurrentProjects()
     {
         return managedInfo.getCurrentProjects();
     }
@@ -638,5 +647,10 @@ public class VersionManagerSession
             result = "${" + direct + "}";
         }
         return result;
+    }
+
+    public void addPeekPom( final FullProjectKey key, final File pom )
+    {
+        managedInfo.addPeekPom( key, pom );
     }
 }

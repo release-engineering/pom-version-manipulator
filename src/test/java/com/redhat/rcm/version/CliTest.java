@@ -18,8 +18,7 @@
 
 package com.redhat.rcm.version;
 
-import static com.redhat.rcm.version.testutil.TestProjectUtils.loadModel;
-import static com.redhat.rcm.version.testutil.VManAssertions.assertPOMsNormalizedToBOMs;
+import static com.redhat.rcm.version.testutil.TestProjectFixture.loadModel;
 import static org.apache.commons.io.FileUtils.copyDirectory;
 import static org.apache.commons.io.FileUtils.copyFile;
 import static org.apache.commons.io.FileUtils.writeLines;
@@ -66,84 +65,6 @@ public class CliTest
         Cli.main( new String[] { "-h" } );
     }
 
-    @Test
-    public void modifyCompleteRepositoryVersions()
-        throws Exception
-    {
-        System.out.println( "Complete repository test..." );
-
-        final File srcRepo = getResourceFile( "repository" );
-        final File bom = getResourceFile( "bom.xml" );
-
-        copyDirectory( srcRepo, repo );
-
-        modifyRepo( bom );
-
-        System.out.println( "\n\n" );
-    }
-
-    @Test
-    public void modifyPartialRepositoryVersions()
-        throws Exception
-    {
-        System.out.println( "Partial repository test..." );
-
-        final File srcRepo = getResourceFile( "repository.partial" );
-        final File bom = getResourceFile( "bom.xml" );
-
-        copyDirectory( srcRepo, repo );
-
-        modifyRepo( bom );
-
-        System.out.println( "\n\n" );
-    }
-
-    @Test
-    public void modifyCompleteRepositoryVersions_UsingTwoBoms()
-        throws Exception
-    {
-        System.out.println( "Complete repository test (two BOMs)..." );
-
-        final File srcRepo = getResourceFile( "repository" );
-        final File bom1 = getResourceFile( "bom.part1.xml" );
-        final File bom2 = getResourceFile( "bom.part2.xml" );
-
-        copyDirectory( srcRepo, repo );
-
-        modifyRepo( bom1, bom2 );
-
-        System.out.println( "\n\n" );
-    }
-
-    @Test
-    public void modifyCompleteRepositoryVersions_UsingTwoBoms_ConfigProperties()
-        throws Exception
-    {
-        System.out.println( "Complete repository test (two BOMs, config properties)..." );
-
-        final File srcRepo = getResourceFile( "repository" );
-        final File bom1 = getResourceFile( "bom.part1.xml" );
-        final File bom2 = getResourceFile( "bom.part2.xml" );
-
-        final File config = folder.newFile( "config.properties" );
-        config.deleteOnExit();
-
-        final List<String> lines = new ArrayList<String>();
-        lines.add( "boms = " + bom1.getAbsolutePath() + ",\\" );
-        lines.add( "        " + bom2.getAbsolutePath() );
-
-        writeLines( config, lines );
-
-        copyDirectory( srcRepo, repo );
-
-        final String[] args = { "-Z", "-C", config.getPath(), repo.getPath() };
-
-        Cli.main( args );
-        assertExitValue();
-
-        System.out.println( "\n\n" );
-    }
-
     /*
      * Validate the exit value. Use reflection to retrieve the value to avoid
      * having to create unnecessary accessors.
@@ -175,24 +96,7 @@ public class CliTest
     }
 
     @Test
-    public void modifyPartialRepositoryVersions_UsingTwoBoms()
-        throws Exception
-    {
-        System.out.println( "Partial repository test (two BOMs)..." );
-
-        final File srcRepo = getResourceFile( "repository.partial" );
-        final File bom1 = getResourceFile( "bom.part1.xml" );
-        final File bom2 = getResourceFile( "bom.part2.xml" );
-
-        copyDirectory( srcRepo, repo );
-
-        modifyRepo( bom1, bom2 );
-
-        System.out.println( "\n\n" );
-    }
-
-    @Test
-    public void modifySinglePom_BOMofBOMs()
+    public void modify_BOMofBOMs()
         throws Exception
     {
         System.out.println( "BOM-of-BOMS test (normalize to BOM usage)..." );
@@ -206,9 +110,9 @@ public class CliTest
 
         final Properties props = new Properties();
         props.setProperty( Cli.REMOTE_REPOSITORIES_PROPERTY, remoteRepo.toURI()
-                                                                     .normalize()
-                                                                     .toURL()
-                                                                     .toExternalForm() );
+                                                                       .normalize()
+                                                                       .toURL()
+                                                                       .toExternalForm() );
         props.setProperty( Cli.BOMS_LIST_PROPERTY, bom.getAbsolutePath() );
 
         final File config = new File( repo, "vman.properties" );
@@ -228,7 +132,8 @@ public class CliTest
         Cli.main( args );
         assertExitValue();
 
-        assertPOMsNormalizedToBOMs( Collections.singleton( pom ), Collections.singleton( bom ) );
+        // FIXME
+        //        assertPOMsNormalizedToBOMs( Collections.singleton( pom ), Collections.singleton( bom ), session, fixture );
 
         System.out.println( "\n\n" );
     }
@@ -258,7 +163,7 @@ public class CliTest
     }
 
     @Test
-    public void modifySinglePom_CaptureMissing()
+    public void modify_CaptureMissing()
         throws Exception
     {
         System.out.println( "Single POM test with capture..." );
@@ -291,7 +196,7 @@ public class CliTest
     }
 
     @Test
-    public void modifySinglePom_ConfigProperties()
+    public void modify_ConfigProperties()
         throws Exception
     {
         System.out.println( "Single POM test (with config properties)..." );
@@ -316,7 +221,7 @@ public class CliTest
     }
 
     @Test
-    public void modifySinglePom_HTTPConfigProperties()
+    public void modify_HTTPConfigProperties()
         throws Exception
     {
         System.out.println( "Single POM test (with http config properties)..." );
@@ -335,7 +240,7 @@ public class CliTest
     }
 
     @Test
-    public void modifySinglePom_ConfigProperties_FromBootstrapPath()
+    public void modify_ConfigProperties_FromBootstrapPath()
         throws Exception
     {
         System.out.println( "Single POM test (with config properties from file path in bootstrap)..." );
@@ -366,7 +271,7 @@ public class CliTest
     }
 
     @Test
-    public void modifySinglePom_ConfigProperties_FromBootstrapURL()
+    public void modify_ConfigProperties_FromBootstrapURL()
         throws Exception
     {
         System.out.println( "Single POM test (with config properties from file path in bootstrap)..." );
@@ -420,7 +325,7 @@ public class CliTest
     }
 
     @Test
-    public void modifySinglePom_ConfigProperties_FromBootstrapPath_UsingBootstrapOption()
+    public void modify_ConfigProperties_FromBootstrapPath_UsingBootstrapOption()
         throws Exception
     {
         System.out.println( "Single POM test (with config properties from file path in bootstrap)..." );
@@ -450,7 +355,7 @@ public class CliTest
     }
 
     @Test
-    public void modifySinglePom_ConfigProperties_FromBootstrapURL_UsingBootstrapOption()
+    public void modify_ConfigProperties_FromBootstrapURL_UsingBootstrapOption()
         throws Exception
     {
         System.out.println( "Single POM test (with config properties from file path in bootstrap)..." );
@@ -587,7 +492,8 @@ public class CliTest
 
         final File config = writeConfig( new Properties() );
 
-        final String[] baseArgs = { "-Z", "-C", config.getPath(), "-b", bomListing.getPath(), repo.getPath() };
+        final String[] baseArgs =
+            { "--console", "-Z", "-C", config.getPath(), "-b", bomListing.getPath(), repo.getPath() };
 
         Cli.main( baseArgs );
         assertExitValue();

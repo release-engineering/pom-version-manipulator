@@ -20,9 +20,17 @@ package com.redhat.rcm.version.config;
 
 import static com.redhat.rcm.version.util.InputUtils.getFile;
 import static com.redhat.rcm.version.util.InputUtils.getFiles;
+import static org.apache.commons.lang.StringUtils.join;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.maven.execution.DefaultMavenExecutionRequest;
 import org.apache.maven.execution.MavenExecutionRequest;
@@ -30,6 +38,7 @@ import org.apache.maven.execution.MavenExecutionRequestPopulationException;
 import org.apache.maven.execution.MavenExecutionRequestPopulator;
 import org.apache.maven.mae.project.ProjectLoader;
 import org.apache.maven.mae.project.ProjectToolsException;
+import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.session.SessionInitializer;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.settings.Settings;
@@ -44,6 +53,7 @@ import org.commonjava.util.logging.Logger;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.maven.VManWorkspaceReader;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
+import com.redhat.rcm.version.util.PomPeek;
 
 @Component( role = SessionConfigurator.class )
 public class DefaultSessionConfigurator
@@ -69,26 +79,79 @@ public class DefaultSessionConfigurator
     }
 
     @Override
-    public void configureSession( final List<String> boms, final String toolchain, final VersionManagerSession session )
+    public void configureSession( final List<String> boms, final String toolchain, final VersionManagerSession session,
+                                  final File[] pomFiles )
     {
         if ( session.getSettingsXml() != null )
         {
             loadSettings( session );
         }
 
-        if ( boms != null )
+        try
         {
-            loadBOMs( boms, session );
+            sessionInitializer.initializeSessionComponents( session );
+        }
+        catch ( final ProjectToolsException e )
+        {
+            session.addError( e );
+            return;
         }
 
-        if ( toolchain == null )
+        if ( session.getWorkspaceReader() == null )
         {
-            // throw new VManException( "Toolchain POM must be specified!" );
+            final VManWorkspaceReader workspaceReader = new VManWorkspaceReader( session );
+            session.setWorkspaceReader( workspaceReader );
         }
-        else
+
+        final Set<File> poms = new HashSet<File>();
+        poms.addAll( Arrays.asList( pomFiles ) );
+
+        if ( boms != null )
         {
-            loadToolchain( toolchain, session );
+            final File[] bomFiles = loadBOMs( boms, session );
+            if ( bomFiles != null && bomFiles.length > 0 )
+            {
+                poms.addAll( Arrays.asList( bomFiles ) );
+            }
         }
+
+        if ( toolchain != null )
+        {
+            final File toolchainFile = loadToolchain( toolchain, session );
+            if ( toolchainFile != null )
+            {
+                poms.add( toolchainFile );
+            }
+        }
+
+        if ( session.getPeekedPoms()
+                    .isEmpty() )
+        {
+            final Map<FullProjectKey, File> peekPoms = peekPoms( poms );
+            session.setPeekedPoms( peekPoms );
+        }
+    }
+
+    private Map<FullProjectKey, File> peekPoms( final Set<File> poms )
+    {
+        final Map<FullProjectKey, File> result = new HashMap<FullProjectKey, File>();
+        for ( final File pom : poms )
+        {
+            final PomPeek peek = new PomPeek( pom );
+            final FullProjectKey key = peek.getKey();
+            if ( key != null )
+            {
+                result.put( key, pom );
+            }
+        }
+
+        final List<FullProjectKey> keys = new ArrayList<FullProjectKey>( result.keySet() );
+        Collections.sort( keys );
+
+        logger.info( "PEEKed the following coordinates from pom file-list:\n\n  %s\n\n%d POMs could not be PEEKed.",
+                     join( keys, "\n  " ), ( poms.size() - keys.size() ) );
+
+        return result;
     }
 
     private void loadSettings( final VersionManagerSession session )
@@ -132,24 +195,11 @@ public class DefaultSessionConfigurator
             session.addError( new VManException( "Failed to initialize system using settings from: %s. Reason: %s", e,
                                                  settingsXml, e.getMessage() ) );
         }
-
-        try
-        {
-            sessionInitializer.initializeSessionComponents( session );
-        }
-        catch ( final ProjectToolsException e )
-        {
-            session.addError( e );
-            return;
-        }
-
-        final VManWorkspaceReader workspaceReader = new VManWorkspaceReader( session );
-        session.setWorkspaceReader( workspaceReader );
     }
 
-    private void loadToolchain( final String toolchain, final VersionManagerSession session )
+    private File loadToolchain( final String toolchain, final VersionManagerSession session )
     {
-        File toolchainFile;
+        File toolchainFile = null;
         try
         {
             toolchainFile = getFile( toolchain, session.getDownloads() );
@@ -157,12 +207,11 @@ public class DefaultSessionConfigurator
         catch ( final VManException e )
         {
             session.addError( e );
-            return;
         }
 
         if ( toolchainFile != null )
         {
-            MavenProject project;
+            MavenProject project = null;
             try
             {
                 project = projectLoader.buildProjectInstance( toolchainFile, session );
@@ -170,14 +219,18 @@ public class DefaultSessionConfigurator
             catch ( final ProjectToolsException e )
             {
                 session.addError( new VManException( "Error building toolchain: %s", e, e.getMessage() ) );
-                return;
             }
 
-            session.setToolchain( toolchainFile, project );
+            if ( project != null )
+            {
+                session.setToolchain( toolchainFile, project );
+            }
         }
+
+        return toolchainFile;
     }
 
-    private void loadBOMs( final List<String> boms, final VersionManagerSession session )
+    private File[] loadBOMs( final List<String> boms, final VersionManagerSession session )
     {
         if ( !session.hasDependencyMap() )
         {
@@ -221,7 +274,11 @@ public class DefaultSessionConfigurator
                     }
                 }
             }
+
+            return bomFiles;
         }
+
+        return null;
     }
 
 }

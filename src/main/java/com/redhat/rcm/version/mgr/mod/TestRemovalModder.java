@@ -31,11 +31,8 @@ import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Profile;
 import org.codehaus.plexus.component.annotations.Component;
-import org.codehaus.plexus.component.annotations.Requirement;
 import org.commonjava.util.logging.Logger;
 
-import com.redhat.rcm.version.VManException;
-import com.redhat.rcm.version.maven.EffectiveModelBuilder;
 import com.redhat.rcm.version.maven.WildcardProjectKey;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
@@ -49,9 +46,6 @@ public class TestRemovalModder
     public static final String TEST_DEPS_PROFILE_ID = "_testDependencies";
 
     public static final String SKIP_TEST = "maven.test.skip";
-
-    @Requirement
-    private EffectiveModelBuilder modelBuilder;
 
     @Override
     public String getDescription()
@@ -67,19 +61,6 @@ public class TestRemovalModder
         final List<WildcardProjectKey> removedTests = session.getRemovedTests();
         final WildcardProjectKey projectkey = new WildcardProjectKey( project.getGroupId(), project.getArtifactId() );
 
-        if ( modelBuilder != null )
-        {
-            try
-            {
-                modelBuilder.loadEffectiveModel( project, session );
-            }
-            catch ( final VManException error )
-            {
-                logger.error( "Failed to build effective model for: %s. Reason: %s", error, project.getKey(),
-                              error.getMessage() );
-                session.addError( error );
-            }
-        }
         if ( removedTests.contains( projectkey ) )
         {
             if ( model.getDependencies() != null )
