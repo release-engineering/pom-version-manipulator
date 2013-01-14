@@ -18,20 +18,19 @@
 
 package com.redhat.rcm.version.report;
 
-import org.apache.maven.mae.project.key.ProjectKey;
-import org.apache.maven.mae.project.key.VersionlessProjectKey;
-import org.codehaus.plexus.component.annotations.Component;
-import org.codehaus.plexus.util.IOUtil;
-
-import com.redhat.rcm.version.VManException;
-import com.redhat.rcm.version.mgr.session.VersionManagerSession;
-
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Map;
 import java.util.TreeMap;
+
+import org.codehaus.plexus.component.annotations.Component;
+import org.codehaus.plexus.util.IOUtil;
+
+import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.mgr.session.VersionManagerSession;
+import com.redhat.rcm.version.model.DependencyManagementKey;
 
 @Component( role = Report.class, hint = MappedDependenciesReport.ID )
 public class MappedDependenciesReport
@@ -56,12 +55,12 @@ public class MappedDependenciesReport
         {
             writer = new BufferedWriter( new FileWriter( report ) );
 
-            final Map<File, Map<VersionlessProjectKey, String>> byBom = sessionData.getMappedDependenciesByBom();
-            for ( final Map.Entry<File, Map<VersionlessProjectKey, String>> bomEntry : byBom.entrySet() )
+            final Map<File, Map<DependencyManagementKey, String>> byBom = sessionData.getMappedDependenciesByBom();
+            for ( final Map.Entry<File, Map<DependencyManagementKey, String>> bomEntry : byBom.entrySet() )
             {
                 final File bom = bomEntry.getKey();
-                final Map<VersionlessProjectKey, String> deps =
-                    new TreeMap<VersionlessProjectKey, String>( bomEntry.getValue() );
+                final Map<DependencyManagementKey, String> deps =
+                    new TreeMap<DependencyManagementKey, String>( bomEntry.getValue() );
 
                 writer.write( bom.getPath() );
                 writer.write( " (" + deps.size() + " entries):" );
@@ -71,9 +70,9 @@ public class MappedDependenciesReport
                 writer.newLine();
                 writer.newLine();
 
-                for ( final Map.Entry<VersionlessProjectKey, String> depEntry : deps.entrySet() )
+                for ( final Map.Entry<DependencyManagementKey, String> depEntry : deps.entrySet() )
                 {
-                    final ProjectKey key = depEntry.getKey();
+                    final DependencyManagementKey key = depEntry.getKey();
                     final String version = depEntry.getValue();
 
                     writer.write( key.toString() );

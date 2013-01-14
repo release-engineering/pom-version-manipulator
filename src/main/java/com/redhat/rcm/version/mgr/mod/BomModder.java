@@ -38,6 +38,7 @@ import org.codehaus.plexus.component.annotations.Component;
 import org.commonjava.util.logging.Logger;
 
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
+import com.redhat.rcm.version.model.DependencyManagementKey;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.model.ReadOnlyDependency;
 
@@ -210,7 +211,7 @@ public class BomModder
             d.setVersion( newKey.getVersion() );
             result = DepModResult.MODIFIED;
 
-            key = new VersionlessProjectKey( newKey );
+            key = new VersionlessProjectKey( d );
         }
         else
         {
@@ -226,7 +227,18 @@ public class BomModder
             return result;
         }
 
-        final Dependency managed = session.getManagedDependency( key );
+        Dependency managed = session.getManagedDependency( new DependencyManagementKey( d ) );
+        if ( managed == null )
+        {
+            // if we don't find the one with the specific type/classifier, look for the generic one
+            // if we find that, we can list the specific one as a missing dep and use the info from
+            // the generic one for the version, etc.
+            managed = session.getManagedDependency( new DependencyManagementKey( d.getGroupId(), d.getArtifactId() ) );
+            if ( managed != null )
+            {
+                session.addMissingDependency( project, d );
+            }
+        }
 
         // If in non-strict mode (default), wipe it out even if the dependency isn't in the BOM
         // ...assume it will be added from the capture POM.
@@ -242,7 +254,8 @@ public class BomModder
                 }
                 else
                 {
-                    d.setVersion( session.replacePropertyVersion( project, d.getGroupId(), d.getArtifactId() ) );
+                    d.setVersion( session.replacePropertyVersion( project, d.getGroupId(), d.getArtifactId(),
+                                                                  d.getType(), d.getClassifier() ) );
                     result = DepModResult.MODIFIED;
                 }
             }

@@ -26,6 +26,7 @@ import org.apache.maven.model.Parent;
 import org.commonjava.util.logging.Logger;
 
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
+import com.redhat.rcm.version.model.DependencyManagementKey;
 import com.redhat.rcm.version.model.Project;
 
 public abstract class AbstractVersionModder
@@ -76,7 +77,34 @@ public abstract class AbstractVersionModder
             {
                 final ProjectKey tk = session.getToolchainKey();
                 final VersionlessProjectKey vpk = new VersionlessProjectKey( parent );
-                final Dependency managed = session.getManagedDependency( vpk );
+
+                Dependency managed =
+                    session.getManagedDependency( new DependencyManagementKey( parent.getGroupId(),
+                                                                               parent.getArtifactId(), "pom", null ) );
+
+                if ( managed == null )
+                {
+                    // if we don't find the one with the specific "pom" type, look for the generic one
+                    // if we find that, we can list the specific one as a missing parent/dep and use the info from
+                    // the generic one for the version, etc.
+                    managed =
+                        session.getManagedDependency( new DependencyManagementKey( parent.getGroupId(),
+                                                                                   parent.getArtifactId() ) );
+                    if ( managed != null )
+                    {
+                        // TODO: Are BOTH of the following actions (missing parent, missing dep) REALLY appropriate??
+                        session.addMissingParent( project );
+
+                        final Dependency d = new Dependency();
+                        d.setGroupId( parent.getGroupId() );
+                        d.setArtifactId( parent.getArtifactId() );
+                        d.setVersion( managed.getVersion() );
+                        d.setType( "pom" );
+
+                        session.addMissingDependency( project, d );
+                    }
+                }
+
                 final String version = managed == null ? null : managed.getVersion();
 
                 // if the parent references a project in the current vman modification session...

@@ -82,7 +82,8 @@ public class ExtensionsRemovalModder
                     }
                     else
                     {
-                        e.setVersion( session.replacePropertyVersion( project, e.getGroupId(), e.getArtifactId() ) );
+                        e.setVersion( session.replacePropertyVersion( project, e.getGroupId(), e.getArtifactId(),
+                                                                      "jar", null ) );
                         changed = true;
                     }
                 }

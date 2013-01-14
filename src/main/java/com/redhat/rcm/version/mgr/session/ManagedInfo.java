@@ -47,6 +47,7 @@ import org.commonjava.util.logging.Logger;
 import com.redhat.rcm.version.Cli;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.maven.WildcardProjectKey;
+import com.redhat.rcm.version.model.DependencyManagementKey;
 import com.redhat.rcm.version.model.Project;
 
 class ManagedInfo
@@ -66,10 +67,10 @@ class ManagedInfo
 
     private final PropertyMappings propertyMappings;
 
-    private final Map<VersionlessProjectKey, Dependency> depMap = new HashMap<VersionlessProjectKey, Dependency>();
+    private final Map<DependencyManagementKey, Dependency> depMap = new HashMap<DependencyManagementKey, Dependency>();
 
-    private final Map<File, Map<VersionlessProjectKey, String>> bomDepMap =
-        new HashMap<File, Map<VersionlessProjectKey, String>>();
+    private final Map<File, Map<DependencyManagementKey, String>> bomDepMap =
+        new HashMap<File, Map<DependencyManagementKey, String>>();
 
     private final Map<VersionlessProjectKey, Plugin> managedPlugins =
         new LinkedHashMap<VersionlessProjectKey, Plugin>();
@@ -137,29 +138,29 @@ class ManagedInfo
         return !depMap.isEmpty();
     }
 
-    Dependency getManagedDependency( final ProjectKey key )
+    Dependency getManagedDependency( final DependencyManagementKey key )
     {
         return depMap.get( key );
     }
 
-    Map<File, Map<VersionlessProjectKey, String>> getMappedDependenciesByBom()
+    Map<File, Map<DependencyManagementKey, String>> getMappedDependenciesByBom()
     {
         return bomDepMap;
     }
 
     void mapDependency( final File srcBom, final Dependency dep )
     {
-        final VersionlessProjectKey key = new VersionlessProjectKey( dep.getGroupId(), dep.getArtifactId() );
+        final DependencyManagementKey key = new DependencyManagementKey( dep );
         final String version = dep.getVersion();
 
         if ( !depMap.containsKey( key ) )
         {
             depMap.put( key, dep );
 
-            Map<VersionlessProjectKey, String> bomMap = bomDepMap.get( srcBom );
+            Map<DependencyManagementKey, String> bomMap = bomDepMap.get( srcBom );
             if ( bomMap == null )
             {
-                bomMap = new HashMap<VersionlessProjectKey, String>();
+                bomMap = new HashMap<DependencyManagementKey, String>();
                 bomDepMap.put( srcBom, bomMap );
             }
 
@@ -169,7 +170,7 @@ class ManagedInfo
 
     private void startBomMap( final File srcBom, final String groupId, final String artifactId, final String version )
     {
-        final VersionlessProjectKey bomKey = new VersionlessProjectKey( groupId, artifactId );
+        final DependencyManagementKey bomKey = new DependencyManagementKey( groupId, artifactId, "pom", null );
 
         final Dependency dep = new Dependency();
         dep.setGroupId( groupId );
@@ -180,10 +181,10 @@ class ManagedInfo
 
         depMap.put( bomKey, dep );
 
-        Map<VersionlessProjectKey, String> bomMap = bomDepMap.get( srcBom );
+        Map<DependencyManagementKey, String> bomMap = bomDepMap.get( srcBom );
         if ( bomMap == null )
         {
-            bomMap = new HashMap<VersionlessProjectKey, String>();
+            bomMap = new HashMap<DependencyManagementKey, String>();
             bomDepMap.put( srcBom, bomMap );
         }
 

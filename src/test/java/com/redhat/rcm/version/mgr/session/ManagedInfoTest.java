@@ -24,7 +24,6 @@ import static org.junit.Assert.assertThat;
 import java.io.File;
 import java.util.Collections;
 
-import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Model;
@@ -34,6 +33,7 @@ import org.junit.Test;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.fixture.LoggingFixture;
+import com.redhat.rcm.version.model.DependencyManagementKey;
 import com.redhat.rcm.version.testutil.SessionBuilder;
 
 public class ManagedInfoTest
@@ -103,9 +103,9 @@ public class ManagedInfoTest
 
         info.addBOM( new File( "pom.2.xml" ), project2 );
 
-        final VersionlessProjectKey pk = new VersionlessProjectKey( "org.foo", "bar" );
+        final DependencyManagementKey dmk = new DependencyManagementKey( "org.foo", "bar" );
 
-        final Dependency dep = info.getManagedDependency( pk );
+        final Dependency dep = info.getManagedDependency( dmk );
         assertThat( dep, notNullValue() );
         assertThat( dep.getVersion(), equalTo( "1.0" ) );
     }

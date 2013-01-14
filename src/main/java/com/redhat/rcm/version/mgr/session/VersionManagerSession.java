@@ -50,6 +50,7 @@ import org.sonatype.aether.util.DefaultRepositorySystemSession;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.maven.VManWorkspaceReader;
 import com.redhat.rcm.version.maven.WildcardProjectKey;
+import com.redhat.rcm.version.model.DependencyManagementKey;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.util.ActivityLog;
 
@@ -286,12 +287,12 @@ public class VersionManagerSession
         return managedInfo.hasDependencyMap();
     }
 
-    public Dependency getManagedDependency( final ProjectKey key )
+    public Dependency getManagedDependency( final DependencyManagementKey key )
     {
         return managedInfo.getManagedDependency( key );
     }
 
-    public Map<File, Map<VersionlessProjectKey, String>> getMappedDependenciesByBom()
+    public Map<File, Map<DependencyManagementKey, String>> getMappedDependenciesByBom()
     {
         return managedInfo.getMappedDependenciesByBom();
     }
@@ -561,7 +562,8 @@ public class VersionManagerSession
      * version.<groupId>-<artifactId>
      * and return the value held there.
      */
-    public String replacePropertyVersion( final Project project, final String groupId, final String artifactId )
+    public String replacePropertyVersion( final Project project, final String groupId, final String artifactId,
+                                          final String type, final String classifier )
     {
         String result = null;
         final Model model = project.getEffectiveModel();
@@ -605,10 +607,38 @@ public class VersionManagerSession
         {
             String version = "MISSING VERSION";
 
-            final Dependency managedDep = getManagedDependency( new VersionlessProjectKey( groupId, artifactId ) );
-            if ( managedDep != null )
+            Dependency managed =
+                getManagedDependency( new DependencyManagementKey( groupId, artifactId, type, classifier ) );
+
+            if ( managed == null )
             {
-                version = managedDep.getVersion();
+                // if we don't find the one with the specific type/classifier, look for the generic one
+                // if we find that, we can list the specific one as a missing dep and use the info from
+                // the generic one for the version, etc.
+                managed = getManagedDependency( new DependencyManagementKey( groupId, artifactId ) );
+                if ( managed != null )
+                {
+                    final Dependency d = new Dependency();
+                    d.setGroupId( groupId );
+                    d.setArtifactId( artifactId );
+                    d.setVersion( managed.getVersion() );
+                    if ( type != null )
+                    {
+                        d.setType( "pom" );
+                    }
+
+                    if ( classifier != null )
+                    {
+                        d.setClassifier( classifier );
+                    }
+
+                    addMissingDependency( project, d );
+                }
+            }
+
+            if ( managed != null )
+            {
+                version = managed.getVersion();
             }
 
             project.getModel()

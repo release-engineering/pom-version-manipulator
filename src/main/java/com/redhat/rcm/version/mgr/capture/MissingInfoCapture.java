@@ -57,6 +57,7 @@ import org.sonatype.aether.version.VersionScheme;
 import com.redhat.rcm.version.Cli;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
+import com.redhat.rcm.version.model.DependencyManagementKey;
 import com.redhat.rcm.version.model.Project;
 
 @Component( role = MissingInfoCapture.class )
@@ -160,7 +161,9 @@ public class MissingInfoCapture
         boolean changed = false;
         for ( final Project project : session.getCurrentProjects() )
         {
-            final Dependency managed = session.getManagedDependency( project.getKey() );
+            final Dependency managed =
+                session.getManagedDependency( new DependencyManagementKey( project.getGroupId(),
+                                                                           project.getArtifactId(), "pom", null ) );
             if ( managed == null )
             {
                 final Dependency dep = new Dependency();
