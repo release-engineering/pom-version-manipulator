@@ -19,6 +19,7 @@ package com.redhat.rcm.version.mgr.session;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
@@ -54,7 +55,58 @@ public class PropertyMappings
 
     public String getMappedValue( final String key )
     {
-        return mappings.get( key );
+        final String raw = mappings.get( key );
+
+        if ( raw == null )
+        {
+            return null;
+        }
+
+        final StringBuffer buffer = new StringBuffer( raw );
+        final Set<String> missing = new HashSet<String>();
+        boolean changed = false;
+
+        do
+        {
+            changed = false;
+            final Pattern pattern = Pattern.compile( EXPRESSION_PATTERN );
+            final Matcher matcher = pattern.matcher( buffer.toString() );
+
+            if ( matcher.find() )
+            {
+                buffer.setLength( 0 );
+                matcher.reset();
+            }
+            else
+            {
+                return buffer.toString();
+            }
+
+            while ( matcher.find() )
+            {
+                final String k = matcher.group( 1 );
+                if ( missing.contains( k ) )
+                {
+                    continue;
+                }
+
+                final String value = mappings.get( k );
+                if ( value != null )
+                {
+                    matcher.appendReplacement( buffer, value );
+                    changed = true;
+                }
+                else
+                {
+                    missing.add( k );
+                }
+            }
+
+            matcher.appendTail( buffer );
+        }
+        while ( changed );
+
+        return buffer.toString();
     }
 
     private void addMappings( final Map<String, String> newMappings, final VersionManagerSession session )
@@ -65,13 +117,20 @@ public class PropertyMappings
         {
             for ( final Map.Entry<String, String> entry : newMappings.entrySet() )
             {
-                String val = entry.getValue();
+                final String val = entry.getValue();
                 final Matcher matcher = pattern.matcher( val );
 
                 if ( matcher.matches() )
                 {
-                    val = matcher.group( 1 );
-                    expressions.put( entry.getKey(), val );
+                    final String k = matcher.group( 1 );
+                    if ( !mappings.containsKey( k ) && !newMappings.containsKey( k ) )
+                    {
+                        expressions.put( entry.getKey(), matcher.group( 1 ) );
+                    }
+                    else
+                    {
+                        mappings.put( entry.getKey(), val );
+                    }
                 }
                 else
                 {
