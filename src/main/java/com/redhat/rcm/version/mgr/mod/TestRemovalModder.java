@@ -23,7 +23,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
-import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Activation;
 import org.apache.maven.model.ActivationProperty;
 import org.apache.maven.model.Dependency;
@@ -35,6 +34,7 @@ import org.commonjava.util.logging.Logger;
 
 import com.redhat.rcm.version.maven.WildcardProjectKey;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
+import com.redhat.rcm.version.model.DependencyManagementKey;
 import com.redhat.rcm.version.model.Project;
 
 @Component( role = ProjectModder.class, hint = "testremoval" )
@@ -71,15 +71,23 @@ public class TestRemovalModder
                                                            .iterator(); it.hasNext(); )
                 {
                     final Dependency dep = it.next();
-                    final VersionlessProjectKey depvpk =
-                        new VersionlessProjectKey( dep.getGroupId(), dep.getArtifactId() );
+                    final DependencyManagementKey depvpk = new DependencyManagementKey( dep );
 
                     if ( dep.getScope() != null && dep.getScope()
                                                       .equals( "test" ) )
                     {
-                        logger.info( "Removing scoped test dependency " + dep.toString() + " for '" + project.getKey()
-                            + "'..." );
+                        logger.info( "Removing scoped test dependency %s for '%s'...", dep, project.getKey() );
+
                         movedDeps.add( dep );
+                        it.remove();
+                    }
+
+                    final Dependency managed = session.getManagedDependency( depvpk );
+                    if ( managed != null && dep.getScope() == null && "test".equals( managed.getScope() ) )
+                    {
+                        logger.info( "Removing scoped test dependency %s for '%s'...", managed, project.getKey() );
+
+                        movedDeps.add( managed );
                         it.remove();
                     }
 
@@ -93,15 +101,14 @@ public class TestRemovalModder
                         {
                             for ( final Dependency managedDep : depMgmt.getDependencies() )
                             {
-                                final VersionlessProjectKey depmgmtvpk =
-                                    new VersionlessProjectKey( managedDep.getGroupId(), managedDep.getArtifactId() );
+                                final DependencyManagementKey depmgmtvpk = new DependencyManagementKey( managedDep );
 
                                 if ( depvpk.equals( depmgmtvpk ) && dep.getScope() == null
-                                    && managedDep.getScope() != null && managedDep.getScope()
-                                                                                  .equals( "test" ) )
+                                    && "test".equals( managedDep.getScope() ) )
                                 {
-                                    logger.info( "Removing scoped test dependency " + managedDep.toString() + " for '"
-                                        + project.getKey() + "'..." );
+                                    logger.info( "Removing scoped test dependency %s for '%s'...", managedDep,
+                                                 project.getKey() );
+
                                     movedDeps.add( managedDep );
                                     it.remove();
                                     break;
