@@ -49,6 +49,7 @@ import org.junit.rules.TemporaryFolder;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.mod.ProjectModder;
+import com.redhat.rcm.version.mgr.session.SessionBuilder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 

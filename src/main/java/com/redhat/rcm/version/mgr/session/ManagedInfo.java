@@ -60,6 +60,8 @@ class ManagedInfo
 
     private final Map<FullProjectKey, File> peekedPoms = new HashMap<FullProjectKey, File>();
 
+    private final Map<File, FullProjectKey> peekedPomsReverse = new HashMap<File, FullProjectKey>();
+
     private final LinkedHashMap<FullProjectKey, MavenProject> bomProjects =
         new LinkedHashMap<FullProjectKey, MavenProject>();
 
@@ -95,11 +97,14 @@ class ManagedInfo
 
     private MavenProject toolchainProject;
 
+    private final Set<VersionlessProjectKey> excludedModulePoms;
+
     ManagedInfo( final VersionManagerSession session, final Collection<String> removedPlugins,
                  final Collection<String> removedTests, final Collection<String> extensionsWhitelist,
                  final List<String> modderKeys, final Map<String, String> relocatedCoords,
-                 final Map<String, String> propertyMappings )
+                 final Map<String, String> propertyMappings, final Set<VersionlessProjectKey> excludedModulePoms )
     {
+        this.excludedModulePoms = excludedModulePoms;
         this.relocatedCoords = new CoordinateRelocations( relocatedCoords, session );
         this.propertyMappings = new PropertyMappings( propertyMappings, session );
 
@@ -363,7 +368,29 @@ class ManagedInfo
         }
 
         this.peekedPoms.clear();
-        this.peekedPoms.putAll( peekedPoms );
+        for ( final Map.Entry<FullProjectKey, File> entry : peekedPoms.entrySet() )
+        {
+            //            if ( excludedModulePoms != null
+            //                && excludedModulePoms.contains( new VersionlessProjectKey( entry.getKey() ) ) )
+            //            {
+            //                continue;
+            //            }
+
+            this.peekedPoms.put( entry.getKey(), entry.getValue() );
+            this.peekedPomsReverse.put( entry.getValue(), entry.getKey() );
+        }
+    }
+
+    boolean isExcludedModulePom( final File pom )
+    {
+        final FullProjectKey key = peekedPomsReverse.get( pom );
+        if ( key == null )
+        {
+            return false;
+        }
+
+        final VersionlessProjectKey vpk = new VersionlessProjectKey( key );
+        return excludedModulePoms.contains( vpk );
     }
 
     LinkedHashSet<Project> getCurrentProjects()
@@ -416,6 +443,11 @@ class ManagedInfo
     void addPeekPom( final FullProjectKey key, final File pom )
     {
         peekedPoms.put( key, pom );
+    }
+
+    Set<VersionlessProjectKey> getExcludedModulePoms()
+    {
+        return excludedModulePoms;
     }
 
 }

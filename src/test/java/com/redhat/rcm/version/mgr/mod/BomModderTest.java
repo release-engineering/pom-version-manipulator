@@ -50,9 +50,9 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import com.redhat.rcm.version.mgr.capture.MissingInfoCapture;
+import com.redhat.rcm.version.mgr.session.SessionBuilder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
-import com.redhat.rcm.version.testutil.SessionBuilder;
 import com.redhat.rcm.version.testutil.TestProjectFixture;
 
 public class BomModderTest

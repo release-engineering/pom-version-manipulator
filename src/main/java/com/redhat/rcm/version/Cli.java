@@ -76,6 +76,7 @@ import org.kohsuke.args4j.Option;
 
 import com.redhat.rcm.version.mgr.VersionManager;
 import com.redhat.rcm.version.mgr.mod.ProjectModder;
+import com.redhat.rcm.version.mgr.session.SessionBuilder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.util.InputUtils;
 
@@ -472,8 +473,6 @@ public class Cli
                 + StringUtils.join( boms.iterator(), "\n\t" ) + "\n\nWorkspace:\n\t" + workspace + "\n\nReports:\n\t"
                 + reports );
 
-            vman.setPomExcludeModules( pomExcludeModules );
-
             if ( target.isDirectory() )
             {
                 vman.modifyVersions( target, pomPattern, pomExcludePattern, boms, toolchain, session );
@@ -528,10 +527,20 @@ public class Cli
 
         logger.info( "modifications = " + join( modders, " " ) );
 
-        final VersionManagerSession session =
-            new VersionManagerSession( workspace, reports, versionSuffix, versionModifier, removedPlugins,
-                                       removedTests, extensionsWhitelist, modders, preserveFiles, strict,
-                                       relocatedCoords, propertyMappings );
+        final SessionBuilder builder =
+            new SessionBuilder( workspace, reports ).withVersionSuffix( versionSuffix )
+                                                    .withVersionModifier( versionModifier )
+                                                    .withRemovedPlugins( removedPlugins )
+                                                    .withRemovedTests( removedTests )
+                                                    .withExtensionsWhitelist( extensionsWhitelist )
+                                                    .withModders( modders )
+                                                    .withPreserveFiles( preserveFiles )
+                                                    .withStrict( strict )
+                                                    .withCoordinateRelocations( relocatedCoords )
+                                                    .withPropertyMappings( propertyMappings )
+                                                    .withExcludedModulePoms( pomExcludeModules );
+
+        final VersionManagerSession session = builder.build();
 
         if ( remoteRepositories != null )
         {
@@ -832,7 +841,7 @@ public class Cli
 
                 if ( pomExcludeModules == null )
                 {
-                    vman.setPomExcludeModules( props.getProperty( POM_EXCLUDE_MODULE_PROPERTY ) );
+                    pomExcludeModules = props.getProperty( POM_EXCLUDE_MODULE_PROPERTY );
                 }
 
                 if ( modifications == null )

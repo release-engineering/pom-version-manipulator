@@ -25,9 +25,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -100,8 +98,6 @@ public class VersionManager
 
     @Requirement
     private SessionConfigurator sessionConfigurator;
-
-    private HashMap<String, String> pomExcludedModules;
 
     private DefaultModelBuildingRequest baseMbr;
 
@@ -317,6 +313,12 @@ public class VersionManager
         final Set<Project> projects = new HashSet<Project>();
         for ( final File pom : pomFiles )
         {
+            if ( session.isExcludedModulePom( pom ) )
+            {
+                logger.info( "Skipping excluded module pom: %s.", pom );
+                continue;
+            }
+
             try
             {
                 final Set<Project> pomProjects = loadProjectWithModules( pom, session );
@@ -336,22 +338,6 @@ public class VersionManager
                      .isEmpty() )
         {
             return result;
-        }
-
-        if ( pomExcludedModules != null )
-        {
-            for ( final Iterator<Project> i = projects.iterator(); i.hasNext(); )
-            {
-                final Project p = i.next();
-                final FullProjectKey key = p.getKey();
-
-                final String groupId = key.getGroupId();
-                final String artifactId = key.getArtifactId();
-                if ( artifactId.equals( pomExcludedModules.get( groupId ) ) )
-                {
-                    i.remove();
-                }
-            }
         }
 
         session.setCurrentProjects( projects );
@@ -553,24 +539,6 @@ public class VersionManager
     public Map<String, ProjectModder> getModders()
     {
         return modders;
-    }
-
-    public void setPomExcludeModules( final String pomExcludeModules )
-    {
-        if ( pomExcludeModules == null )
-        {
-            return;
-        }
-
-        final String[] modules = pomExcludeModules.split( "," );
-
-        pomExcludedModules = new HashMap<String, String>();
-
-        for ( final String m : modules )
-        {
-            final int index = m.indexOf( ':' );
-            pomExcludedModules.put( m.substring( 0, index ), m.substring( index + 1 ) );
-        }
     }
 
     @Override

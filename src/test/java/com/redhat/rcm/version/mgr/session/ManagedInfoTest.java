@@ -24,6 +24,7 @@ import static org.junit.Assert.assertThat;
 import java.io.File;
 import java.util.Collections;
 
+import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Model;
@@ -34,7 +35,6 @@ import org.junit.Test;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.fixture.LoggingFixture;
 import com.redhat.rcm.version.model.DependencyManagementKey;
-import com.redhat.rcm.version.testutil.SessionBuilder;
 
 public class ManagedInfoTest
 {
@@ -63,7 +63,8 @@ public class ManagedInfoTest
         final ManagedInfo info =
             new ManagedInfo( session, Collections.<String> emptyList(), Collections.<String> emptyList(),
                              Collections.<String> emptyList(), Collections.<String> emptyList(),
-                             Collections.<String, String> emptyMap(), Collections.<String, String> emptyMap() );
+                             Collections.<String, String> emptyMap(), Collections.<String, String> emptyMap(),
+                             Collections.<VersionlessProjectKey> emptySet() );
 
         final Dependency dep1 = new Dependency();
         dep1.setGroupId( "org.foo" );

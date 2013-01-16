@@ -64,10 +64,10 @@ import org.junit.Test;
 
 import com.redhat.rcm.version.fixture.LoggingFixture;
 import com.redhat.rcm.version.mgr.mod.ToolchainModder;
+import com.redhat.rcm.version.mgr.session.SessionBuilder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.testutil.PluginMatcher;
-import com.redhat.rcm.version.testutil.SessionBuilder;
 
 public class ToolchainManagementTest
     extends AbstractVersionManagerTest

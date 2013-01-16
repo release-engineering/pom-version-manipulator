@@ -36,9 +36,9 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import com.redhat.rcm.version.fixture.LoggingFixture;
+import com.redhat.rcm.version.mgr.session.SessionBuilder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
-import com.redhat.rcm.version.testutil.SessionBuilder;
 import com.redhat.rcm.version.testutil.TestProjectFixture;
 
 public class ExtensionsRemovalModderTest

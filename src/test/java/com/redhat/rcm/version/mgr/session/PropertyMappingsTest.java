@@ -9,7 +9,6 @@ import java.util.Map;
 
 import org.junit.Test;
 
-import com.redhat.rcm.version.testutil.SessionBuilder;
 
 public class PropertyMappingsTest
 {

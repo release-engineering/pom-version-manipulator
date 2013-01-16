@@ -32,9 +32,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.redhat.rcm.version.mgr.VersionManager;
+import com.redhat.rcm.version.mgr.session.SessionBuilder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
-import com.redhat.rcm.version.testutil.SessionBuilder;
 import com.redhat.rcm.version.testutil.TestVersionManager;
 
 public class PropertyModderTest

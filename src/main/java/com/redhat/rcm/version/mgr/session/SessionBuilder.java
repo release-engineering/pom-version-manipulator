@@ -15,7 +15,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.redhat.rcm.version.testutil;
+package com.redhat.rcm.version.mgr.session;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -25,14 +25,19 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import org.apache.maven.mae.project.key.VersionlessProjectKey;
+import org.commonjava.util.logging.Logger;
 
 import com.redhat.rcm.version.mgr.mod.ProjectModder;
-import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
 public final class SessionBuilder
 {
     public static final List<String> STANDARD =
         new ArrayList<String>( Arrays.asList( ProjectModder.STANDARD_MODIFICATIONS ) );
+
+    private final Logger logger = new Logger( getClass() );
 
     private final File workspace;
 
@@ -50,7 +55,7 @@ public final class SessionBuilder
 
     private Collection<String> extensionsWhitelist = new HashSet<String>();
 
-    private List<String> modders = STANDARD;
+    private final List<String> modders = new ArrayList<String>( STANDARD );
 
     private boolean preserveFiles = false;
 
@@ -59,6 +64,8 @@ public final class SessionBuilder
     private final Map<String, String> coordinateRelocations = new HashMap<String, String>();
 
     private final Map<String, String> propertyMappings = new HashMap<String, String>();
+
+    private final Set<VersionlessProjectKey> excludedModulePoms = new HashSet<VersionlessProjectKey>();
 
     public SessionBuilder( final File workspace )
     {
@@ -78,11 +85,45 @@ public final class SessionBuilder
         final VersionManagerSession sess =
             new VersionManagerSession( workspace, reports, versionSuffix, versionModifier, removedPlugins,
                                        removedTests, extensionsWhitelist, modders, preserveFiles, strict,
-                                       coordinateRelocations, propertyMappings );
+                                       coordinateRelocations, propertyMappings, excludedModulePoms );
 
         sess.setLocalRepositoryDirectory( localRepo == null ? new File( workspace, "local-repository" ) : localRepo );
 
         return sess;
+    }
+
+    public SessionBuilder withExcludedModulePoms( final String excludedModulePoms )
+    {
+        this.excludedModulePoms.clear();
+        final String[] entries = excludedModulePoms == null ? new String[] {} : excludedModulePoms.split( "\\s*,\\s" );
+        for ( final String entry : entries )
+        {
+            try
+            {
+                final VersionlessProjectKey key = new VersionlessProjectKey( entry );
+                this.excludedModulePoms.add( key );
+            }
+            catch ( final IllegalArgumentException e )
+            {
+                logger.error( "Cannot parse excluded-module pom entry: '%s'. Reason: %s", e, entry, e.getMessage() );
+            }
+        }
+
+        return this;
+    }
+
+    public SessionBuilder withExcludedModulePoms( final VersionlessProjectKey... keys )
+    {
+        this.excludedModulePoms.clear();
+        this.excludedModulePoms.addAll( Arrays.asList( keys ) );
+        return this;
+    }
+
+    public SessionBuilder withExcludedModulePoms( final Collection<VersionlessProjectKey> keys )
+    {
+        this.excludedModulePoms.clear();
+        this.excludedModulePoms.addAll( keys );
+        return this;
     }
 
     public SessionBuilder withLocalRepositoryDirectory( final File localRepo )
@@ -137,6 +178,33 @@ public final class SessionBuilder
     public SessionBuilder withCoordinateRelocation( final String oldCoord, final String newCoord )
     {
         coordinateRelocations.put( oldCoord, newCoord );
+        return this;
+    }
+
+    public SessionBuilder withModders( final List<String> modders )
+    {
+        this.modders.clear();
+        this.modders.addAll( modders );
+        return this;
+    }
+
+    public SessionBuilder withPreserveFiles( final boolean preserveFiles )
+    {
+        this.preserveFiles = preserveFiles;
+        return this;
+    }
+
+    public SessionBuilder withCoordinateRelocations( final Map<String, String> coordinateRelocations )
+    {
+        this.coordinateRelocations.clear();
+        this.coordinateRelocations.putAll( coordinateRelocations );
+        return this;
+    }
+
+    public SessionBuilder withPropertyMappings( final Map<String, String> propertyMappings )
+    {
+        this.propertyMappings.clear();
+        this.propertyMappings.putAll( propertyMappings );
         return this;
     }
 

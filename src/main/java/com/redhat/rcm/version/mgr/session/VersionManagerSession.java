@@ -96,7 +96,9 @@ public class VersionManagerSession
                                   final String versionModifier, final Collection<String> removedPlugins,
                                   final Collection<String> removedTests, final Collection<String> extensionsWhitelist,
                                   final List<String> modderKeys, final boolean preserveFiles, final boolean strict,
-                                  final Map<String, String> relocatedCoords, final Map<String, String> propertyMappings )
+                                  final Map<String, String> relocatedCoords,
+                                  final Map<String, String> propertyMappings,
+                                  final Set<VersionlessProjectKey> excludedModulePoms )
     {
         this.workspace = workspace;
         this.reports = reports;
@@ -113,7 +115,7 @@ public class VersionManagerSession
 
         managedInfo =
             new ManagedInfo( this, removedPlugins, removedTests, extensionsWhitelist, modderKeys, relocatedCoords,
-                             propertyMappings );
+                             propertyMappings, excludedModulePoms );
         changeInfo = new ChangeInfo();
     }
 
@@ -123,6 +125,11 @@ public class VersionManagerSession
         downloads.mkdirs();
 
         return downloads;
+    }
+
+    public Set<VersionlessProjectKey> getExcludedModulePoms()
+    {
+        return managedInfo.getExcludedModulePoms();
     }
 
     public boolean isStrict()
@@ -460,6 +467,11 @@ public class VersionManagerSession
     public void setPeekedPoms( final Map<FullProjectKey, File> peekedPoms )
     {
         managedInfo.setPeekedPoms( peekedPoms );
+    }
+
+    public boolean isExcludedModulePom( final File pom )
+    {
+        return managedInfo.isExcludedModulePom( pom );
     }
 
     public Map<FullProjectKey, File> getPeekedPoms()
