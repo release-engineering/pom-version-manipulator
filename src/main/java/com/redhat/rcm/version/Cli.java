@@ -55,8 +55,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.log4j.Appender;
 import org.apache.log4j.AppenderSkeleton;
-import org.apache.log4j.Category;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Layout;
@@ -101,13 +101,19 @@ public class Cli
     private String pomExcludeModules;
 
     @Option( name = "-h", aliases = { "--help" }, usage = "Print this message and quit" )
-    private final boolean help = false;
+    private boolean help;
 
     @Option( name = "-H", aliases = { "--help-modifications" }, usage = "Print the list of available modifications and quit" )
-    private final boolean helpModders = false;
+    private boolean helpModders;
 
-    @Option( name = "--console", usage = "Log information to console instead of <workspace>/vman.log.\n" )
+    @Option( name = "--console", usage = "Log information to console IN ADDITION TO <workspace>/vman.log.\n" )
     private boolean console;
+
+    @Option( name = "--no-console", usage = "DON'T log information to console in addition to <workspace>/vman.log.\n" )
+    private boolean noConsole;
+
+    @Option( name = "--no-log-file", usage = "DON'T log information to <workspace>/vman.log.\n" )
+    private boolean noLogFile;
 
     @Option( name = "-L", aliases = { "--local-repo", "--local-repository" }, usage = "Local repository directory.\nDefault: <workspace>/local-repository\nProperty file equivalent: local-repository" )
     private File localRepository;
@@ -165,8 +171,6 @@ public class Cli
 
     @Option( name = "-Z", aliases = { "--no-system-exit" }, usage = "Don't call System.exit(..) with the return value (for embedding/testing)." )
     private boolean noSystemExit;
-
-    private final Logger logger = new Logger( getClass() );
 
     private static final File DEFAULT_CONFIG_FILE = new File( System.getProperty( "user.home" ), ".vman.properties" );
 
@@ -246,6 +250,16 @@ public class Cli
         {
             parser.parseArgument( args );
 
+            final boolean useLog =
+                !( cli.noLogFile || cli.testConfig || /*cli.help ||*/cli.helpModders || cli.showVersion );
+
+            //            System.out.printf( "--no-console: %s \n\n--no-log-file: %s \n--test-config: %s\n--help: %s\n--help-modifications: %s\n--version: %s\nlogfile: %s\n\nUse logfile? %s\n\n",
+            //                               cli.noConsole, cli.noLogFile, cli.testConfig, cli.help, cli.helpModders,
+            //                               cli.showVersion, cli.logFile, useLog );
+
+            configureLogging( !cli.noConsole, useLog, cli.logFile );
+            new Logger( Cli.class ).info( "Testing log appenders..." );
+
             vman = VersionManager.getInstance();
 
             exitValue = 0;
@@ -301,8 +315,6 @@ public class Cli
 
     private void testConfigAndPrintDiags()
     {
-        configureLogging();
-
         VersionManagerSession session = null;
         final List<VManException> errors = new ArrayList<VManException>();
         try
@@ -389,64 +401,95 @@ public class Cli
         System.out.println();
     }
 
-    private void configureLogging()
+    private static void configureLogging( boolean useConsole, final boolean useLogFile, final File logFile )
     {
-        if ( console )
+        System.out.println( "Log file is: " + logFile.getAbsolutePath() );
+
+        final Layout layout = new PatternLayout( "%5p [%t] - %m%n" );
+
+        final List<AppenderSkeleton> appenders = new ArrayList<AppenderSkeleton>();
+        if ( !useConsole && !useLogFile )
         {
-            return;
+            if ( !useLogFile )
+            {
+                System.out.println( "\n\nNOTE: --no-console option has been OVERRIDDEN since --no-log-file option was also provided.\nOutputting to console ONLY.\n" );
+                useConsole = true;
+            }
         }
 
-        System.out.println( "\n\nNOTE: See " + logFile + " for console output.\n" );
+        if ( useConsole )
+        {
+            final ConsoleAppender console = new ConsoleAppender( layout );
+            console.setName( "console" );
+            console.setThreshold( Level.ALL );
+
+            appenders.add( console );
+        }
+
+        if ( useLogFile )
+        {
+            System.out.println( "\n\nNOTE: See " + logFile + " for a COPY of console output.\n" );
+
+            try
+            {
+                final File dir = logFile.getParentFile();
+                if ( dir != null && !dir.isDirectory() && !dir.mkdirs() )
+                {
+                    throw new RuntimeException( "Failed to create parent directory for logfile: "
+                        + dir.getAbsolutePath() );
+                }
+
+                final FileAppender file = new FileAppender( layout, logFile.getPath() );
+                file.setName( "logfile" );
+                file.setThreshold( Level.ALL );
+
+                appenders.add( file );
+            }
+            catch ( final IOException e )
+            {
+                final StringWriter sw = new StringWriter();
+                final PrintWriter pw = new PrintWriter( sw );
+                e.printStackTrace( pw );
+                System.out.printf( "ERROR: Failed to initialize log file: %s. Reason: %s\n\n%s\n\n", logFile,
+                                   e.getMessage(), sw.toString() );
+
+                throw new RuntimeException( "Failed to initialize logfile." );
+            }
+        }
 
         // Clear the logfile for the next run.
-        logFile.delete();
+        if ( logFile != null )
+        {
+            logFile.delete();
+        }
 
         final Configurator log4jConfigurator = new Configurator()
         {
             @Override
             public void doConfigure( final URL notUsed, final LoggerRepository repo )
             {
-                final Layout layout = new PatternLayout( "%5p [%t] (%F:%L) - %m%n" );
-
-                AppenderSkeleton appender;
-                try
-                {
-                    appender = new FileAppender( layout, logFile.getAbsolutePath() );
-                }
-                catch ( final IOException e )
-                {
-                    appender = new ConsoleAppender( layout );
-                }
-
-                appender.setThreshold( Level.ALL );
-
                 final Level level = Level.INFO;
 
                 repo.setThreshold( level );
 
-                repo.getRootLogger()
-                    .removeAllAppenders();
+                final org.apache.log4j.Logger root = repo.getRootLogger();
+                root.removeAllAppenders();
 
-                repo.getRootLogger()
-                    .setLevel( level );
+                root.setLevel( level );
 
-                repo.getRootLogger()
-                    .addAppender( appender );
-
-                @SuppressWarnings( "unchecked" )
-                final List<org.apache.log4j.Logger> loggers = Collections.list( repo.getCurrentLoggers() );
-
-                for ( final org.apache.log4j.Logger logger : loggers )
+                for ( final AppenderSkeleton appender : appenders )
                 {
-                    logger.setLevel( level );
+                    appender.setThreshold( Level.ALL );
+                    root.addAppender( appender );
                 }
 
                 @SuppressWarnings( "unchecked" )
-                final List<Category> cats = Collections.list( repo.getCurrentCategories() );
-                for ( final Category cat : cats )
+                final ArrayList<Appender> allRoot = Collections.list( root.getAllAppenders() );
+                for ( final Appender appender : allRoot )
                 {
-                    cat.setLevel( level );
+                    System.out.println( "ROOT has appender: " + appender.getName() );
                 }
+
             }
         };
 
@@ -456,7 +499,7 @@ public class Cli
     public int run()
         throws MAEException, VManException, MalformedURLException
     {
-        configureLogging();
+        final Logger logger = new Logger( getClass() );
 
         final VersionManagerSession session = initSession();
 
@@ -525,6 +568,7 @@ public class Cli
 
         loadAndNormalizeModifications();
 
+        final Logger logger = new Logger( getClass() );
         logger.info( "modifications = " + join( modders, " " ) );
 
         final SessionBuilder builder =
@@ -761,6 +805,8 @@ public class Cli
     private void loadConfiguration()
         throws VManException
     {
+        final Logger logger = new Logger( getClass() );
+
         File config = null;
 
         if ( configuration != null )
@@ -977,6 +1023,8 @@ public class Cli
     private File loadBootstrapConfig()
         throws VManException
     {
+        final Logger logger = new Logger( getClass() );
+
         Map<String, String> bootProps = null;
         if ( bootstrapConfig == null )
         {

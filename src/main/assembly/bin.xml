@@ -35,12 +35,17 @@
       <useProjectArtifact>true</useProjectArtifact>
       <unpack>true</unpack>
       <scope>runtime</scope>
+      <unpackOptions>
+        <excludes>
+          <exclude>**/log4j.properties</exclude>
+        </excludes>
+      </unpackOptions>
     </dependencySet>
   </dependencySets>
-  <fileSets>
+  <!-- <fileSets>
     <fileSet>
       <directory>src/main/conf</directory>
       <outputDirectory>/</outputDirectory>
     </fileSet>
-  </fileSets>
+  </fileSets> -->
 </assembly>
