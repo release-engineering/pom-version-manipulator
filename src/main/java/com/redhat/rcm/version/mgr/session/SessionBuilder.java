@@ -95,9 +95,20 @@ public final class SessionBuilder
     public SessionBuilder withExcludedModulePoms( final String excludedModulePoms )
     {
         this.excludedModulePoms.clear();
-        final String[] entries = excludedModulePoms == null ? new String[] {} : excludedModulePoms.split( "\\s*,\\s" );
-        for ( final String entry : entries )
+        if ( excludedModulePoms == null )
         {
+            return this;
+        }
+
+        final String[] entries = excludedModulePoms == null ? new String[] {} : excludedModulePoms.split( "," );
+        for ( String entry : entries )
+        {
+            entry = entry.trim();
+            if ( entry.length() < 3 )
+            {
+                continue;
+            }
+
             try
             {
                 final VersionlessProjectKey key = new VersionlessProjectKey( entry );
@@ -122,6 +133,11 @@ public final class SessionBuilder
     public SessionBuilder withExcludedModulePoms( final Collection<VersionlessProjectKey> keys )
     {
         this.excludedModulePoms.clear();
+        if ( keys == null )
+        {
+            return this;
+        }
+
         this.excludedModulePoms.addAll( keys );
         return this;
     }
@@ -183,6 +199,11 @@ public final class SessionBuilder
 
     public SessionBuilder withModders( final List<String> modders )
     {
+        if ( modders == null )
+        {
+            return this;
+        }
+
         this.modders.clear();
         this.modders.addAll( modders );
         return this;
@@ -197,6 +218,11 @@ public final class SessionBuilder
     public SessionBuilder withCoordinateRelocations( final Map<String, String> coordinateRelocations )
     {
         this.coordinateRelocations.clear();
+        if ( coordinateRelocations == null )
+        {
+            return this;
+        }
+
         this.coordinateRelocations.putAll( coordinateRelocations );
         return this;
     }
@@ -204,6 +230,11 @@ public final class SessionBuilder
     public SessionBuilder withPropertyMappings( final Map<String, String> propertyMappings )
     {
         this.propertyMappings.clear();
+        if ( propertyMappings == null )
+        {
+            return this;
+        }
+
         this.propertyMappings.putAll( propertyMappings );
         return this;
     }
