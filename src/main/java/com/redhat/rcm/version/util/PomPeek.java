@@ -3,6 +3,7 @@ package com.redhat.rcm.version.util;
 import static javax.xml.stream.XMLStreamConstants.END_ELEMENT;
 import static javax.xml.stream.XMLStreamConstants.START_ELEMENT;
 import static org.apache.commons.io.IOUtils.closeQuietly;
+import static org.apache.commons.lang.StringUtils.isEmpty;
 import static org.apache.commons.lang.StringUtils.isNotEmpty;
 
 import java.io.File;
@@ -95,7 +96,7 @@ public class PomPeek
         final String v = isNotEmpty( ver ) ? ver : parentVer;
         final String g = isNotEmpty( gid ) ? gid : parentGid;
 
-        if ( isNotEmpty( aid ) && isNotEmpty( g ) && isNotEmpty( v ) )
+        if ( isValidArtifactId( aid ) && isValidGroupId( g ) && isValidVersion( v ) )
         {
             key = new FullProjectKey( g, aid, v );
         }
@@ -104,6 +105,56 @@ public class PomPeek
             logger.warn( "Could not peek at POM coordinate for: %s. "
                 + "This POM will NOT be available as an ancestor to other models during effective-model building.", pom );
         }
+    }
+
+    private boolean isValidVersion( final String version )
+    {
+        if ( isEmpty( version ) )
+        {
+            return false;
+        }
+
+        if ( "parentVersion".equals( version ) )
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean isValidGroupId( final String groupId )
+    {
+        if ( isEmpty( groupId ) )
+        {
+            return false;
+        }
+
+        if ( groupId.contains( "${" ) )
+        {
+            return false;
+        }
+
+        if ( "groupId".equals( groupId ) )
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean isValidArtifactId( final String artifactId )
+    {
+        if ( isEmpty( artifactId ) )
+        {
+            return false;
+        }
+
+        if ( artifactId.contains( "${" ) )
+        {
+            return false;
+        }
+
+        return true;
     }
 
     public FullProjectKey getKey()

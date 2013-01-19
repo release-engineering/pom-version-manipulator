@@ -256,6 +256,19 @@ public class VersionManager
             final ModelBuildingResult mbResult = modelBuilder.build( req );
             final Project project = new Project( mbResult, pom );
 
+            if ( ( project.getGroupId()
+                          .startsWith( "${" ) && project.getArtifactId()
+                                                        .startsWith( "${" ) ) ||
+            // Handle drools template XML file.
+                ( project.getGroupId()
+                         .equals( "groupId" ) && project.getParent()
+                                                        .getVersion()
+                                                        .equals( "parentVersion" ) ) )
+            {
+                logger.info( "Skipping " + project.getPom() + " as its a template file." );
+                continue;
+            }
+
             projects.add( project );
 
             final File dir = pom.getParentFile();
@@ -347,18 +360,6 @@ public class VersionManager
         // NOTE: Using sorted projects list from session instead of unsorted set from above.
         for ( final Project project : session.getCurrentProjects() )
         {
-            if ( ( project.getGroupId()
-                          .startsWith( "${" ) && project.getArtifactId()
-                                                        .startsWith( "${" ) ) ||
-            // Handle drools template XML file.
-                ( project.getGroupId()
-                         .equals( "groupId" ) && project.getParent()
-                                                        .getVersion()
-                                                        .equals( "parentVersion" ) ) )
-            {
-                logger.info( "Skipping " + project.getPom() + " as its a template file." );
-                continue;
-            }
             logger.info( "Modifying '" + project.getKey() + "'..." );
 
             final List<String> modderKeys = session.getModderKeys();
