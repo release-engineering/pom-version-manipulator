@@ -112,12 +112,10 @@ public class Project
         this( new FullProjectKey( model ), model.getPomFile(), model, cloneModel( model ) );
     }
 
-    public Project( final ModelBuildingResult mbResult, final File pom )
+    public Project( final Model raw, final ModelBuildingResult mbResult, final File pom )
         throws ProjectToolsException
     {
         this.pom = pom;
-
-        final Model raw = mbResult.getRawModel();
 
         this.originalModel = cloneModel( raw );
         this.model = raw;

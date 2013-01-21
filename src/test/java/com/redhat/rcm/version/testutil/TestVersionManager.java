@@ -24,7 +24,6 @@ import java.util.Map;
 
 import org.apache.maven.mae.MAEException;
 import org.apache.maven.mae.project.ProjectToolsException;
-import org.apache.maven.model.building.ModelBuildingException;
 import org.codehaus.plexus.component.annotations.Component;
 
 import com.redhat.rcm.version.VManException;
@@ -81,7 +80,7 @@ public class TestVersionManager
 
     @Override
     public LinkedHashSet<Project> loadProjectWithModules( final File pom, final VersionManagerSession session )
-        throws ModelBuildingException, ProjectToolsException
+        throws ProjectToolsException
     {
         return super.loadProjectWithModules( pom, session );
     }

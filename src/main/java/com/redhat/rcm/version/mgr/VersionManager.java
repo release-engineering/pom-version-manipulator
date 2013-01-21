@@ -20,9 +20,12 @@ package com.redhat.rcm.version.mgr;
 
 import static com.redhat.rcm.version.util.InputUtils.getIncludedSubpaths;
 import static com.redhat.rcm.version.util.PomUtils.writeModifiedPom;
+import static org.apache.commons.io.IOUtils.closeQuietly;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -49,10 +52,12 @@ import org.apache.maven.model.building.ModelBuilder;
 import org.apache.maven.model.building.ModelBuildingException;
 import org.apache.maven.model.building.ModelBuildingRequest;
 import org.apache.maven.model.building.ModelBuildingResult;
+import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.component.annotations.Requirement;
 import org.codehaus.plexus.util.FileUtils;
 import org.codehaus.plexus.util.StringUtils;
+import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.commonjava.util.logging.Logger;
 import org.sonatype.aether.impl.ArtifactResolver;
 import org.sonatype.aether.impl.RemoteRepositoryManager;
@@ -233,7 +238,7 @@ public class VersionManager
     }
 
     protected LinkedHashSet<Project> loadProjectWithModules( final File topPom, final VersionManagerSession session )
-        throws ModelBuildingException, ProjectToolsException
+        throws ProjectToolsException
     {
         final LinkedHashSet<Project> projects = new LinkedHashSet<Project>();
 
@@ -244,6 +249,38 @@ public class VersionManager
         {
             final File pom = pendingPoms.removeFirst();
 
+            // Sucks, but we have to brute-force reading in the raw model.
+            // The effective-model building, below, has a tantalizing getRawModel()
+            // method on the result, BUT this seems to return models that have
+            // the plugin versions set inside profiles...so they're not entirely
+            // raw.
+            Model raw = null;
+            InputStream in = null;
+            try
+            {
+                in = new FileInputStream( pom );
+                raw = new MavenXpp3Reader().read( in );
+            }
+            catch ( final IOException e )
+            {
+                session.addError( new VManException( "Failed to build model for POM: %s.\n--> %s", e, pom,
+                                                     e.getMessage() ) );
+            }
+            catch ( final XmlPullParserException e )
+            {
+                session.addError( new VManException( "Failed to build model for POM: %s.\n--> %s", e, pom,
+                                                     e.getMessage() ) );
+            }
+            finally
+            {
+                closeQuietly( in );
+            }
+
+            if ( raw == null )
+            {
+                continue;
+            }
+
             final PomPeek peek = new PomPeek( pom );
             final FullProjectKey key = peek.getKey();
             if ( key != null )
@@ -252,9 +289,23 @@ public class VersionManager
             }
 
             final ModelBuildingRequest req = newModelBuildingRequest( pom, session );
+            ModelBuildingResult mbResult = null;
+            try
+            {
+                mbResult = modelBuilder.build( req );
+            }
+            catch ( final ModelBuildingException e )
+            {
+                session.addError( new VManException( "Failed to build model for POM: %s.\n--> %s", e, pom,
+                                                     e.getMessage() ) );
+            }
 
-            final ModelBuildingResult mbResult = modelBuilder.build( req );
-            final Project project = new Project( mbResult, pom );
+            if ( mbResult == null )
+            {
+                continue;
+            }
+
+            final Project project = new Project( raw, mbResult, pom );
 
             if ( ( project.getGroupId()
                           .startsWith( "${" ) && project.getArtifactId()
@@ -303,6 +354,7 @@ public class VersionManager
             mbr.setSystemProperties( System.getProperties() );
             mbr.setValidationLevel( ModelBuildingRequest.VALIDATION_LEVEL_MINIMAL );
             mbr.setProcessPlugins( false );
+            mbr.setLocationTracking( true );
 
             this.baseMbr = mbr;
         }
@@ -335,11 +387,10 @@ public class VersionManager
             try
             {
                 final Set<Project> pomProjects = loadProjectWithModules( pom, session );
-                projects.addAll( pomProjects );
-            }
-            catch ( final ModelBuildingException e )
-            {
-                session.addError( e );
+                if ( pomProjects != null && !pomProjects.isEmpty() )
+                {
+                    projects.addAll( pomProjects );
+                }
             }
             catch ( final ProjectToolsException e )
             {
