@@ -114,6 +114,11 @@ public class PomPeek
             return false;
         }
 
+        if ( "version".equals( version ) )
+        {
+            return false;
+        }
+
         if ( "parentVersion".equals( version ) )
         {
             return false;
@@ -134,6 +139,11 @@ public class PomPeek
             return false;
         }
 
+        if ( "parentGroupId".equals( groupId ) )
+        {
+            return false;
+        }
+
         if ( "groupId".equals( groupId ) )
         {
             return false;
@@ -150,6 +160,16 @@ public class PomPeek
         }
 
         if ( artifactId.contains( "${" ) )
+        {
+            return false;
+        }
+
+        if ( "parentArtifactId".equals( artifactId ) )
+        {
+            return false;
+        }
+
+        if ( "artifactId".equals( artifactId ) )
         {
             return false;
         }

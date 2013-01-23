@@ -287,6 +287,12 @@ public class VersionManager
             {
                 session.addPeekPom( key, pom );
             }
+            else
+            {
+                logger.info( "Skipping " + pom + " as its a template file." );
+                continue;
+            }
+            
 
             final ModelBuildingRequest req = newModelBuildingRequest( pom, session );
             ModelBuildingResult mbResult = null;
@@ -306,19 +312,6 @@ public class VersionManager
             }
 
             final Project project = new Project( raw, mbResult, pom );
-
-            if ( ( project.getGroupId()
-                          .startsWith( "${" ) && project.getArtifactId()
-                                                        .startsWith( "${" ) ) ||
-            // Handle drools template XML file.
-                ( project.getGroupId()
-                         .equals( "groupId" ) && project.getParent()
-                                                        .getVersion()
-                                                        .equals( "parentVersion" ) ) )
-            {
-                logger.info( "Skipping " + project.getPom() + " as its a template file." );
-                continue;
-            }
 
             projects.add( project );
 
