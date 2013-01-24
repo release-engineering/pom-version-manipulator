@@ -42,10 +42,13 @@
       </unpackOptions>
     </dependencySet>
   </dependencySets>
-  <!-- <fileSets>
+  <fileSets>
     <fileSet>
       <directory>src/main/conf</directory>
       <outputDirectory>/</outputDirectory>
+      <excludes>
+        <exclude>log4j.properties</exclude>
+      </excludes>
     </fileSet>
-  </fileSets> -->
+  </fileSets>
 </assembly>

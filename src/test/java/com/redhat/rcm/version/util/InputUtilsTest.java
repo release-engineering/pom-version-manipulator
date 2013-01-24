@@ -22,14 +22,14 @@ import static com.redhat.rcm.version.testutil.TestProjectFixture.getResourceFile
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
+import java.io.File;
+import java.util.Map;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.fixture.LoggingFixture;
-
-import java.io.File;
-import java.util.Map;
 
 public class InputUtilsTest
 {
@@ -82,6 +82,16 @@ public class InputUtilsTest
 
         assertThat( props.get( "org.foo:foo" ), equalTo( "org.bar:foo:1.0" ) );
         assertThat( props.get( "my.proj:core" ), equalTo( "org.proj:core:1.0" ) );
+    }
+
+    @Test
+    public void checkParseProperties_HandlingOfGitwebUrl()
+    {
+        final Map<String, String> props =
+            InputUtils.parseProperties( "bootstrap=http://gitweb.company.com/?p=proj/my-project.git;a=blob_plain;f=vman.properties;hb=HEAD" );
+
+        assertThat( props.get( "bootstrap" ),
+                    equalTo( "http://gitweb.company.com/?p=proj/my-project.git;a=blob_plain;f=vman.properties;hb=HEAD" ) );
     }
 
     @Test

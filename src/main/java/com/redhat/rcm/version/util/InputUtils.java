@@ -59,6 +59,8 @@ public final class InputUtils
 
     private static final Logger LOGGER = new Logger( InputUtils.class );
 
+    private static final int MAX_RETRIES = 5;
+
     private InputUtils()
     {
     }
@@ -256,20 +258,25 @@ public final class InputUtils
                     continue;
                 }
 
-                final int idx = ln.indexOf( '#' );
+                int idx = ln.indexOf( '#' );
                 if ( idx > -1 )
                 {
                     ln = line.substring( 0, idx );
                 }
 
-                final String[] kv = ln.split( "\\s*=\\s*" );
-                if ( kv.length < 2 || kv[0].length() < 1 || kv[1].length() < 1 )
+                idx = ln.indexOf( "=" );
+                if ( idx < 0 )
                 {
                     LOGGER.warn( "Invalid property; key and value must not be empty! (line: '" + line + "')" );
                     continue;
                 }
+                final String k = propCleanup( ln.substring( 0, idx )
+                                                .trim() );
+                final String v = propCleanup( ln.substring( idx + 1 )
+                                                .trim() );
 
-                properties.put( propCleanup( kv[0] ), propCleanup( kv[1] ) );
+                properties.put( k, v );
+
                 // count++;
             }
 
@@ -375,11 +382,13 @@ public final class InputUtils
                 OutputStream out = null;
                 try
                 {
-                    HttpResponse response = client.execute( get );
+                    HttpResponse response = null;
                     // Work around for scenario where we are loading from a server
                     // that does a refresh e.g. gitweb
-                    if ( response.containsHeader( "Cache-control" ) )
+                    final int tries = 0;
+                    do
                     {
+                        response = client.execute( get );
                         LOGGER.info( "Waiting for server to generate cache..." );
                         try
                         {
@@ -390,8 +399,16 @@ public final class InputUtils
                         }
                         get.abort();
                         get = new HttpGet( location );
-                        response = client.execute( get );
                     }
+                    while ( tries < MAX_RETRIES && response.containsHeader( "Cache-control" ) );
+
+                    if ( response.containsHeader( "Cache-control" ) )
+                    {
+                        throw new VManException(
+                                                 "Failed to read: %s. Cache-control header was present in final attempt.",
+                                                 location );
+                    }
+
                     final int code = response.getStatusLine()
                                              .getStatusCode();
                     if ( code == 200 )
