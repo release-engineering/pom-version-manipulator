@@ -19,8 +19,6 @@ package com.redhat.rcm.version.mgr.mod;
 
 import java.util.Collections;
 
-import org.apache.maven.model.Contributor;
-import org.apache.maven.model.Developer;
 import org.apache.maven.model.DistributionManagement;
 import org.apache.maven.model.MailingList;
 import org.apache.maven.model.Model;
@@ -47,17 +45,17 @@ public class MinimizingModder
         changed = ( new RepoRemovalModder().inject( project, session ) ) || changed;
         changed = ( new ExtensionsRemovalModder().inject( project, session ) ) || changed;
 
-        if ( model.getDevelopers() != null )
-        {
-            model.setDevelopers( Collections.<Developer> emptyList() );
-            changed = true;
-        }
-
-        if ( model.getContributors() != null )
-        {
-            model.setContributors( Collections.<Contributor> emptyList() );
-            changed = true;
-        }
+        //        if ( model.getDevelopers() != null )
+        //        {
+        //            model.setDevelopers( Collections.<Developer> emptyList() );
+        //            changed = true;
+        //        }
+        //
+        //        if ( model.getContributors() != null )
+        //        {
+        //            model.setContributors( Collections.<Contributor> emptyList() );
+        //            changed = true;
+        //        }
 
         if ( model.getIssueManagement() != null )
         {
