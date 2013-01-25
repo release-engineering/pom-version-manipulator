@@ -23,6 +23,8 @@ import static com.redhat.rcm.version.util.InputUtils.getFiles;
 import static org.apache.commons.lang.StringUtils.join;
 
 import java.io.File;
+import java.net.Authenticator;
+import java.net.PasswordAuthentication;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -41,6 +43,7 @@ import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.session.SessionInitializer;
 import org.apache.maven.project.MavenProject;
+import org.apache.maven.settings.Proxy;
 import org.apache.maven.settings.Settings;
 import org.apache.maven.settings.building.DefaultSettingsBuildingRequest;
 import org.apache.maven.settings.building.SettingsBuilder;
@@ -181,6 +184,39 @@ public class DefaultSessionConfigurator
         {
             final SettingsBuildingResult result = settingsBuilder.build( req );
             final Settings settings = result.getEffectiveSettings();
+
+            final String proxyHost = System.getProperty( "http.proxyHost" );
+            final String proxyPort = System.getProperty( "http.proxyPort", "8080" );
+            final String nonProxyHosts = System.getProperty( "http.nonProxyHosts", "localhost" );
+
+            final String proxyUser = System.getProperty( "http.proxyUser" );
+            final String proxyPassword = System.getProperty( "http.proxyPassword" );
+            if ( proxyHost != null )
+            {
+                final Proxy proxy = new Proxy();
+                proxy.setActive( true );
+                proxy.setHost( proxyHost );
+                proxy.setId( "cli" );
+                proxy.setNonProxyHosts( nonProxyHosts );
+                proxy.setPort( Integer.parseInt( proxyPort ) );
+
+                if ( proxyUser != null && proxyPassword != null )
+                {
+                    proxy.setUsername( proxyUser );
+                    proxy.setPassword( proxyPassword );
+
+                    Authenticator.setDefault( new Authenticator()
+                    {
+                        @Override
+                        public PasswordAuthentication getPasswordAuthentication()
+                        {
+                            return new PasswordAuthentication( proxyUser, proxyPassword.toCharArray() );
+                        }
+                    } );
+                }
+
+                settings.setProxies( Collections.singletonList( proxy ) );
+            }
 
             executionRequest = requestPopulator.populateFromSettings( executionRequest, settings );
             session.setExecutionRequest( executionRequest );

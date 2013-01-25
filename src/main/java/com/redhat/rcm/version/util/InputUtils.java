@@ -29,6 +29,11 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -46,8 +51,11 @@ import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.conn.params.ConnRouteParams;
+import org.apache.http.conn.scheme.Scheme;
+import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
+import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.codehaus.plexus.util.DirectoryScanner;
 import org.commonjava.util.logging.Logger;
 
@@ -318,6 +326,8 @@ public final class InputUtils
 
     private static DefaultHttpClient client;
 
+    private static KeyStore trustKs;
+
     public static File getFile( final String location, final File downloadsDir )
         throws VManException
     {
@@ -329,20 +339,7 @@ public final class InputUtils
     {
         if ( client == null )
         {
-            final DefaultHttpClient hc = new DefaultHttpClient();
-            hc.setRedirectStrategy( new DefaultRedirectStrategy() );
-
-            final String proxyHost = System.getProperty( "http.proxyHost" );
-            final int proxyPort = Integer.parseInt( System.getProperty( "http.proxyPort", "-1" ) );
-
-            if ( proxyHost != null && proxyPort > 0 )
-            {
-                final HttpHost proxy = new HttpHost( proxyHost, proxyPort );
-                hc.getParams()
-                  .setParameter( ConnRouteParams.DEFAULT_PROXY, proxy );
-            }
-
-            client = hc;
+            setupClient();
         }
 
         File result = null;
@@ -388,19 +385,26 @@ public final class InputUtils
                     final int tries = 0;
                     do
                     {
-                        response = client.execute( get );
-                        LOGGER.info( "Waiting for server to generate cache..." );
-                        try
-                        {
-                            Thread.sleep( 5000 );
-                        }
-                        catch ( final InterruptedException e )
-                        {
-                        }
-                        get.abort();
                         get = new HttpGet( location );
+                        response = client.execute( get );
+                        if ( response.containsHeader( "Cache-control" ) )
+                        {
+                            LOGGER.info( "Waiting for server to generate cache..." );
+                            get.abort();
+                            try
+                            {
+                                Thread.sleep( 3000 );
+                            }
+                            catch ( final InterruptedException e )
+                            {
+                            }
+                        }
+                        else
+                        {
+                            break;
+                        }
                     }
-                    while ( tries < MAX_RETRIES && response.containsHeader( "Cache-control" ) );
+                    while ( tries < MAX_RETRIES );
 
                     if ( response.containsHeader( "Cache-control" ) )
                     {
@@ -453,6 +457,65 @@ public final class InputUtils
         }
 
         return result;
+    }
+
+    private static void setupClient()
+        throws VManException
+    {
+        if ( client == null )
+        {
+            SSLSocketFactory sslSocketFactory;
+            try
+            {
+                sslSocketFactory =
+                    new SSLSocketFactory( SSLSocketFactory.TLS, null, null, trustKs, null, null,
+                                          SSLSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER );
+            }
+            catch ( final KeyManagementException e )
+            {
+                LOGGER.error( "Failed to setup SSL socket factory: %s", e, e.getMessage() );
+                throw new VManException( "Failed to setup SSL socket factory: %s", e, e.getMessage() );
+            }
+            catch ( final UnrecoverableKeyException e )
+            {
+                LOGGER.error( "Failed to setup SSL socket factory: %s", e, e.getMessage() );
+                throw new VManException( "Failed to setup SSL socket factory: %s", e, e.getMessage() );
+            }
+            catch ( final NoSuchAlgorithmException e )
+            {
+                LOGGER.error( "Failed to setup SSL socket factory: %s", e, e.getMessage() );
+                throw new VManException( "Failed to setup SSL socket factory: %s", e, e.getMessage() );
+            }
+            catch ( final KeyStoreException e )
+            {
+                LOGGER.error( "Failed to setup SSL socket factory: %s", e, e.getMessage() );
+                throw new VManException( "Failed to setup SSL socket factory: %s", e, e.getMessage() );
+            }
+
+            final ThreadSafeClientConnManager ccm = new ThreadSafeClientConnManager();
+            ccm.getSchemeRegistry()
+               .register( new Scheme( "https", 443, sslSocketFactory ) );
+
+            final DefaultHttpClient hc = new DefaultHttpClient( ccm );
+            hc.setRedirectStrategy( new DefaultRedirectStrategy() );
+
+            final String proxyHost = System.getProperty( "http.proxyHost" );
+            final int proxyPort = Integer.parseInt( System.getProperty( "http.proxyPort", "-1" ) );
+
+            if ( proxyHost != null && proxyPort > 0 )
+            {
+                final HttpHost proxy = new HttpHost( proxyHost, proxyPort );
+                hc.getParams()
+                  .setParameter( ConnRouteParams.DEFAULT_PROXY, proxy );
+            }
+
+            client = hc;
+        }
+    }
+
+    public static void setTrustKeyStore( final KeyStore trustKs )
+    {
+        InputUtils.trustKs = trustKs;
     }
 
 }

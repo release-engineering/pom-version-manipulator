@@ -79,6 +79,7 @@ import com.redhat.rcm.version.mgr.mod.ProjectModder;
 import com.redhat.rcm.version.mgr.session.SessionBuilder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.util.InputUtils;
+import com.redhat.rcm.version.util.http.SSLUtils;
 
 public class Cli
 {
@@ -171,6 +172,11 @@ public class Cli
 
     @Option( name = "-Z", aliases = { "--no-system-exit" }, usage = "Don't call System.exit(..) with the return value (for embedding/testing)." )
     private boolean noSystemExit;
+
+    @Option( name = "--trustpath", usage = "Directory containing .pem files with certificates of servers to trust. (Use 'classpath:' prefix for a directory embedded in the jar.)" )
+    private final String truststorePath = DEFAULT_TRUSTSTORE_PATH;
+
+    private static final String DEFAULT_TRUSTSTORE_PATH = "classpath:ssl/trust";
 
     private static final File DEFAULT_CONFIG_FILE = new File( System.getProperty( "user.home" ), ".vman.properties" );
 
@@ -560,6 +566,8 @@ public class Cli
     private VersionManagerSession initSession()
         throws VManException
     {
+        SSLUtils.initSSLContext( truststorePath );
+
         loadConfiguration();
 
         loadBomList();
