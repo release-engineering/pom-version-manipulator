@@ -4,15 +4,15 @@ import static javax.xml.stream.XMLStreamConstants.END_ELEMENT;
 import static javax.xml.stream.XMLStreamConstants.START_ELEMENT;
 import static org.apache.commons.io.IOUtils.closeQuietly;
 import static org.apache.commons.lang.StringUtils.isEmpty;
-import static org.apache.commons.lang.StringUtils.isNotEmpty;
+import static org.apache.commons.lang.StringUtils.join;
 
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Stack;
 
 import javax.xml.stream.FactoryConfigurationError;
 import javax.xml.stream.XMLInputFactory;
@@ -25,93 +25,40 @@ import org.commonjava.util.logging.Logger;
 public class PomPeek
 {
 
-    private static final String PROJECT = "project";
+    private static final String G = "g";
 
-    private static final String RELATIVE_PATH = "relativePath";
+    private static final String A = "a";
 
-    private static final String MODEL_VERSION = "modelVersion";
+    private static final String V = "v";
 
-    private static final String PARENT = "parent";
+    private static final String PG = "pg";
 
-    private static final String ARTIFACT_ID = "artifactId";
+    private static final String PV = "pv";
 
-    private static final String GROUP_ID = "groupId";
-
-    private static final String VERSION = "version";
-
-    private static final String PACKAGING = "packaging";
-
-    private static final String NAME = "name";
-
-    private static final String DESCRIPTION = "description";
-
-    private static final String LICENSES = "licenses";
-
-    private static final String LICENSE = "license";
-
-    private static final String DISTRIBUTION = "distribution";
-
-    private static final String INCEPTION_YEAR = "inceptionYear";
-
-    private static final String URL = "url";
-
-    private static final Set<String> HEADER_ELEMENTS = Collections.unmodifiableSet( new HashSet<String>()
+    private static final Map<String, String> CAPTURED_PATHS = new HashMap<String, String>()
     {
         private static final long serialVersionUID = 1L;
 
         {
-            add( PARENT );
-            add( ARTIFACT_ID );
-            add( GROUP_ID );
-            add( VERSION );
-
-            // chaff, but we need these to keep us in the running for a reasonable coordinate...
-            // these, with the ones above, are still sort of considered in the
-            // "header" of the pom.xml...that is, things that generally come first.
-            add( PROJECT );
-            add( MODEL_VERSION );
-            add( PACKAGING );
-            add( NAME );
-            add( DESCRIPTION );
-            add( RELATIVE_PATH );
-            add( INCEPTION_YEAR );
-            add( URL );
-
-            // Extra chaff for those projects with unusual ordering.
-            add( LICENSES );
-            add( LICENSE );
-            add( DISTRIBUTION );
+            put( "project:groupId", G );
+            put( "project:artifactId", A );
+            put( "project:version", V );
+            put( "project:parent:groupId", PG );
+            put( "project:parent:version", PV );
         }
-    } );
+    };
 
     private final Logger logger = new Logger( getClass() );
 
     private FullProjectKey key;
 
-    private String parentGid;
-
-    private String parentVer;
-
-    private String gid;
-
-    private String aid;
-
-    private String ver;
-
-    private transient boolean parsingParent = false;
+    private final Map<String, String> elementValues = new HashMap<String, String>();
 
     public PomPeek( final File pom )
     {
         parseCoordElements( pom );
 
-        final String v = isNotEmpty( ver ) ? ver : parentVer;
-        final String g = isNotEmpty( gid ) ? gid : parentGid;
-
-        if ( isValidArtifactId( aid ) && isValidGroupId( g ) && isValidVersion( v ) )
-        {
-            key = new FullProjectKey( g, aid, v );
-        }
-        else
+        if ( key == null )
         {
             logger.warn( "Could not peek at POM coordinate for: %s. "
                 + "This POM will NOT be available as an ancestor to other models during effective-model building.", pom );
@@ -203,28 +150,30 @@ public class PomPeek
             xml = XMLInputFactory.newFactory()
                                  .createXMLStreamReader( reader );
 
-            all: while ( xml.hasNext() )
+            final Stack<String> path = new Stack<String>();
+            while ( xml.hasNext() )
             {
                 final int evt = xml.next();
                 switch ( evt )
                 {
                     case START_ELEMENT:
                     {
-                        if ( !inHeader( xml ) )
+                        path.push( xml.getLocalName() );
+                        if ( captureValue( path, xml ) )
                         {
-                            logger.info( "Hit non-header element: %s. STOP xml processing.", xml.getLocalName() );
-                            break all;
+                            // seems like xml.getElementText() traverses the END_ELEMENT event...
+                            path.pop();
                         }
 
-                        processElement( xml );
+                        if ( createCoordinate() )
+                        {
+                            return;
+                        }
                         break;
                     }
                     case END_ELEMENT:
                     {
-                        if ( "parent".equals( xml.getLocalName() ) )
-                        {
-                            parsingParent = false;
-                        }
+                        path.pop();
                         break;
                     }
                     default:
@@ -271,45 +220,45 @@ public class PomPeek
         }
     }
 
-    private boolean inHeader( final XMLStreamReader xml )
-    {
-        return HEADER_ELEMENTS.contains( xml.getLocalName() );
-    }
-
-    private void processElement( final XMLStreamReader xml )
+    private boolean captureValue( final Stack<String> path, final XMLStreamReader xml )
         throws XMLStreamException
     {
-        final String lname = xml.getLocalName();
-        if ( PARENT.equals( lname ) )
+        final String pathStr = join( path, ":" );
+        final String key = CAPTURED_PATHS.get( pathStr );
+        if ( key != null )
         {
-            parsingParent = true;
+            elementValues.put( key, xml.getElementText()
+                                       .trim() );
+
+            return true;
         }
-        else if ( GROUP_ID.equals( lname ) )
+
+        return false;
+    }
+
+    private boolean createCoordinate()
+    {
+        String v = elementValues.get( V );
+        if ( isEmpty( v ) )
         {
-            if ( parsingParent )
-            {
-                parentGid = xml.getElementText();
-            }
-            else
-            {
-                gid = xml.getElementText();
-            }
+            v = elementValues.get( PV );
         }
-        else if ( VERSION.equals( lname ) )
+
+        String g = elementValues.get( G );
+        if ( isEmpty( g ) )
         {
-            if ( parsingParent )
-            {
-                parentVer = xml.getElementText();
-            }
-            else
-            {
-                ver = xml.getElementText();
-            }
+            g = elementValues.get( PG );
         }
-        else if ( ARTIFACT_ID.equals( lname ) && !parsingParent )
+
+        final String a = elementValues.get( A );
+
+        if ( isValidArtifactId( a ) && isValidGroupId( g ) && isValidVersion( v ) )
         {
-            aid = xml.getElementText();
+            key = new FullProjectKey( g, a, v );
+            return true;
         }
+
+        return false;
     }
 
 }
