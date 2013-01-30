@@ -45,6 +45,12 @@ public class PomPeek
 
     private static final String DESCRIPTION = "description";
 
+    private static final String LICENSES = "licenses";
+
+    private static final String LICENSE = "license";
+
+    private static final String DISTRIBUTION = "distribution";
+
     private static final String INCEPTION_YEAR = "inceptionYear";
 
     private static final String URL = "url";
@@ -60,7 +66,7 @@ public class PomPeek
             add( VERSION );
 
             // chaff, but we need these to keep us in the running for a reasonable coordinate...
-            // these, with the ones above, are still sort of considered in the 
+            // these, with the ones above, are still sort of considered in the
             // "header" of the pom.xml...that is, things that generally come first.
             add( PROJECT );
             add( MODEL_VERSION );
@@ -70,6 +76,11 @@ public class PomPeek
             add( RELATIVE_PATH );
             add( INCEPTION_YEAR );
             add( URL );
+
+            // Extra chaff for those projects with unusual ordering.
+            add( LICENSES );
+            add( LICENSE );
+            add( DISTRIBUTION );
         }
     } );
 
