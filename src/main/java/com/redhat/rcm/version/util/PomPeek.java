@@ -58,7 +58,7 @@ public class PomPeek
     {
         parseCoordElements( pom );
 
-        if ( key == null )
+        if ( !createCoordinate() )
         {
             logger.warn( "Could not peek at POM coordinate for: %s. "
                 + "This POM will NOT be available as an ancestor to other models during effective-model building.", pom );
@@ -165,7 +165,7 @@ public class PomPeek
                             path.pop();
                         }
 
-                        if ( createCoordinate() )
+                        if ( foundPreferredValues() )
                         {
                             return;
                         }
@@ -218,6 +218,11 @@ public class PomPeek
 
             closeQuietly( reader );
         }
+    }
+
+    private boolean foundPreferredValues()
+    {
+        return elementValues.containsKey( A ) && elementValues.containsKey( G ) && elementValues.containsKey( V );
     }
 
     private boolean captureValue( final Stack<String> path, final XMLStreamReader xml )

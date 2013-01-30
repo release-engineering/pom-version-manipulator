@@ -39,4 +39,49 @@ public class PomPeekTest
 
     }
 
+    @Test
+    public void findGAVDirectlyInProjectBelowProperties()
+    {
+        final File pom = getResourceFile( BASE + "direct-gav-below-props.pom" );
+        final PomPeek peek = new PomPeek( pom );
+
+        assertThat( peek.getKey(), notNullValue() );
+
+        final FullProjectKey key = peek.getKey();
+        assertThat( key.getGroupId(), equalTo( "test" ) );
+        assertThat( key.getArtifactId(), equalTo( "direct-gav-below-props" ) );
+        assertThat( key.getVersion(), equalTo( "1" ) );
+
+    }
+
+    @Test
+    public void findGAVInheritedFromParentAtTop()
+    {
+        final File pom = getResourceFile( BASE + "inherited-gav-at-top.pom" );
+        final PomPeek peek = new PomPeek( pom );
+
+        assertThat( peek.getKey(), notNullValue() );
+
+        final FullProjectKey key = peek.getKey();
+        assertThat( key.getGroupId(), equalTo( "test" ) );
+        assertThat( key.getArtifactId(), equalTo( "inherited-gav-at-top" ) );
+        assertThat( key.getVersion(), equalTo( "1" ) );
+
+    }
+
+    @Test
+    public void findGAVInheritedFromParentWithVersionOverrideAtTop()
+    {
+        final File pom = getResourceFile( BASE + "inherited-gav-with-override-at-top.pom" );
+        final PomPeek peek = new PomPeek( pom );
+
+        assertThat( peek.getKey(), notNullValue() );
+
+        final FullProjectKey key = peek.getKey();
+        assertThat( key.getGroupId(), equalTo( "test" ) );
+        assertThat( key.getArtifactId(), equalTo( "inherited-gav-with-override-at-top" ) );
+        assertThat( key.getVersion(), equalTo( "2" ) );
+
+    }
+
 }
