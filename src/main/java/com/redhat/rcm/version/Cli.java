@@ -174,7 +174,10 @@ public class Cli
     private boolean noSystemExit;
 
     @Option( name = "--trustpath", usage = "Directory containing .pem files with certificates of servers to trust. (Use 'classpath:' prefix for a directory embedded in the jar.)" )
-    private final String truststorePath = DEFAULT_TRUSTSTORE_PATH;
+    private String truststorePath = DEFAULT_TRUSTSTORE_PATH;
+
+    @Option( name = "--use-effective-poms", usage = "Disable resolution of effective POMs for projects being modified (May be useful if parent POMs aren't resolvable)." )
+    private boolean useEffectivePoms = false;
 
     private static final String DEFAULT_TRUSTSTORE_PATH = "classpath:ssl/trust";
 
@@ -218,6 +221,10 @@ public class Cli
     public static final String PROPERTY_MAPPINGS_PROPERTY = "property-mappings";
 
     public static final String BOOT_CONFIG_PROPERTY = "configuration";
+
+    public static final String TRUSTSTORE_PATH_PROPERTY = "truststore-path";
+
+    public static final String USE_EFFECTIVE_POMS_PROPERTY = "use-effective-poms";
 
     private static final File DEFAULT_BOOTSTRAP_CONFIG = new File( System.getProperty( "user.home" ),
                                                                    ".vman.boot.properties" );
@@ -590,7 +597,8 @@ public class Cli
                                                     .withStrict( strict )
                                                     .withCoordinateRelocations( relocatedCoords )
                                                     .withPropertyMappings( propertyMappings )
-                                                    .withExcludedModulePoms( pomExcludeModules );
+                                                    .withExcludedModulePoms( pomExcludeModules )
+                                                    .withUseEffectivePoms( useEffectivePoms );
 
         final VersionManagerSession session = builder.build();
 
@@ -1000,6 +1008,18 @@ public class Cli
                 {
                     strict =
                         Boolean.valueOf( props.getProperty( STRICT_MODE_PROPERTY, Boolean.toString( Boolean.FALSE ) ) );
+                }
+
+                if ( !useEffectivePoms )
+                {
+                    useEffectivePoms =
+                        !Boolean.valueOf( props.getProperty( USE_EFFECTIVE_POMS_PROPERTY,
+                                                             Boolean.toString( Boolean.FALSE ) ) );
+                }
+
+                if ( truststorePath == null )
+                {
+                    truststorePath = props.getProperty( TRUSTSTORE_PATH_PROPERTY );
                 }
             }
             catch ( final IOException e )

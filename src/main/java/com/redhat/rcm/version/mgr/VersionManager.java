@@ -292,31 +292,40 @@ public class VersionManager
                 logger.info( "Skipping " + pom + " as its a template file." );
                 continue;
             }
-            
 
-            final ModelBuildingRequest req = newModelBuildingRequest( pom, session );
-            ModelBuildingResult mbResult = null;
-            try
+            final Project project;
+            if ( session.isUseEffectivePoms() )
             {
-                mbResult = modelBuilder.build( req );
-            }
-            catch ( final ModelBuildingException e )
-            {
-                session.addError( new VManException( "Failed to build model for POM: %s.\n--> %s", e, pom,
-                                                     e.getMessage() ) );
-            }
+                // FIXME: Need an option to disable this for self-contained use cases...
+                //    Is this the same as 'non-strict' mode??
+                final ModelBuildingRequest req = newModelBuildingRequest( pom, session );
+                ModelBuildingResult mbResult = null;
+                try
+                {
+                    mbResult = modelBuilder.build( req );
+                }
+                catch ( final ModelBuildingException e )
+                {
+                    session.addError( new VManException( "Failed to build model for POM: %s.\n--> %s", e, pom,
+                                                         e.getMessage() ) );
+                }
 
-            if ( mbResult == null )
-            {
-                continue;
-            }
+                if ( mbResult == null )
+                {
+                    continue;
+                }
 
-            final Project project = new Project( raw, mbResult, pom );
+                project = new Project( raw, mbResult, pom );
+            }
+            else
+            {
+                project = new Project( pom, raw );
+            }
 
             projects.add( project );
 
             final File dir = pom.getParentFile();
-            final Model model = project.getEffectiveModel();
+            final Model model = session.isUseEffectivePoms() ? project.getEffectiveModel() : project.getOriginalModel();
 
             final List<String> modules = model.getModules();
             for ( final String module : modules )

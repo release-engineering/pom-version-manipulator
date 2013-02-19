@@ -92,11 +92,13 @@ public class VersionManagerSession
 
     private VManWorkspaceReader workspaceReader;
 
+    private final boolean useEffectivePoms;
+
     public VersionManagerSession( final File workspace, final File reports, final String versionSuffix,
                                   final String versionModifier, final Collection<String> removedPlugins,
                                   final Collection<String> removedTests, final Collection<String> extensionsWhitelist,
                                   final List<String> modderKeys, final boolean preserveFiles, final boolean strict,
-                                  final Map<String, String> relocatedCoords,
+                                  final boolean useEffectivePoms, final Map<String, String> relocatedCoords,
                                   final Map<String, String> propertyMappings,
                                   final Set<VersionlessProjectKey> excludedModulePoms )
     {
@@ -105,6 +107,7 @@ public class VersionManagerSession
         this.versionSuffix = versionSuffix;
         this.versionModifier = versionModifier;
         this.strict = strict;
+        this.useEffectivePoms = useEffectivePoms;
 
         backups = new File( workspace, "backups" );
         backups.mkdirs();
@@ -117,6 +120,11 @@ public class VersionManagerSession
             new ManagedInfo( this, removedPlugins, removedTests, extensionsWhitelist, modderKeys, relocatedCoords,
                              propertyMappings, excludedModulePoms );
         changeInfo = new ChangeInfo();
+    }
+
+    public boolean isUseEffectivePoms()
+    {
+        return useEffectivePoms;
     }
 
     public static File getDownloadsDir( final File workspace )
@@ -578,7 +586,7 @@ public class VersionManagerSession
                                           final String type, final String classifier )
     {
         String result = null;
-        final Model model = project.getEffectiveModel();
+        final Model model = isUseEffectivePoms() ? project.getEffectiveModel() : project.getOriginalModel();
 
         if ( model == null )
         {
