@@ -112,6 +112,7 @@ public class ExtensionsRemovalModderTest
     {
         final VersionManagerSession session =
             new SessionBuilder( workspace, reports ).withExtensionsWhitelist( Collections.singletonList( "org.foo:bar-ext" ) )
+                                                    .withUseEffectivePoms( true )
                                                     .build();
 
         final File pomFile = getResourceFile( BASE + "pom-whitelisted-with-prop.xml" );
@@ -157,6 +158,7 @@ public class ExtensionsRemovalModderTest
     {
         final VersionManagerSession session =
             new SessionBuilder( workspace, reports ).withExtensionsWhitelist( Collections.singletonList( "org.foo:bar-ext" ) )
+                                                    .withUseEffectivePoms( true )
                                                     .build();
 
         final File pomFile = getResourceFile( BASE + "pom-whitelisted-no-prop.xml" );
