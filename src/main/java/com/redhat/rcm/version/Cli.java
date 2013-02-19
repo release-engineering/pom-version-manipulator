@@ -1013,8 +1013,8 @@ public class Cli
                 if ( !useEffectivePoms )
                 {
                     useEffectivePoms =
-                        !Boolean.valueOf( props.getProperty( USE_EFFECTIVE_POMS_PROPERTY,
-                                                             Boolean.toString( Boolean.FALSE ) ) );
+                        Boolean.valueOf( props.getProperty( USE_EFFECTIVE_POMS_PROPERTY,
+                                                            Boolean.toString( Boolean.FALSE ) ) );
                 }
 
                 if ( truststorePath == null )
