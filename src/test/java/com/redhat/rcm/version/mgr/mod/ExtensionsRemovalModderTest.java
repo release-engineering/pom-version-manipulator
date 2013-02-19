@@ -195,4 +195,50 @@ public class ExtensionsRemovalModderTest
                                    .get( 0 );
         assertThat( ext.getVersion(), equalTo( "${version.org.foo-bar-ext}" ) );
     }
+
+    @Test
+    public void preserveWhitelistedExtension_GeneratedProperty_DontUseEffectivePoms()
+        throws Exception
+    {
+        final VersionManagerSession session =
+            new SessionBuilder( workspace, reports ).withExtensionsWhitelist( Collections.singletonList( "org.foo:bar-ext" ) )
+                                                    .withUseEffectivePoms( false )
+                                                    .build();
+
+        final File pomFile = getResourceFile( BASE + "pom-whitelisted-no-prop-no-eff.xml" );
+        final File toolchainFile = getResourceFile( BASE + "toolchain-no-prop.pom" );
+
+        fixture.getVman()
+               .configureSession( null, null, session, pomFile, toolchainFile );
+
+        final Project project = fixture.loadProject( pomFile, session );
+
+        System.out.println( "Model parent is: " + project.getParent() );
+        final Model model = project.getModel();
+
+        assertThat( model.getBuild()
+                         .getExtensions()
+                         .size(), equalTo( 1 ) );
+
+        final Project toolchain = fixture.loadProject( toolchainFile, session );
+        final MavenProject toolchainM = new MavenProject( toolchain.getModel() );
+        toolchainM.setFile( toolchain.getPom() );
+        toolchainM.setOriginalModel( toolchain.getModel() );
+
+        session.setToolchain( toolchain.getPom(), toolchainM );
+
+        final boolean changed = fixture.getVman()
+                                       .getModder( ExtensionsRemovalModder.class )
+                                       .inject( project, session );
+
+        assertThat( changed, equalTo( true ) );
+        assertThat( model.getBuild()
+                         .getExtensions()
+                         .size(), equalTo( 1 ) );
+
+        final Extension ext = model.getBuild()
+                                   .getExtensions()
+                                   .get( 0 );
+        assertThat( ext.getVersion(), equalTo( "${version.org.foo-bar-ext}" ) );
+    }
 }
