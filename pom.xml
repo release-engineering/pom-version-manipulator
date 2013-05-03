@@ -288,6 +288,7 @@
                 <descriptors>
                   <descriptor>src/main/assembly/bin.xml</descriptor>
                 </descriptors>
+                <appendAssemblyId>false</appendAssemblyId>
                 <archive>
                   <manifest>
                     <mainClass>com.redhat.rcm.version.Cli</mainClass>
