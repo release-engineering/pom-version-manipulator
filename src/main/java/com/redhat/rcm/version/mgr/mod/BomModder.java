@@ -281,13 +281,15 @@ public class BomModder
         if ( managed == null )
         {
             // if we don't find the one with the specific type/classifier, look for the generic one
-            // if we find that, we can list the specific one as a missing dep and use the info from
-            // the generic one for the version, etc.
+            // if we find that, we can list the specific one as a missing dep
             managed = session.getManagedDependency( new DependencyManagementKey( d.getGroupId(), d.getArtifactId() ) );
             if ( managed != null )
             {
                 session.addMissingDependency( project, d );
             }
+
+            // now, reset it to null so we don't change the way the next section works in the absence of a matching BOM-managed dep.
+            managed = null;
         }
 
         // If in non-strict mode (default), wipe it out even if the dependency isn't in the BOM
