@@ -288,8 +288,12 @@ public class BomModder
                 session.addMissingDependency( project, d );
             }
 
-            // now, reset it to null so we don't change the way the next section works in the absence of a matching BOM-managed dep.
-            managed = null;
+            // in non-strict mode, we can make more assumptions.
+            if ( session.isStrict() )
+            {
+                // now, reset it to null so we don't change the way the next section works in the absence of a matching BOM-managed dep.
+                managed = null;
+            }
         }
 
         // If in non-strict mode (default), wipe it out even if the dependency isn't in the BOM
