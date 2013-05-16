@@ -26,13 +26,18 @@ import java.util.List;
 
 import org.apache.maven.mae.project.ProjectToolsException;
 import org.apache.maven.mae.project.key.FullProjectKey;
+import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Build;
+import org.apache.maven.model.BuildBase;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.DependencyManagement;
+import org.apache.maven.model.Extension;
 import org.apache.maven.model.Model;
+import org.apache.maven.model.ModelBase;
 import org.apache.maven.model.Parent;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginManagement;
+import org.apache.maven.model.Profile;
 import org.apache.maven.model.ReportPlugin;
 import org.apache.maven.model.Reporting;
 import org.apache.maven.model.building.ModelBuildingResult;
@@ -205,7 +210,13 @@ public class Project
 
     public List<Plugin> getPlugins()
     {
-        final Build build = model.getBuild();
+        return getPlugins( model );
+    }
+
+    public List<Plugin> getPlugins( final ModelBase base )
+    {
+        final BuildBase build = getBuild( base );
+
         if ( build == null )
         {
             return Collections.emptyList();
@@ -220,32 +231,67 @@ public class Project
         return result;
     }
 
+    public Build getBuild()
+    {
+        return (Build) getBuild( model );
+    }
+
+    public BuildBase getBuild( final ModelBase base )
+    {
+        BuildBase build = null;
+        if ( base instanceof Model )
+        {
+            build = ( (Model) base ).getBuild();
+        }
+        else
+        {
+            build = ( (Profile) base ).getBuild();
+        }
+
+        return build;
+    }
+
     public List<Plugin> getManagedPlugins()
     {
-        final Build build = model.getBuild();
-        if ( build == null )
+        return getManagedPlugins( model );
+    }
+
+    public List<Plugin> getManagedPlugins( final ModelBase base )
+    {
+        if ( base instanceof Model )
         {
-            return Collections.emptyList();
+            final Build build = ( (Model) base ).getBuild();
+            if ( build == null )
+            {
+                return Collections.emptyList();
+            }
+
+            final PluginManagement pm = build.getPluginManagement();
+            if ( pm == null )
+            {
+                return Collections.emptyList();
+            }
+
+            final List<Plugin> result = pm.getPlugins();
+            if ( result == null )
+            {
+                return Collections.emptyList();
+            }
+
+            return result;
         }
 
-        final PluginManagement pm = build.getPluginManagement();
-        if ( pm == null )
-        {
-            return Collections.emptyList();
-        }
-
-        final List<Plugin> result = pm.getPlugins();
-        if ( result == null )
-        {
-            return Collections.emptyList();
-        }
-
-        return result;
+        return Collections.emptyList();
     }
 
     public List<ReportPlugin> getReportPlugins()
     {
-        final Reporting reporting = model.getReporting();
+        return getReportPlugins( model );
+    }
+
+    public List<ReportPlugin> getReportPlugins( final ModelBase base )
+    {
+        final Reporting reporting = base.getReporting();
         if ( reporting == null )
         {
             return Collections.emptyList();
@@ -256,7 +302,12 @@ public class Project
 
     public Iterable<Dependency> getDependencies()
     {
-        List<Dependency> deps = model.getDependencies();
+        return getDependencies( model );
+    }
+
+    public Iterable<Dependency> getDependencies( final ModelBase base )
+    {
+        List<Dependency> deps = base.getDependencies();
         if ( deps == null )
         {
             deps = Collections.emptyList();
@@ -267,7 +318,12 @@ public class Project
 
     public Iterable<Dependency> getManagedDependencies()
     {
-        final DependencyManagement dm = model.getDependencyManagement();
+        return getManagedDependencies( model );
+    }
+
+    public Iterable<Dependency> getManagedDependencies( final ModelBase base )
+    {
+        final DependencyManagement dm = base.getDependencyManagement();
         if ( dm == null || dm.getDependencies() == null )
         {
             return Collections.emptyList();
@@ -311,7 +367,20 @@ public class Project
      */
     public void flushPluginMaps()
     {
-        final Build build = model.getBuild();
+        flushPluginMaps( model );
+        final List<Profile> profiles = model.getProfiles();
+        if ( profiles != null )
+        {
+            for ( final Profile profile : profiles )
+            {
+                flushPluginMaps( profile );
+            }
+        }
+    }
+
+    public void flushPluginMaps( final ModelBase base )
+    {
+        final BuildBase build = getBuild( base );
         if ( build != null )
         {
             build.flushPluginMap();
@@ -366,6 +435,33 @@ public class Project
     public Model getOriginalModel()
     {
         return originalModel;
+    }
+
+    public VersionlessProjectKey getVersionlessParentKey()
+    {
+        return getParent() != null ? new VersionlessProjectKey( getParent() ) : null;
+    }
+
+    public List<Extension> getExtensions()
+    {
+        if ( model.getBuild() == null )
+        {
+            return Collections.emptyList();
+        }
+
+        final List<Extension> extensions = model.getBuild()
+                                                .getExtensions();
+        if ( extensions == null )
+        {
+            return Collections.emptyList();
+        }
+
+        return extensions;
+    }
+
+    public String getPackaging()
+    {
+        return model.getPackaging();
     }
 
 }

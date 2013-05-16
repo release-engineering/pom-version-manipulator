@@ -49,6 +49,7 @@ import org.apache.maven.model.PluginManagement;
 import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.util.WriterFactory;
+import org.sonatype.aether.artifact.ArtifactType;
 import org.sonatype.aether.util.version.GenericVersionScheme;
 import org.sonatype.aether.version.InvalidVersionSpecificationException;
 import org.sonatype.aether.version.Version;
@@ -170,6 +171,17 @@ public class MissingInfoCapture
                 dep.setGroupId( project.getGroupId() );
                 dep.setArtifactId( project.getArtifactId() );
                 dep.setVersion( project.getVersion() );
+
+                final ArtifactType at = session.getArtifactType( project );
+                if ( at != null )
+                {
+                    dep.setType( at.getExtension() );
+                    dep.setClassifier( at.getClassifier() );
+                }
+                else
+                {
+                    dep.setType( project.getPackaging() );
+                }
 
                 dm.addDependency( dep );
                 changed = true;

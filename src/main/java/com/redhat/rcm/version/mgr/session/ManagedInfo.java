@@ -122,6 +122,7 @@ class ManagedInfo
                 this.removedTests.add( new WildcardProjectKey( rm ) );
             }
         }
+
         if ( extensionsWhitelist != null )
         {
             for ( final String rm : extensionsWhitelist )
@@ -129,6 +130,7 @@ class ManagedInfo
                 this.extensionsWhitelist.add( new VersionlessProjectKey( rm ) );
             }
         }
+
         if ( modderKeys != null )
         {
             for ( final String key : modderKeys )
@@ -313,6 +315,7 @@ class ManagedInfo
         return removedTests;
     }
 
+    /** NEVER null. */
     Set<VersionlessProjectKey> getExtensionsWhitelist()
     {
         return extensionsWhitelist;

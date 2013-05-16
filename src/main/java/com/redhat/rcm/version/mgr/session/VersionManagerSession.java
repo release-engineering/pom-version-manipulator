@@ -45,6 +45,8 @@ import org.apache.maven.model.Repository;
 import org.apache.maven.project.MavenProject;
 import org.commonjava.util.logging.Logger;
 import org.sonatype.aether.RepositorySystemSession;
+import org.sonatype.aether.artifact.ArtifactType;
+import org.sonatype.aether.artifact.ArtifactTypeRegistry;
 import org.sonatype.aether.util.DefaultRepositorySystemSession;
 
 import com.redhat.rcm.version.VManException;
@@ -364,6 +366,7 @@ public class VersionManagerSession
         return managedInfo.getRemovedTests();
     }
 
+    /** NEVER null. */
     public Set<VersionlessProjectKey> getExtensionsWhitelist()
     {
         return managedInfo.getExtensionsWhitelist();
@@ -702,5 +705,11 @@ public class VersionManagerSession
     public void addPeekPom( final FullProjectKey key, final File pom )
     {
         managedInfo.addPeekPom( key, pom );
+    }
+
+    public synchronized ArtifactType getArtifactType( final Project project )
+    {
+        final ArtifactTypeRegistry typeRegistry = getRepositorySystemSession().getArtifactTypeRegistry();
+        return typeRegistry.get( project.getPackaging() );
     }
 }

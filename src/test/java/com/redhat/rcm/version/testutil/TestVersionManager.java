@@ -48,6 +48,7 @@ public class TestVersionManager
         {
             if ( instance == null )
             {
+                TestVersionManager.setClasspathScanning( true );
                 instance = new TestVersionManager();
                 instance.load();
             }

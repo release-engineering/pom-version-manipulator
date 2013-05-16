@@ -25,6 +25,7 @@ import static com.redhat.rcm.version.testutil.VManAssertions.assertModelsNormali
 import static com.redhat.rcm.version.testutil.VManAssertions.assertNoErrors;
 import static com.redhat.rcm.version.testutil.VManAssertions.assertProjectNormalizedToBOMs;
 import static com.redhat.rcm.version.testutil.VManAssertions.assertProjectsNormalizedToBOMs;
+import static org.apache.commons.lang.StringUtils.join;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -41,8 +42,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Dependency;
+import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Repository;
 import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
@@ -190,7 +193,6 @@ public class BomModderTest
         assertNoErrors( session );
         assertProjectNormalizedToBOMs( pom, Collections.singleton( fixture.loadProject( bom, session ) ) );
 
-        System.out.println( "\n\n" );
     }
 
     @Test
@@ -215,14 +217,12 @@ public class BomModderTest
         assertNoErrors( session );
         assertProjectNormalizedToBOMs( pom, Collections.singleton( bom ) );
 
-        System.out.println( "\n\n" );
     }
 
     @Test
     public void modifyMultimodule_NormalizeToBOMUsage()
         throws Exception
     {
-        System.out.println( "Mult-module project tree test (normalize to BOM usage)..." );
 
         final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
 
@@ -247,14 +247,12 @@ public class BomModderTest
 
         assertProjectsNormalizedToBOMs( poms, Collections.singleton( bom ) );
 
-        System.out.println( "\n\n" );
     }
 
     @Test
     public void modifyMultimodule_IgnoreProjectInterdependency()
         throws Exception
     {
-        System.out.println( "Multi-module tree with interdependencies test (normalize to BOM usage)..." );
 
         final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
 
@@ -292,7 +290,6 @@ public class BomModderTest
             assertThat( "Dependency: " + dep + " should NOT be modified!", dep.getVersion(), notNullValue() );
         }
 
-        System.out.println( "\n\n" );
     }
 
     @Test
@@ -343,7 +340,6 @@ public class BomModderTest
         assertFalse( result.contains( "<groupId>commons-codec</groupId>" ) );
         assertFalse( result.contains( "<groupId>commons-lang</groupId>" ) );
 
-        System.out.println( "\n\n" );
     }
 
     @Test
@@ -482,7 +478,6 @@ public class BomModderTest
     public void modifySinglePomWithNonBOMRelocatedCoordinates()
         throws Exception
     {
-        System.out.println( "Single POM test (with relocations NOT from BOM)..." );
 
         final File pom = getResourceFile( "pom-with-relocation.xml" );
         final String bom = getResourceFile( "bom-min.xml" ).getAbsolutePath();
@@ -511,14 +506,12 @@ public class BomModderTest
         assertThat( dep.getArtifactId(), equalTo( "new-artifact" ) );
         assertThat( dep.getVersion(), nullValue() );
 
-        System.out.println( "\n\n" );
     }
 
     @Test
     public void modifySinglePomWithNonBOMRelocatedCoordinatesWhenDepNotInBOM()
         throws Exception
     {
-        System.out.println( "Single POM test (with relocations NOT from BOM, no dep in BOM)..." );
 
         final File pom = getResourceFile( "pom-with-relocation.xml" );
         final String bom = getResourceFile( "bom-empty.xml" ).getAbsolutePath();
@@ -547,14 +540,12 @@ public class BomModderTest
         assertThat( dep.getArtifactId(), equalTo( "new-artifact" ) );
         assertThat( dep.getVersion(), equalTo( "1.0.0" ) );
 
-        System.out.println( "\n\n" );
     }
 
     @Test
     public void managedDepsMissingFromBOMIncludedInCapturePOM()
         throws Exception
     {
-        System.out.println( "capture missing managed deps..." );
 
         final File pom = getResourceFile( "pom-with-managed-dep.xml" );
         final File bom = getResourceFile( "bom-min.xml" );
@@ -579,31 +570,35 @@ public class BomModderTest
 
         assertNoErrors( session );
 
-        final Model capture = loadModel( pom );
+        final Model capture = loadModel( capturePom );
 
         assertThat( capture.getDependencyManagement(), notNullValue() );
         assertThat( capture.getDependencyManagement()
                            .getDependencies(), notNullValue() );
+
+        System.out.println( join( capture.getDependencyManagement()
+                                         .getDependencies(), "\n" ) );
+
         assertThat( capture.getDependencyManagement()
                            .getDependencies()
-                           .size(), equalTo( 1 ) );
+                           .size(), equalTo( 2 ) );
+
+        assertProject( capture, project );
 
         final Dependency dep = capture.getDependencyManagement()
                                       .getDependencies()
-                                      .get( 0 );
+                                      .get( 1 );
 
         assertThat( dep.getGroupId(), equalTo( "group.id" ) );
         assertThat( dep.getArtifactId(), equalTo( "some-artifact" ) );
         assertThat( dep.getVersion(), equalTo( "1" ) );
 
-        System.out.println( "\n\n" );
     }
 
     @Test
     public void managedDepsMissingFromBOMIncludedInCapturePOM_NonStrictMode()
         throws Exception
     {
-        System.out.println( "capture missing managed deps..." );
 
         final File pom = getResourceFile( "pom-with-managed-dep.xml" );
         final File bom = getResourceFile( "bom-min.xml" );
@@ -628,24 +623,25 @@ public class BomModderTest
 
         assertNoErrors( session );
 
-        final Model capture = loadModel( pom );
+        final Model capture = loadModel( capturePom );
 
         assertThat( capture.getDependencyManagement(), notNullValue() );
         assertThat( capture.getDependencyManagement()
                            .getDependencies(), notNullValue() );
         assertThat( capture.getDependencyManagement()
                            .getDependencies()
-                           .size(), equalTo( 1 ) );
+                           .size(), equalTo( 2 ) );
+
+        assertProject( capture, project );
 
         final Dependency dep = capture.getDependencyManagement()
                                       .getDependencies()
-                                      .get( 0 );
+                                      .get( 1 );
 
         assertThat( dep.getGroupId(), equalTo( "group.id" ) );
         assertThat( dep.getArtifactId(), equalTo( "some-artifact" ) );
         assertThat( dep.getVersion(), equalTo( "1" ) );
 
-        System.out.println( "\n\n" );
     }
 
     @Test
@@ -733,6 +729,135 @@ public class BomModderTest
         assertThat( dep.getVersion(), equalTo( "1" ) );
         assertThat( dep.getType(), equalTo( "pom" ) );
         assertThat( dep.getScope(), equalTo( "import" ) );
+    }
+
+    @Test
+    public void managedDepWithNonStandardType_RemoveVersion_StrictMode()
+        throws Exception
+    {
+
+        final File pom = getResourceFile( "pom-with-custom-managed-dep.xml" );
+        final File bom = getResourceFile( "bom-typed-min.xml" );
+
+        final VersionManagerSession session = new SessionBuilder( workspace, reports ).build();
+
+        fixture.getVman()
+               .configureSession( Collections.singletonList( bom.getAbsolutePath() ), null, session, pom, bom );
+
+        final Project project = fixture.loadProject( pom, session );
+        final Project bomProject = fixture.loadProject( bom, session );
+
+        final Set<Project> projects = new HashSet<Project>();
+        projects.add( project );
+
+        session.setCurrentProjects( projects );
+
+        final boolean changed = new BomModder().inject( project, session );
+
+        assertThat( changed, equalTo( true ) );
+
+        assertNoErrors( session );
+
+        final Model model = project.getModel();
+
+        assertThat( model.getDependencyManagement(), notNullValue() );
+        assertThat( model.getDependencyManagement()
+                         .getDependencies(), notNullValue() );
+        assertThat( model.getDependencyManagement()
+                         .getDependencies()
+                         .size(), equalTo( 1 ) );
+
+        assertBoms( model, bomProject.getKey() );
+    }
+
+    private void assertBoms( final Model model, final FullProjectKey... bomKeys )
+    {
+        final DependencyManagement dm = model.getDependencyManagement();
+        assertThat( dm, notNullValue() );
+
+        final List<Dependency> deps = dm.getDependencies();
+        assertThat( deps, notNullValue() );
+        assertThat( deps.size() >= bomKeys.length, equalTo( true ) );
+
+        for ( int i = 0; i < bomKeys.length; i++ )
+        {
+            final FullProjectKey bom = bomKeys[i];
+            final Dependency dep = deps.get( i );
+
+            final String exp = "BOM: " + bom + ", dep: " + dep;
+            assertThat( exp, dep.getGroupId(), equalTo( bom.getGroupId() ) );
+            assertThat( exp, dep.getArtifactId(), equalTo( bom.getArtifactId() ) );
+            assertThat( exp, dep.getVersion(), equalTo( bom.getVersion() ) );
+            assertThat( exp, dep.getType(), equalTo( "pom" ) );
+            assertThat( exp, dep.getScope(), equalTo( "import" ) );
+        }
+    }
+
+    private void assertProject( final Model model, final Project project )
+    {
+        final DependencyManagement dm = model.getDependencyManagement();
+        assertThat( dm, notNullValue() );
+
+        final List<Dependency> deps = dm.getDependencies();
+        assertThat( deps, notNullValue() );
+        assertThat( deps.size() > 0, equalTo( true ) );
+
+        final Dependency dep = deps.get( 0 );
+        final String exp = "My Project: " + project.getModel() + ", dep: " + dep;
+        assertThat( exp, dep.getGroupId(), equalTo( project.getGroupId() ) );
+        assertThat( exp, dep.getArtifactId(), equalTo( project.getArtifactId() ) );
+        assertThat( exp, dep.getVersion(), equalTo( project.getVersion() ) );
+        assertThat( exp, dep.getType(), equalTo( project.getModel()
+                                                        .getPackaging() ) );
+    }
+
+    @Test
+    public void managedDepWithDifferentTypeFromBOMDep_PreserveVersion_StrictMode()
+        throws Exception
+    {
+
+        final File pom = getResourceFile( "pom-with-typed-managed-dep.xml" );
+        final File bom = getResourceFile( "bom-typed-min.xml" );
+
+        final VersionManagerSession session = new SessionBuilder( workspace, reports ).build();
+
+        fixture.getVman()
+               .configureSession( Collections.singletonList( bom.getAbsolutePath() ), null, session, pom, bom );
+
+        final Project project = fixture.loadProject( pom, session );
+        final Project bomProject = fixture.loadProject( bom, session );
+
+        final Set<Project> projects = new HashSet<Project>();
+        projects.add( project );
+
+        session.setCurrentProjects( projects );
+
+        new BomModder().inject( project, session );
+
+        assertNoErrors( session );
+
+        final Model model = project.getModel();
+
+        assertThat( model.getDependencyManagement(), notNullValue() );
+
+        assertThat( model.getDependencyManagement()
+                         .getDependencies(), notNullValue() );
+
+        assertThat( model.getDependencyManagement()
+                         .getDependencies()
+                         .size(), equalTo( 2 ) );
+
+        assertBoms( model, bomProject.getKey() );
+
+        final Dependency dep = model.getDependencyManagement()
+                                    .getDependencies()
+                                    .get( 1 );
+
+        assertThat( dep.getGroupId(), equalTo( "group.id" ) );
+        assertThat( dep.getArtifactId(), equalTo( "some-artifact" ) );
+        assertThat( dep.getVersion(), equalTo( "1" ) );
+        assertThat( dep.getType(), equalTo( "test-jar" ) );
+
     }
 
 }

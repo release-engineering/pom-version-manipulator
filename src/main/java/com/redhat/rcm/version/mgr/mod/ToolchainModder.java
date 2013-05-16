@@ -27,18 +27,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.commonjava.util.logging.Logger;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Build;
+import org.apache.maven.model.BuildBase;
 import org.apache.maven.model.Model;
+import org.apache.maven.model.ModelBase;
 import org.apache.maven.model.Parent;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginManagement;
+import org.apache.maven.model.Profile;
 import org.apache.maven.model.ReportPlugin;
 import org.apache.maven.model.Reporting;
 import org.apache.maven.model.merge.MavenModelMerger;
 import org.codehaus.plexus.component.annotations.Component;
+import org.commonjava.util.logging.Logger;
 
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
@@ -73,8 +76,23 @@ public class ToolchainModder
         final Set<VersionlessProjectKey> pluginRefs = new HashSet<VersionlessProjectKey>();
         pluginRefs.addAll( session.getChildPluginReferences( new VersionlessProjectKey( project.getKey() ) ) );
 
-        changed = stripRemovedPlugins( project, session ) || changed;
-        changed = stripToolchainPluginInfo( project, pluginRefs, session ) || changed;
+        final List<ModelBase> bases = new ArrayList<ModelBase>();
+        bases.add( project.getModel() );
+        final List<Profile> profiles = project.getModel()
+                                              .getProfiles();
+        if ( profiles != null && !profiles.isEmpty() )
+        {
+            bases.addAll( profiles );
+
+        }
+
+        changed = stripRemovedPlugins( project, bases, session ) || changed;
+        changed = stripToolchainPluginInfo( project, bases, pluginRefs, session ) || changed;
+
+        if ( changed )
+        {
+            project.flushPluginMaps();
+        }
 
         if ( project.getParent() == null )
         {
@@ -88,12 +106,13 @@ public class ToolchainModder
         // So, we have to inject the versions directly into the reporting section.
         //
         // This happens regardless of whether the toolchain is in the ancestry of the POM or not.
-        changed = adjustReportPlugins( project, pluginRefs, session ) || changed;
+        changed = adjustReportPlugins( project, bases, pluginRefs, session ) || changed;
 
         return changed;
     }
 
-    private boolean adjustReportPlugins( final Project project, final Set<VersionlessProjectKey> pluginRefs,
+    private boolean adjustReportPlugins( final Project project, final List<ModelBase> bases,
+                                         final Set<VersionlessProjectKey> pluginRefs,
                                          final VersionManagerSession session )
     {
         final VersionlessProjectKey parentKey =
@@ -101,68 +120,71 @@ public class ToolchainModder
 
         boolean changed = false;
 
-        final List<ReportPlugin> reportPlugins = project.getReportPlugins();
-        if ( reportPlugins != null )
+        for ( final ModelBase base : bases )
         {
-            int idx = 0;
-            for ( ReportPlugin plugin : reportPlugins )
+            final List<ReportPlugin> reportPlugins = project.getReportPlugins( base );
+            if ( reportPlugins != null )
             {
-                VersionlessProjectKey pluginKey = new VersionlessProjectKey( plugin );
-                final FullProjectKey relocation = session.getRelocation( pluginKey );
-                if ( relocation != null )
+                int idx = 0;
+                for ( ReportPlugin plugin : reportPlugins )
                 {
-                    session.addRelocatedCoordinate( project.getPom(), pluginKey, relocation );
-
-                    changed = true;
-
-                    final ReportPlugin plug = new ReportPlugin();
-                    plug.setGroupId( relocation.getGroupId() );
-                    plug.setArtifactId( relocation.getArtifactId() );
-
-                    if ( session.isStrict() )
+                    VersionlessProjectKey pluginKey = new VersionlessProjectKey( plugin );
+                    final FullProjectKey relocation = session.getRelocation( pluginKey );
+                    if ( relocation != null )
                     {
-                        plug.setVersion( relocation.getVersion() );
+                        session.addRelocatedCoordinate( project.getPom(), pluginKey, relocation );
+
+                        changed = true;
+
+                        final ReportPlugin plug = new ReportPlugin();
+                        plug.setGroupId( relocation.getGroupId() );
+                        plug.setArtifactId( relocation.getArtifactId() );
+
+                        if ( session.isStrict() )
+                        {
+                            plug.setVersion( relocation.getVersion() );
+                        }
+
+                        plug.setConfiguration( plugin.getConfiguration() );
+                        plug.setReportSets( plugin.getReportSets() );
+                        plug.setInherited( plugin.isInherited() );
+                        plug.setInherited( plugin.getInherited() );
+                        plug.setLocation( "", plugin.getLocation( "" ) );
+
+                        if ( plugin.getLocation( "inherited" ) != null )
+                        {
+                            plug.setLocation( "inherited", plugin.getLocation( "inherited" ) );
+                        }
+
+                        reportPlugins.set( idx, plug );
+
+                        pluginKey = new VersionlessProjectKey( relocation );
+                        plugin = plug;
                     }
 
-                    plug.setConfiguration( plugin.getConfiguration() );
-                    plug.setReportSets( plugin.getReportSets() );
-                    plug.setInherited( plugin.isInherited() );
-                    plug.setInherited( plugin.getInherited() );
-                    plug.setLocation( "", plugin.getLocation( "" ) );
-
-                    if ( plugin.getLocation( "inherited" ) != null )
+                    final Plugin managedPlugin = session.getManagedPlugin( pluginKey );
+                    if ( managedPlugin != null && !managedPlugin.getVersion()
+                                                                .equals( plugin.getVersion() ) )
                     {
-                        plug.setLocation( "inherited", plugin.getLocation( "inherited" ) );
-                    }
+                        plugin.setVersion( managedPlugin.getVersion() );
+                        changed = true;
 
-                    reportPlugins.set( idx, plug );
-
-                    pluginKey = new VersionlessProjectKey( relocation );
-                    plugin = plug;
-                }
-
-                final Plugin managedPlugin = session.getManagedPlugin( pluginKey );
-                if ( managedPlugin != null && !managedPlugin.getVersion()
-                                                            .equals( plugin.getVersion() ) )
-                {
-                    plugin.setVersion( managedPlugin.getVersion() );
-                    changed = true;
-
-                    if ( parentKey != null )
-                    {
-                        session.addChildPluginReference( parentKey, pluginKey );
+                        if ( parentKey != null )
+                        {
+                            session.addChildPluginReference( parentKey, pluginKey );
+                        }
+                        else
+                        {
+                            pluginRefs.add( pluginKey );
+                        }
                     }
                     else
                     {
-                        pluginRefs.add( pluginKey );
+                        session.addUnmanagedPlugin( project.getPom(), plugin );
                     }
-                }
-                else
-                {
-                    session.addUnmanagedPlugin( project.getPom(), plugin );
-                }
 
-                idx++;
+                    idx++;
+                }
             }
         }
 
@@ -329,7 +351,8 @@ public class ToolchainModder
         return changed;
     }
 
-    private boolean stripRemovedPlugins( final Project project, final VersionManagerSession session )
+    private boolean stripRemovedPlugins( final Project project, final List<ModelBase> bases,
+                                         final VersionManagerSession session )
     {
         logger.info( "Deleting plugins marked for removal for project: " + project.getKey() );
 
@@ -341,30 +364,13 @@ public class ToolchainModder
             return changed;
         }
 
-        final Model original = project.getModel();
-        final Build build = original.getBuild();
-
-        if ( build != null )
+        for ( final ModelBase base : bases )
         {
-            Map<String, Plugin> pluginMap = new HashMap<String, Plugin>( build.getPluginsAsMap() );
+            final BuildBase build = project.getBuild( base );
 
-            for ( final VersionlessProjectKey key : removedPlugins )
+            if ( build != null )
             {
-                final Plugin existing = pluginMap.get( key.getId() );
-
-                if ( existing != null )
-                {
-                    logger.info( "Removing plugin: " + key );
-                    build.removePlugin( existing );
-
-                    changed = true;
-                }
-            }
-
-            final PluginManagement pm = build.getPluginManagement();
-            if ( pm != null )
-            {
-                pluginMap = pm.getPluginsAsMap();
+                Map<String, Plugin> pluginMap = new HashMap<String, Plugin>( build.getPluginsAsMap() );
 
                 for ( final VersionlessProjectKey key : removedPlugins )
                 {
@@ -372,30 +378,49 @@ public class ToolchainModder
 
                     if ( existing != null )
                     {
-                        logger.info( "Removing managed plugin: " + key );
-                        pm.removePlugin( existing );
+                        logger.info( "Removing plugin: " + key );
+                        build.removePlugin( existing );
 
                         changed = true;
                     }
                 }
 
-            }
-        }
-
-        final Reporting reporting = original.getReporting();
-        if ( reporting != null )
-        {
-            final Map<String, ReportPlugin> pluginMap =
-                new HashMap<String, ReportPlugin>( reporting.getReportPluginsAsMap() );
-            for ( final VersionlessProjectKey key : removedPlugins )
-            {
-                final ReportPlugin existing = pluginMap.get( key.getId() );
-                if ( existing != null )
+                final PluginManagement pm = build.getPluginManagement();
+                if ( pm != null )
                 {
-                    logger.info( "Removing report plugin: " + key );
-                    reporting.removePlugin( existing );
+                    pluginMap = pm.getPluginsAsMap();
 
-                    changed = true;
+                    for ( final VersionlessProjectKey key : removedPlugins )
+                    {
+                        final Plugin existing = pluginMap.get( key.getId() );
+
+                        if ( existing != null )
+                        {
+                            logger.info( "Removing managed plugin: " + key );
+                            pm.removePlugin( existing );
+
+                            changed = true;
+                        }
+                    }
+
+                }
+            }
+
+            final Reporting reporting = base.getReporting();
+            if ( reporting != null )
+            {
+                final Map<String, ReportPlugin> pluginMap =
+                    new HashMap<String, ReportPlugin>( reporting.getReportPluginsAsMap() );
+                for ( final VersionlessProjectKey key : removedPlugins )
+                {
+                    final ReportPlugin existing = pluginMap.get( key.getId() );
+                    if ( existing != null )
+                    {
+                        logger.info( "Removing report plugin: " + key );
+                        reporting.removePlugin( existing );
+
+                        changed = true;
+                    }
                 }
             }
         }
@@ -403,29 +428,31 @@ public class ToolchainModder
         return changed;
     }
 
-    private boolean stripToolchainPluginInfo( final Project project, final Set<VersionlessProjectKey> pluginRefs,
+    private boolean stripToolchainPluginInfo( final Project project, final List<ModelBase> bases,
+                                              final Set<VersionlessProjectKey> pluginRefs,
                                               final VersionManagerSession session )
     {
         logger.info( "Stripping toolchain plugin info for project: " + project.getKey() );
+        boolean changed = false;
+        for ( final ModelBase base : bases )
+        {
+            changed =
+                stripToolchainPluginInfo( project, base, project.getPlugins( base ), pluginRefs, session ) || changed;
 
-        boolean changed = stripToolchainPluginInfo( project, project.getPlugins(), pluginRefs, session );
+            logger.info( "Stripping toolchain pluginManagement info for project: " + project.getKey() );
 
-        logger.info( "Stripping toolchain pluginManagement info for project: " + project.getKey() );
-
-        changed = stripToolchainPluginInfo( project, project.getManagedPlugins(), pluginRefs, session ) || changed;
-
-        project.flushPluginMaps();
+            changed =
+                stripToolchainPluginInfo( project, base, project.getManagedPlugins( base ), pluginRefs, session )
+                    || changed;
+        }
 
         return changed;
     }
 
-    private boolean stripToolchainPluginInfo( final Project project, final List<Plugin> plugins,
+    private boolean stripToolchainPluginInfo( final Project project, final ModelBase base, final List<Plugin> plugins,
                                               final Set<VersionlessProjectKey> pluginRefs,
                                               final VersionManagerSession session )
     {
-        final VersionlessProjectKey parentKey =
-            project.getParent() != null ? new VersionlessProjectKey( project.getParent() ) : null;
-
         boolean changed = false;
         if ( plugins != null )
         {
@@ -495,6 +522,7 @@ public class ToolchainModder
 
                     changed = true;
 
+                    final VersionlessProjectKey parentKey = project.getVersionlessParentKey();
                     if ( parentKey != null )
                     {
                         session.addChildPluginReference( parentKey, pluginKey );

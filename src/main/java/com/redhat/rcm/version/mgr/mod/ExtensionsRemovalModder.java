@@ -56,44 +56,37 @@ public class ExtensionsRemovalModder
 
         boolean changed = false;
 
-        if ( model.getBuild() != null && model.getBuild()
-                                              .getExtensions() != null && !model.getBuild()
-                                                                                .getExtensions()
-                                                                                .isEmpty() )
+        final List<Extension> extensions = project.getExtensions();
+        final Set<VersionlessProjectKey> whitelist = session.getExtensionsWhitelist();
+
+        if ( !whitelist.isEmpty() )
         {
-            final List<Extension> extensions = model.getBuild()
-                                                    .getExtensions();
-            final Set<VersionlessProjectKey> whitelist = session.getExtensionsWhitelist();
-
-            if ( whitelist != null && !whitelist.isEmpty() )
+            final Iterator<Extension> i = extensions.iterator();
+            while ( i.hasNext() )
             {
-                final Iterator<Extension> i = extensions.iterator();
-                while ( i.hasNext() )
+                final Extension e = i.next();
+                final VersionlessProjectKey key = new VersionlessProjectKey( e.getGroupId(), e.getArtifactId() );
+
+                logger.info( "ExtensionsRemoval - checking " + key + " against whitelist " + whitelist );
+
+                if ( !whitelist.contains( key ) )
                 {
-                    final Extension e = i.next();
-                    final VersionlessProjectKey key = new VersionlessProjectKey( e.getGroupId(), e.getArtifactId() );
-
-                    logger.info( "ExtensionsRemoval - checking " + key + " against whitelist " + whitelist );
-
-                    if ( !whitelist.contains( key ) )
-                    {
-                        i.remove();
-                        changed = true;
-                    }
-                    else
-                    {
-                        e.setVersion( session.replacePropertyVersion( project, e.getGroupId(), e.getArtifactId(),
-                                                                      "jar", null ) );
-                        changed = true;
-                    }
+                    i.remove();
+                    changed = true;
+                }
+                else
+                {
+                    e.setVersion( session.replacePropertyVersion( project, e.getGroupId(), e.getArtifactId(), "jar",
+                                                                  null ) );
+                    changed = true;
                 }
             }
-            else
-            {
-                model.getBuild()
-                     .setExtensions( Collections.<Extension> emptyList() );
-                changed = true;
-            }
+        }
+        else
+        {
+            model.getBuild()
+                 .setExtensions( Collections.<Extension> emptyList() );
+            changed = true;
         }
 
         return changed;

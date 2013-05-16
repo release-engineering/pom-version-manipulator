@@ -76,6 +76,8 @@ public class BomModder
 
         for ( final ModelBase base : bases )
         {
+            logger.info( "Processing: %s in model: %s", base, model );
+
             DependencyManagement dm = null;
 
             if ( base.getDependencies() != null )
@@ -85,14 +87,27 @@ public class BomModder
                                                           .iterator(); it.hasNext(); )
                 {
                     final Dependency dep = it.next();
+
+                    logger.info( "Processing: %s", dep );
+
                     final DepModResult depResult = modifyDep( dep, project, pom, session, false );
                     if ( depResult == DepModResult.DELETED )
                     {
+                        logger.info( "Removing: %s", dep );
                         it.remove();
                         changed = true;
                     }
                     else
                     {
+                        if ( depResult == DepModResult.MODIFIED )
+                        {
+                            logger.info( "Modified %s", dep );
+                        }
+                        else
+                        {
+                            logger.info( "NO CHANGE to: %s", dep );
+                        }
+
                         changed = DepModResult.MODIFIED == depResult || changed;
                     }
                 }
@@ -109,14 +124,27 @@ public class BomModder
                                                             .iterator(); it.hasNext(); )
                     {
                         final Dependency dep = it.next();
+
+                        logger.info( "Processing: %s", dep );
+
                         final DepModResult depResult = modifyDep( dep, project, pom, session, true );
                         if ( depResult == DepModResult.DELETED )
                         {
+                            logger.info( "Removing: %s", dep );
                             it.remove();
                             changed = true;
                         }
                         else
                         {
+                            if ( depResult == DepModResult.MODIFIED )
+                            {
+                                logger.info( "Modified %s", dep );
+                            }
+                            else
+                            {
+                                logger.info( "NO CHANGE to: %s", dep );
+                            }
+
                             changed = DepModResult.MODIFIED == depResult || changed;
                         }
                     }
@@ -128,8 +156,12 @@ public class BomModder
         // the current projects list. (If the parent is a current project, we
         // want to inject the BOMs there instead.)
         final List<FullProjectKey> bomCoords = session.getBomCoords();
+        logger.info( "%d BOMs available for injection...is my parent (%s) being modified in this session? %s",
+                     bomCoords.size(), project.getParent(), session.isCurrentProject( project.getParent() ) );
+
         if ( !session.isCurrentProject( project.getParent() ) && bomCoords != null && !bomCoords.isEmpty() )
         {
+            logger.info( "Injecting BOMs..." );
             DependencyManagement dm = model.getDependencyManagement();
 
             if ( dm == null )
@@ -151,11 +183,11 @@ public class BomModder
                 dep.setType( "pom" );
                 dep.setScope( Artifact.SCOPE_IMPORT );
 
+                logger.info( "Adding BOM: %s at index: %d of %s", dep, insertCounter, model );
+
                 changed = true;
                 dm.getDependencies()
                   .add( insertCounter++, dep );
-
-                logger.info( "Injecting BOM " + dep.toString() + " into " + model );
             }
         }
         else if ( !session.isStrict() && model.getDependencyManagement() != null )
