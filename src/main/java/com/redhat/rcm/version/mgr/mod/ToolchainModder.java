@@ -89,11 +89,6 @@ public class ToolchainModder
         changed = stripRemovedPlugins( project, bases, session ) || changed;
         changed = stripToolchainPluginInfo( project, bases, pluginRefs, session ) || changed;
 
-        if ( changed )
-        {
-            project.flushPluginMaps();
-        }
-
         if ( project.getParent() == null )
         {
             changed = injectPluginUsages( project, pluginRefs, session ) || changed;
@@ -445,6 +440,8 @@ public class ToolchainModder
                 stripToolchainPluginInfo( project, base, project.getManagedPlugins( base ), pluginRefs, session )
                     || changed;
         }
+
+        project.flushPluginMaps();
 
         return changed;
     }
