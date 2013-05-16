@@ -21,6 +21,7 @@ package com.redhat.rcm.version.mgr.mod;
 import static com.redhat.rcm.version.mgr.mod.Interpolations.interpolate;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -34,6 +35,8 @@ import org.apache.maven.model.Dependency;
 import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Exclusion;
 import org.apache.maven.model.Model;
+import org.apache.maven.model.ModelBase;
+import org.apache.maven.model.Profile;
 import org.codehaus.plexus.component.annotations.Component;
 import org.commonjava.util.logging.Logger;
 
@@ -58,43 +61,31 @@ public class BomModder
     public boolean inject( final Project project, final VersionManagerSession session )
     {
         final Model model = project.getModel();
-        final File pom = project.getPom();
 
-        DependencyManagement dm = null;
-        boolean changed = false;
+        final List<ModelBase> bases = new ArrayList<ModelBase>();
+        bases.add( model );
 
-        if ( model.getDependencies() != null )
+        final List<Profile> profiles = model.getProfiles();
+        if ( profiles != null && !profiles.isEmpty() )
         {
-            logger.info( "Processing dependencies for '" + project.getKey() + "'..." );
-            for ( final Iterator<Dependency> it = model.getDependencies()
-                                                       .iterator(); it.hasNext(); )
-            {
-                final Dependency dep = it.next();
-                final DepModResult depResult = modifyDep( dep, model, project, pom, session, false );
-                if ( depResult == DepModResult.DELETED )
-                {
-                    it.remove();
-                    changed = true;
-                }
-                else
-                {
-                    changed = DepModResult.MODIFIED == depResult || changed;
-                }
-            }
+            bases.addAll( profiles );
         }
 
-        if ( session.isStrict() )
-        {
-            dm = model.getDependencyManagement();
+        final File pom = project.getPom();
+        boolean changed = false;
 
-            if ( model.getDependencyManagement() != null && dm.getDependencies() != null )
+        for ( final ModelBase base : bases )
+        {
+            DependencyManagement dm = null;
+
+            if ( base.getDependencies() != null )
             {
-                logger.info( "Processing dependencyManagement for '" + project.getKey() + "'..." );
-                for ( final Iterator<Dependency> it = dm.getDependencies()
-                                                        .iterator(); it.hasNext(); )
+                logger.info( "Processing dependencies for '" + project.getKey() + "'..." );
+                for ( final Iterator<Dependency> it = base.getDependencies()
+                                                          .iterator(); it.hasNext(); )
                 {
                     final Dependency dep = it.next();
-                    final DepModResult depResult = modifyDep( dep, model, project, pom, session, true );
+                    final DepModResult depResult = modifyDep( dep, project, pom, session, false );
                     if ( depResult == DepModResult.DELETED )
                     {
                         it.remove();
@@ -106,6 +97,31 @@ public class BomModder
                     }
                 }
             }
+
+            if ( session.isStrict() )
+            {
+                dm = base.getDependencyManagement();
+
+                if ( base.getDependencyManagement() != null && dm.getDependencies() != null )
+                {
+                    logger.info( "Processing dependencyManagement for '" + project.getKey() + "'..." );
+                    for ( final Iterator<Dependency> it = dm.getDependencies()
+                                                            .iterator(); it.hasNext(); )
+                    {
+                        final Dependency dep = it.next();
+                        final DepModResult depResult = modifyDep( dep, project, pom, session, true );
+                        if ( depResult == DepModResult.DELETED )
+                        {
+                            it.remove();
+                            changed = true;
+                        }
+                        else
+                        {
+                            changed = DepModResult.MODIFIED == depResult || changed;
+                        }
+                    }
+                }
+            }
         }
 
         // NOTE: Inject BOMs directly, but ONLY if the parent project is NOT in
@@ -114,6 +130,8 @@ public class BomModder
         final List<FullProjectKey> bomCoords = session.getBomCoords();
         if ( !session.isCurrentProject( project.getParent() ) && bomCoords != null && !bomCoords.isEmpty() )
         {
+            DependencyManagement dm = model.getDependencyManagement();
+
             if ( dm == null )
             {
                 dm = new DependencyManagement();
@@ -175,7 +193,7 @@ public class BomModder
         return dep;
     }
 
-    private DepModResult modifyDep( final Dependency d, final Model model, final Project project, final File pom,
+    private DepModResult modifyDep( final Dependency d, final Project project, final File pom,
                                     final VersionManagerSession session, final boolean isManaged )
     {
         DepModResult result = DepModResult.UNCHANGED;
