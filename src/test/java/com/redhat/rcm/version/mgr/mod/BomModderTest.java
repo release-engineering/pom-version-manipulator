@@ -47,6 +47,7 @@ import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Model;
+import org.apache.maven.model.Profile;
 import org.apache.maven.model.Repository;
 import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 import org.junit.Rule;
@@ -857,6 +858,74 @@ public class BomModderTest
         assertThat( dep.getArtifactId(), equalTo( "some-artifact" ) );
         assertThat( dep.getVersion(), equalTo( "1" ) );
         assertThat( dep.getType(), equalTo( "test-jar" ) );
+
+    }
+
+    @Test
+    public void managedDepInProfile_StrictMode()
+        throws Exception
+    {
+
+        final File pom = getResourceFile( "pom-with-profile-managed-dep.xml" );
+        final File bom = getResourceFile( "bom-typed-min.xml" );
+
+        final VersionManagerSession session = new SessionBuilder( workspace, reports ).build();
+
+        fixture.getVman()
+               .configureSession( Collections.singletonList( bom.getAbsolutePath() ), null, session, pom, bom );
+
+        final Project project = fixture.loadProject( pom, session );
+
+        Model model = project.getModel();
+
+        assertThat( model.getProfiles(), notNullValue() );
+        assertThat( model.getProfiles()
+                         .size(), equalTo( 1 ) );
+
+        Profile p = model.getProfiles()
+                         .get( 0 );
+        assertThat( p.getDependencyManagement(), notNullValue() );
+
+        assertThat( p.getDependencyManagement()
+                     .getDependencies(), notNullValue() );
+
+        assertThat( p.getDependencyManagement()
+                     .getDependencies()
+                     .size(), equalTo( 1 ) );
+
+        final Dependency dep = p.getDependencyManagement()
+                                .getDependencies()
+                                .get( 0 );
+
+        assertThat( dep.getGroupId(), equalTo( "group.id" ) );
+        assertThat( dep.getArtifactId(), equalTo( "some-artifact" ) );
+        assertThat( dep.getVersion(), equalTo( "1" ) );
+
+        final Project bomProject = fixture.loadProject( bom, session );
+
+        final Set<Project> projects = new HashSet<Project>();
+        projects.add( project );
+
+        session.setCurrentProjects( projects );
+
+        new BomModder().inject( project, session );
+
+        assertNoErrors( session );
+
+        model = project.getModel();
+
+        assertBoms( model, bomProject.getKey() );
+
+        assertThat( model.getProfiles(), notNullValue() );
+        assertThat( model.getProfiles()
+                         .size(), equalTo( 1 ) );
+
+        p = model.getProfiles()
+                 .get( 0 );
+        assertThat( p.getDependencyManagement() == null || p.getDependencyManagement()
+                                                            .getDependencies() == null || p.getDependencyManagement()
+                                                                                           .getDependencies()
+                                                                                           .isEmpty(), equalTo( true ) );
 
     }
 
