@@ -84,6 +84,8 @@ public class ModifiedDependenciesReport
                 );
                 /* @formatter:on */
 
+                writer.write( out );
+
                 for ( final Entry<Dependency, Dependency> entry : mods.entrySet() )
                 {
                     final Dependency key = entry.getKey();
@@ -96,7 +98,8 @@ public class ModifiedDependenciesReport
                     writer.newLine();
                 }
 
-                writer.write( out );
+                writer.newLine();
+                writer.newLine();
             }
         }
         catch ( final IOException e )
