@@ -302,19 +302,28 @@ public class BomModder
         {
             d.setVersion( null );
 
+            final Dependency target = d.clone();
+            target.setVersion( managed.getVersion() );
+
             if ( isManaged )
             {
-                if ( !overridesManagedInfo( dep, managed ) )
+                // TODO: Is this right?? Shouldn't we be looking at the relocated, interpolated one??
+                //                if ( !overridesManagedInfo( dep, managed ) )
+                if ( !overridesManagedInfo( d, managed ) )
                 {
                     result = DepModResult.DELETED;
                 }
                 else
                 {
-                    d.setVersion( session.replacePropertyVersion( project, d.getGroupId(), d.getArtifactId(),
-                                                                  d.getType(), d.getClassifier() ) );
+                    target.setVersion( session.replacePropertyVersion( project, d.getGroupId(), d.getArtifactId(),
+                                                                       d.getType(), d.getClassifier() ) );
+
+                    d.setVersion( target.getVersion() );
                     result = DepModResult.MODIFIED;
                 }
             }
+
+            session.addDependencyModification( project.getVersionlessKey(), dep, target );
         }
 
         if ( managed == null )

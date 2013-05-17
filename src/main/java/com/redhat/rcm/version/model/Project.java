@@ -464,4 +464,9 @@ public class Project
         return model.getPackaging();
     }
 
+    public VersionlessProjectKey getVersionlessKey()
+    {
+        return new VersionlessProjectKey( key );
+    }
+
 }

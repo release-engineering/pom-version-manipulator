@@ -56,6 +56,9 @@ class ChangeInfo
     private final Map<VersionlessProjectKey, Set<Plugin>> unmanagedPluginRefs =
         new HashMap<VersionlessProjectKey, Set<Plugin>>();
 
+    private final Map<VersionlessProjectKey, Map<Dependency, Dependency>> modifiedDeps =
+        new HashMap<VersionlessProjectKey, Map<Dependency, Dependency>>();
+
     private final Map<String, String> missingVersionProperties = new HashMap<String, String>();
 
     void addMissingVersionProperty( final String key, final String version )
@@ -193,6 +196,23 @@ class ChangeInfo
         }
 
         relocations.put( old, relocation );
+    }
+
+    public void addDependencyModification( final VersionlessProjectKey key, final Dependency from, final Dependency to )
+    {
+        Map<Dependency, Dependency> mods = modifiedDeps.get( key );
+        if ( mods == null )
+        {
+            mods = new HashMap<Dependency, Dependency>();
+            modifiedDeps.put( key, mods );
+        }
+
+        mods.put( new ReadOnlyDependency( from ), to );
+    }
+
+    public Map<Dependency, Dependency> getDependencyModifications( final VersionlessProjectKey key )
+    {
+        return modifiedDeps.get( key );
     }
 
 }

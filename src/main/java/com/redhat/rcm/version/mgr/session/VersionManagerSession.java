@@ -712,4 +712,17 @@ public class VersionManagerSession
         final ArtifactTypeRegistry typeRegistry = getRepositorySystemSession().getArtifactTypeRegistry();
         return typeRegistry.get( project.getPackaging() );
     }
+
+    public VersionManagerSession addDependencyModification( final VersionlessProjectKey key, final Dependency from,
+                                                            final Dependency to )
+    {
+        changeInfo.addDependencyModification( key, from, to );
+
+        return this;
+    }
+
+    public Map<Dependency, Dependency> getDependencyModifications( final VersionlessProjectKey key )
+    {
+        return changeInfo.getDependencyModifications( key );
+    }
 }
