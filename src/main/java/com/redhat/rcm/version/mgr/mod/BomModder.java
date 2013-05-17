@@ -303,7 +303,10 @@ public class BomModder
             d.setVersion( null );
 
             final Dependency target = d.clone();
-            target.setVersion( managed.getVersion() );
+            if ( managed != null )
+            {
+                target.setVersion( managed.getVersion() );
+            }
 
             if ( isManaged )
             {

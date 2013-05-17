@@ -24,6 +24,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.maven.model.Dependency;
 import org.codehaus.plexus.component.annotations.Component;
@@ -32,7 +33,6 @@ import org.codehaus.plexus.util.IOUtil;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
-import com.redhat.rcm.version.util.DepMapToString;
 
 @Component( role = Report.class, hint = ModifiedDependenciesReport.ID )
 public class ModifiedDependenciesReport
@@ -65,6 +65,11 @@ public class ModifiedDependenciesReport
                 final Map<Dependency, Dependency> mods =
                     session.getDependencyModifications( project.getVersionlessKey() );
 
+                if ( mods == null || mods.isEmpty() )
+                {
+                    continue;
+                }
+
                 /* @formatter:off */
                 // NOTE: Using Markdown format...
                 final String out = String.format( 
@@ -74,13 +79,22 @@ public class ModifiedDependenciesReport
                     "  - %d modified dependencies\n" +
                     "\n" +
                     "### Modifications:\n" +
-                    "\n" +
-                    "%s\n" +
-                    "\n" +
-                    "\n", 
-                    project.getKey(), project.getPom(), mods.size(), new DepMapToString( mods ) 
+                    "\n",
+                    project.getKey(), project.getPom(), mods.size() 
                 );
                 /* @formatter:on */
+
+                for ( final Entry<Dependency, Dependency> entry : mods.entrySet() )
+                {
+                    final Dependency key = entry.getKey();
+                    final Dependency value = entry.getValue();
+
+                    writer.write( "  - " );
+                    writeDep( key, writer );
+                    writer.write( "\t=>\t" );
+                    writeDep( value, writer );
+                    writer.newLine();
+                }
 
                 writer.write( out );
             }
@@ -93,6 +107,19 @@ public class ModifiedDependenciesReport
         {
             IOUtil.close( writer );
         }
+    }
+
+    private void writeDep( final Dependency dep, final BufferedWriter writer )
+        throws IOException
+    {
+        writer.write( dep.getGroupId() );
+        writer.write( ':' );
+        writer.write( dep.getArtifactId() );
+        writer.write( ':' );
+        writer.write( dep.getVersion() == null ? "UNKNOWN" : dep.getVersion() );
+        writer.write( ':' );
+        writer.write( dep.getType() );
+        writer.write( dep.getClassifier() == null ? "" : ":" + dep.getClassifier() );
     }
 
 }
