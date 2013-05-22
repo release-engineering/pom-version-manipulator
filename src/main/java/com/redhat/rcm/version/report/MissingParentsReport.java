@@ -48,7 +48,7 @@ public class MissingParentsReport
     extends AbstractReport
 {
 
-    public static final String ID = "missing-parents";
+    public static final String ID = "missing-parents.xml";
 
     @Override
     public String getId()
@@ -122,7 +122,7 @@ public class MissingParentsReport
 
         final XMLOutputter output = new XMLOutputter( fmt );
 
-        final File report = new File( reportsDir, ID + ".xml" );
+        final File report = new File( reportsDir, ID );
         FileWriter writer = null;
         try
         {

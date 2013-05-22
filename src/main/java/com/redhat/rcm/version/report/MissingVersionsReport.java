@@ -37,7 +37,7 @@ import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 public class MissingVersionsReport
     extends AbstractReport
 {
-    public static final String ID = "missing-versions";
+    public static final String ID = "missing-versions.log";
 
     @Override
     public String getId()
@@ -49,7 +49,7 @@ public class MissingVersionsReport
     public void generate( final File reportsDir, final VersionManagerSession sessionData )
         throws VManException
     {
-        final File reportFile = new File( reportsDir, "missing-versions.log" );
+        final File reportFile = new File( reportsDir, ID );
 
         BufferedWriter writer = null;
         try

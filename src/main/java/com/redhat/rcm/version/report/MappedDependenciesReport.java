@@ -36,7 +36,7 @@ import com.redhat.rcm.version.model.DependencyManagementKey;
 public class MappedDependenciesReport
     extends AbstractReport
 {
-    public static final String ID = "mapped-dependencies";
+    public static final String ID = "mapped-dependencies.txt";
 
     @Override
     public String getId()
@@ -48,7 +48,7 @@ public class MappedDependenciesReport
     public void generate( final File reportsDir, final VersionManagerSession sessionData )
         throws VManException
     {
-        final File report = new File( reportsDir, ID + ".txt" );
+        final File report = new File( reportsDir, ID );
 
         BufferedWriter writer = null;
         try

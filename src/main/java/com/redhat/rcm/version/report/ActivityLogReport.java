@@ -36,7 +36,7 @@ public class ActivityLogReport
     extends AbstractReport
 {
 
-    public static final String ID = "activity-log";
+    public static final String ID = "activity.log";
 
     @Override
     public String getId()
@@ -48,7 +48,7 @@ public class ActivityLogReport
     public void generate( final File reportsDir, final VersionManagerSession sessionData )
         throws VManException
     {
-        final File reportFile = new File( reportsDir, "activity.log" );
+        final File reportFile = new File( reportsDir, ID );
 
         BufferedWriter writer = null;
         try

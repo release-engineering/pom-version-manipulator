@@ -39,7 +39,7 @@ import com.redhat.rcm.version.model.Project;
 public class ModifiedDependenciesReport
     extends AbstractReport
 {
-    public static final String ID = "modified-dependencies";
+    public static final String ID = "modified-dependencies.md";
 
     public static final String IGNORE_VERSION_PATTERN = "ignore-version-pattern";
 
@@ -53,7 +53,7 @@ public class ModifiedDependenciesReport
     public void generate( final File reportsDir, final VersionManagerSession session )
         throws VManException
     {
-        final File report = new File( reportsDir, ID + ".md" );
+        final File report = new File( reportsDir, ID );
 
         final String ignoredVersions = session.getReportProperty( this, IGNORE_VERSION_PATTERN );
 

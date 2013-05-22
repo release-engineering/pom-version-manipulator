@@ -45,7 +45,7 @@ public class MissingDependencyManagementReport
     extends AbstractReport
 {
 
-    public static final String ID = "missing-dependencyManagement";
+    public static final String ID = "missing-dependencyManagement.xml";
 
     @Override
     public String getId()
@@ -125,7 +125,7 @@ public class MissingDependencyManagementReport
 
         final XMLOutputter output = new XMLOutputter( fmt );
 
-        final File report = new File( reportsDir, ID + ".xml" );
+        final File report = new File( reportsDir, ID );
         FileWriter writer = null;
         try
         {

@@ -690,7 +690,7 @@ public class Cli
         final StringWriter sw = new StringWriter();
         final PrintWriter pw = new PrintWriter( sw );
 
-        pw.println( "The following project reports are available: " );
+        pw.println( "The following project reports are available: \n\n" );
         for ( final String key : keys )
         {
             final Report r = reports.get( key );
@@ -699,7 +699,7 @@ public class Cli
 
             if ( props != null && !props.isEmpty() )
             {
-                pw.println( "\n  Available Properties:\n  ---------------------" );
+                pw.println( "\n  Properties:\n  ---------------" );
                 pw.println();
 
                 for ( final Entry<String, String> entry : props.entrySet() )
@@ -708,7 +708,8 @@ public class Cli
                     final String value = entry.getValue();
 
                     pw.println( "  - " + REPORT_PROPERTY_PREFIX + key + "." + pk );
-                    pw.println( String.format( "%-75s", "        " + value ) );
+                    pw.println();
+                    printTextLine( value, "        ", 69, pw );
                 }
             }
 
@@ -767,6 +768,43 @@ public class Cli
         }
 
         return sw.toString();
+    }
+
+    private static void printTextLine( final String line, final String indent, final int max, final PrintWriter pw )
+    {
+        final String fmt = "%s%-" + max + "s\n";
+
+        final List<String> lines = new ArrayList<String>();
+
+        final BreakIterator iter = BreakIterator.getLineInstance();
+        iter.setText( line );
+
+        int start = iter.first();
+        int end = BreakIterator.DONE;
+        final StringBuilder currentLine = new StringBuilder();
+        String seg;
+        while ( start != BreakIterator.DONE && ( end = iter.next() ) != BreakIterator.DONE )
+        {
+            seg = line.substring( start, end );
+            if ( currentLine.length() + seg.length() > max )
+            {
+                lines.add( currentLine.toString() );
+                currentLine.setLength( 0 );
+            }
+
+            currentLine.append( seg );
+            start = end;
+        }
+
+        if ( currentLine.length() > 0 )
+        {
+            lines.add( currentLine.toString() );
+        }
+
+        for ( final String ln : lines )
+        {
+            pw.printf( fmt, indent, ln );
+        }
     }
 
     private static void printKVLine( final String key, final String value, final String fmt, final int valMax,

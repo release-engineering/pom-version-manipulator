@@ -38,7 +38,7 @@ public class RelocationsReport
     extends AbstractReport
 {
 
-    public static final String ID = "relocations-log";
+    public static final String ID = "relocations.log";
 
     @Override
     public String getId()
@@ -50,7 +50,7 @@ public class RelocationsReport
     public void generate( final File reportsDir, final VersionManagerSession sessionData )
         throws VManException
     {
-        final File reportFile = new File( reportsDir, "relocations.log" );
+        final File reportFile = new File( reportsDir, ID );
 
         PrintWriter writer = null;
         try

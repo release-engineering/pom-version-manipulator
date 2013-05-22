@@ -44,7 +44,7 @@ public class MissingPluginManagementReport
     extends AbstractReport
 {
 
-    public static final String ID = "missing-pluginManagement";
+    public static final String ID = "missing-pluginManagement.xml";
 
     @Override
     public String getId()
@@ -96,7 +96,7 @@ public class MissingPluginManagementReport
 
         final XMLOutputter output = new XMLOutputter( fmt );
 
-        final File report = new File( reportsDir, ID + ".xml" );
+        final File report = new File( reportsDir, ID );
         FileWriter writer = null;
         try
         {

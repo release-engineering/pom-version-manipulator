@@ -35,7 +35,7 @@ public class ErrorReport
     extends AbstractReport
 {
 
-    public static final String ID = "error-log";
+    public static final String ID = "errors.log";
 
     @Override
     public String getId()
@@ -47,7 +47,7 @@ public class ErrorReport
     public void generate( final File reportsDir, final VersionManagerSession sessionData )
         throws VManException
     {
-        final File reportFile = new File( reportsDir, "errors.log" );
+        final File reportFile = new File( reportsDir, ID );
 
         BufferedWriter writer = null;
         try
