@@ -19,17 +19,24 @@
 package com.redhat.rcm.version.util;
 
 import static java.io.File.separatorChar;
+import static org.apache.commons.lang.StringUtils.isEmpty;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
+import java.util.Set;
 
 import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.model.Model;
+import org.apache.maven.model.ModelBase;
+import org.apache.maven.model.Profile;
 import org.apache.maven.model.io.jdom.MavenJDOMWriter;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
@@ -57,6 +64,8 @@ public final class PomUtils
 {
 
     private static final Logger LOGGER = new Logger( PomUtils.class );
+
+    private static final String DUMMY_PROPERTY_VALUE = "NOT_SET";
 
     private PomUtils()
     {
@@ -87,6 +96,8 @@ public final class PomUtils
                                          final String version, final File basedir, final VersionManagerSession session,
                                          final boolean relocatePom )
     {
+        normalizeModel( model );
+
         final File out = relocatePom ? generateRelocatedPomFile( coord, version, basedir ) : pom;
 
         Writer writer = null;
@@ -119,11 +130,14 @@ public final class PomUtils
 
             normalizeNamespace( doc );
 
-            Iterator<?> it = doc.getRootElement().getContent( new ContentFilter (ContentFilter.COMMENT) ).iterator();
-            while (it.hasNext())
+            final Iterator<?> it = doc.getRootElement()
+                                      .getContent( new ContentFilter( ContentFilter.COMMENT ) )
+                                      .iterator();
+            while ( it.hasNext() )
             {
-                Comment c = (Comment) it.next();
-                if (c.toString().startsWith( "[Comment: <!-- Modified by " + com.redhat.rcm.version.stats.VersionInfo.APP_NAME))
+                final Comment c = (Comment) it.next();
+                if ( c.toString()
+                      .startsWith( "[Comment: <!-- Modified by " + com.redhat.rcm.version.stats.VersionInfo.APP_NAME ) )
                 {
                     it.remove();
                 }
@@ -178,6 +192,32 @@ public final class PomUtils
         }
 
         return out;
+    }
+
+    private static void normalizeModel( final Model model )
+    {
+        final Set<ModelBase> bases = new HashSet<ModelBase>();
+        bases.add( model );
+
+        final List<Profile> profiles = model.getProfiles();
+        if ( profiles != null )
+        {
+            bases.addAll( profiles );
+        }
+
+        for ( final ModelBase base : bases )
+        {
+            final Properties p = base.getProperties();
+            for ( final Enumeration<?> e = p.keys(); e.hasMoreElements(); )
+            {
+                final String key = (String) e.nextElement();
+                final String value = p.getProperty( key );
+                if ( isEmpty( value ) )
+                {
+                    p.setProperty( key, DUMMY_PROPERTY_VALUE );
+                }
+            }
+        }
     }
 
     /**
