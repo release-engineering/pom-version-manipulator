@@ -42,7 +42,7 @@ import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
 @Component( role = Report.class, hint = MissingDependencyManagementReport.ID )
 public class MissingDependencyManagementReport
-    implements Report
+    extends AbstractReport
 {
 
     public static final String ID = "missing-dependencyManagement";
@@ -57,15 +57,15 @@ public class MissingDependencyManagementReport
     public void generate( final File reportsDir, final VersionManagerSession session )
         throws VManException
     {
-        Map<VersionlessProjectKey, Set<Dependency>> missingDependencies = session.getMissingDependencies();
+        final Map<VersionlessProjectKey, Set<Dependency>> missingDependencies = session.getMissingDependencies();
         if ( missingDependencies.isEmpty() )
         {
             return;
         }
 
-        Element deps = new Element( "dependencies" );
+        final Element deps = new Element( "dependencies" );
 
-        for ( Map.Entry<VersionlessProjectKey, Set<Dependency>> depsEntry : missingDependencies.entrySet() )
+        for ( final Map.Entry<VersionlessProjectKey, Set<Dependency>> depsEntry : missingDependencies.entrySet() )
         {
             if ( deps.getContentSize() > 0 )
             {
@@ -74,9 +74,9 @@ public class MissingDependencyManagementReport
 
             deps.addContent( new Comment( "START: " + depsEntry.getKey() ) );
 
-            for ( Dependency dep : depsEntry.getValue() )
+            for ( final Dependency dep : depsEntry.getValue() )
             {
-                Element d = new Element( "dependency" );
+                final Element d = new Element( "dependency" );
                 deps.addContent( d );
 
                 d.addContent( new Element( "groupId" ).setText( dep.getGroupId() ) );
@@ -114,18 +114,18 @@ public class MissingDependencyManagementReport
             deps.addContent( new Comment( "END: " + depsEntry.getKey() ) );
         }
 
-        Element dm = new Element( "dependencyManagement" );
+        final Element dm = new Element( "dependencyManagement" );
         dm.setContent( deps );
 
-        Document doc = new Document( dm );
+        final Document doc = new Document( dm );
 
-        Format fmt = Format.getPrettyFormat();
+        final Format fmt = Format.getPrettyFormat();
         fmt.setIndent( "  " );
         fmt.setTextMode( TextMode.PRESERVE );
 
-        XMLOutputter output = new XMLOutputter( fmt );
+        final XMLOutputter output = new XMLOutputter( fmt );
 
-        File report = new File( reportsDir, ID + ".xml" );
+        final File report = new File( reportsDir, ID + ".xml" );
         FileWriter writer = null;
         try
         {
@@ -134,7 +134,7 @@ public class MissingDependencyManagementReport
             writer = new FileWriter( report );
             output.output( doc, writer );
         }
-        catch ( IOException e )
+        catch ( final IOException e )
         {
             throw new VManException( "Failed to generate %s report! Error: %s", e, ID, e.getMessage() );
         }
@@ -142,6 +142,12 @@ public class MissingDependencyManagementReport
         {
             closeQuietly( writer );
         }
+    }
+
+    @Override
+    public String getDescription()
+    {
+        return "pom.xml-compatible <dependencyManagement> section containing dependencies that were missing from BOM(s)";
     }
 
 }

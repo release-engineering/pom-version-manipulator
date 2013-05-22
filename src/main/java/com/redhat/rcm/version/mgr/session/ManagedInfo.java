@@ -99,12 +99,16 @@ class ManagedInfo
 
     private final Set<VersionlessProjectKey> excludedModulePoms;
 
+    private final Map<String, String> userProperties;
+
     ManagedInfo( final VersionManagerSession session, final Collection<String> removedPlugins,
                  final Collection<String> removedTests, final Collection<String> extensionsWhitelist,
                  final List<String> modderKeys, final Map<String, String> relocatedCoords,
-                 final Map<String, String> propertyMappings, final Set<VersionlessProjectKey> excludedModulePoms )
+                 final Map<String, String> propertyMappings, final Set<VersionlessProjectKey> excludedModulePoms,
+                 final Map<String, String> userProperties )
     {
         this.excludedModulePoms = excludedModulePoms;
+        this.userProperties = userProperties;
         this.relocatedCoords = new CoordinateRelocations( relocatedCoords, session );
         this.propertyMappings = new PropertyMappings( propertyMappings, session );
 
@@ -451,6 +455,11 @@ class ManagedInfo
     Set<VersionlessProjectKey> getExcludedModulePoms()
     {
         return excludedModulePoms;
+    }
+
+    String getUserProperty( final String key )
+    {
+        return userProperties == null ? null : userProperties.get( key );
     }
 
 }

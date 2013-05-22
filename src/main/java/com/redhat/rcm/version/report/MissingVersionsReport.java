@@ -18,13 +18,6 @@
 
 package com.redhat.rcm.version.report;
 
-import org.apache.maven.mae.project.key.VersionlessProjectKey;
-import org.codehaus.plexus.component.annotations.Component;
-import org.codehaus.plexus.util.IOUtil;
-
-import com.redhat.rcm.version.VManException;
-import com.redhat.rcm.version.mgr.session.VersionManagerSession;
-
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -33,9 +26,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.maven.mae.project.key.VersionlessProjectKey;
+import org.codehaus.plexus.component.annotations.Component;
+import org.codehaus.plexus.util.IOUtil;
+
+import com.redhat.rcm.version.VManException;
+import com.redhat.rcm.version.mgr.session.VersionManagerSession;
+
 @Component( role = Report.class, hint = MissingVersionsReport.ID )
 public class MissingVersionsReport
-    implements Report
+    extends AbstractReport
 {
     public static final String ID = "missing-versions";
 
@@ -60,7 +60,8 @@ public class MissingVersionsReport
                 new TreeMap<VersionlessProjectKey, Set<File>>( sessionData.getMissingVersions() );
             for ( final Map.Entry<VersionlessProjectKey, Set<File>> entry : missing.entrySet() )
             {
-                writer.write( entry.getKey().toString() );
+                writer.write( entry.getKey()
+                                   .toString() );
                 writer.newLine();
             }
 
@@ -76,7 +77,8 @@ public class MissingVersionsReport
 
             for ( final Map.Entry<VersionlessProjectKey, Set<File>> entry : missing.entrySet() )
             {
-                writer.write( entry.getKey().toString() );
+                writer.write( entry.getKey()
+                                   .toString() );
                 writer.write( ":" );
                 writer.newLine();
                 writer.write( "-----------------------------------------------------------" );
@@ -102,6 +104,12 @@ public class MissingVersionsReport
         {
             IOUtil.close( writer );
         }
+    }
+
+    @Override
+    public String getDescription()
+    {
+        return "Listing of versions referenced by projects for dependencies that were missing from the BOM(s)";
     }
 
 }

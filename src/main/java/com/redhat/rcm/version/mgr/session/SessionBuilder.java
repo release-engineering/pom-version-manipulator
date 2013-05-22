@@ -67,6 +67,8 @@ public final class SessionBuilder
 
     private final Set<VersionlessProjectKey> excludedModulePoms = new HashSet<VersionlessProjectKey>();
 
+    private Map<String, String> userProperties;
+
     private boolean useEffectivePoms;
 
     public SessionBuilder( final File workspace )
@@ -87,11 +89,18 @@ public final class SessionBuilder
         final VersionManagerSession sess =
             new VersionManagerSession( workspace, reports, versionSuffix, versionModifier, removedPlugins,
                                        removedTests, extensionsWhitelist, modders, preserveFiles, strict,
-                                       useEffectivePoms, coordinateRelocations, propertyMappings, excludedModulePoms );
+                                       useEffectivePoms, coordinateRelocations, propertyMappings, excludedModulePoms,
+                                       userProperties );
 
         sess.setLocalRepositoryDirectory( localRepo == null ? new File( workspace, "local-repository" ) : localRepo );
 
         return sess;
+    }
+
+    public SessionBuilder withUserProperties( final Map<String, String> userProperties )
+    {
+        this.userProperties = userProperties;
+        return this;
     }
 
     public SessionBuilder withExcludedModulePoms( final String excludedModulePoms )

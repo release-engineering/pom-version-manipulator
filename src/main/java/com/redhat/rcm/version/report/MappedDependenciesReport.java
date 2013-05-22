@@ -34,7 +34,7 @@ import com.redhat.rcm.version.model.DependencyManagementKey;
 
 @Component( role = Report.class, hint = MappedDependenciesReport.ID )
 public class MappedDependenciesReport
-    implements Report
+    extends AbstractReport
 {
     public static final String ID = "mapped-dependencies";
 
@@ -94,6 +94,12 @@ public class MappedDependenciesReport
         {
             IOUtil.close( writer );
         }
+    }
+
+    @Override
+    public String getDescription()
+    {
+        return "Listing of available managed dependencies by BOM";
     }
 
 }

@@ -45,7 +45,7 @@ import com.redhat.rcm.version.model.Project;
 
 @Component( role = Report.class, hint = MissingParentsReport.ID )
 public class MissingParentsReport
-    implements Report
+    extends AbstractReport
 {
 
     public static final String ID = "missing-parents";
@@ -60,16 +60,17 @@ public class MissingParentsReport
     public void generate( final File reportsDir, final VersionManagerSession session )
         throws VManException
     {
-        Set<Project> projectsWithMissingParent = session.getProjectsWithMissingParent();
+        final Set<Project> projectsWithMissingParent = session.getProjectsWithMissingParent();
         if ( projectsWithMissingParent.isEmpty() )
         {
             return;
         }
 
-        Map<VersionlessProjectKey, Set<Project>> projectsByParent = new HashMap<VersionlessProjectKey, Set<Project>>();
-        for ( Project project : projectsWithMissingParent )
+        final Map<VersionlessProjectKey, Set<Project>> projectsByParent =
+            new HashMap<VersionlessProjectKey, Set<Project>>();
+        for ( final Project project : projectsWithMissingParent )
         {
-            VersionlessProjectKey parentKey = new VersionlessProjectKey( project.getParent() );
+            final VersionlessProjectKey parentKey = new VersionlessProjectKey( project.getParent() );
             Set<Project> projects = projectsByParent.get( parentKey );
             if ( projects == null )
             {
@@ -80,8 +81,8 @@ public class MissingParentsReport
             projects.add( project );
         }
 
-        Element parents = new Element( "missing-parents" );
-        for ( Map.Entry<VersionlessProjectKey, Set<Project>> parentEntry : projectsByParent.entrySet() )
+        final Element parents = new Element( "missing-parents" );
+        for ( final Map.Entry<VersionlessProjectKey, Set<Project>> parentEntry : projectsByParent.entrySet() )
         {
             if ( parents.getContentSize() > 0 )
             {
@@ -90,7 +91,7 @@ public class MissingParentsReport
 
             parents.addContent( new Comment( "START: Parent " + parentEntry.getKey() ) );
             boolean first = true;
-            for ( Project project : parentEntry.getValue() )
+            for ( final Project project : parentEntry.getValue() )
             {
                 if ( first )
                 {
@@ -103,8 +104,8 @@ public class MissingParentsReport
 
                 parents.addContent( new Comment( "In: " + project.getKey() ) );
 
-                Parent parent = project.getParent();
-                Element p = new Element( "parent" );
+                final Parent parent = project.getParent();
+                final Element p = new Element( "parent" );
                 parents.addContent( p );
 
                 p.addContent( new Element( "groupId" ).setText( parent.getGroupId() ) );
@@ -113,15 +114,15 @@ public class MissingParentsReport
             }
         }
 
-        Document doc = new Document( parents );
+        final Document doc = new Document( parents );
 
-        Format fmt = Format.getPrettyFormat();
+        final Format fmt = Format.getPrettyFormat();
         fmt.setIndent( "  " );
         fmt.setTextMode( TextMode.PRESERVE );
 
-        XMLOutputter output = new XMLOutputter( fmt );
+        final XMLOutputter output = new XMLOutputter( fmt );
 
-        File report = new File( reportsDir, ID + ".xml" );
+        final File report = new File( reportsDir, ID + ".xml" );
         FileWriter writer = null;
         try
         {
@@ -130,7 +131,7 @@ public class MissingParentsReport
             writer = new FileWriter( report );
             output.output( doc, writer );
         }
-        catch ( IOException e )
+        catch ( final IOException e )
         {
             throw new VManException( "Failed to generate %s report! Error: %s", e, ID, e.getMessage() );
         }
@@ -138,6 +139,12 @@ public class MissingParentsReport
         {
             closeQuietly( writer );
         }
+    }
+
+    @Override
+    public String getDescription()
+    {
+        return "Listing of parent POM references that were not listed in the BOM(s). Versions of parent references may be standardized if the parents are listed in the BOM.";
     }
 
 }

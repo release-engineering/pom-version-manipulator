@@ -22,6 +22,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -36,9 +37,11 @@ import com.redhat.rcm.version.model.Project;
 
 @Component( role = Report.class, hint = ModifiedDependenciesReport.ID )
 public class ModifiedDependenciesReport
-    implements Report
+    extends AbstractReport
 {
     public static final String ID = "modified-dependencies";
+
+    public static final String IGNORE_VERSION_PATTERN = "ignore-version-pattern";
 
     @Override
     public String getId()
@@ -51,6 +54,8 @@ public class ModifiedDependenciesReport
         throws VManException
     {
         final File report = new File( reportsDir, ID + ".md" );
+
+        final String ignoredVersions = session.getReportProperty( this, IGNORE_VERSION_PATTERN );
 
         BufferedWriter writer = null;
         try
@@ -90,12 +95,14 @@ public class ModifiedDependenciesReport
                 {
                     final Dependency key = entry.getKey();
                     final Dependency value = entry.getValue();
-
-                    writer.write( "  - " );
-                    writeDep( key, writer );
-                    writer.write( "\t=>\t" );
-                    writeDep( value, writer );
-                    writer.newLine();
+                    if ( !ignored( value, ignoredVersions ) )
+                    {
+                        writer.write( "  - " );
+                        writeDep( key, writer );
+                        writer.write( "\t=>\t" );
+                        writeDep( value, writer );
+                        writer.newLine();
+                    }
                 }
 
                 writer.newLine();
@@ -112,6 +119,12 @@ public class ModifiedDependenciesReport
         }
     }
 
+    private boolean ignored( final Dependency d, final String ignorePattern )
+    {
+        return ignorePattern != null && d.getVersion()
+                                         .matches( ignorePattern );
+    }
+
     private void writeDep( final Dependency dep, final BufferedWriter writer )
         throws IOException
     {
@@ -123,6 +136,19 @@ public class ModifiedDependenciesReport
         writer.write( ':' );
         writer.write( dep.getType() );
         writer.write( dep.getClassifier() == null ? "" : ":" + dep.getClassifier() );
+    }
+
+    @Override
+    public Map<String, String> getPropertyDescriptions()
+    {
+        return Collections.singletonMap( IGNORE_VERSION_PATTERN,
+                                         "Regular expression for version, used to suppress dependencies from listing" );
+    }
+
+    @Override
+    public String getDescription()
+    {
+        return "Dependency modifications by project";
     }
 
 }

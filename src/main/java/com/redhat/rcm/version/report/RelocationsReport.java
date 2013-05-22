@@ -18,6 +18,12 @@
 
 package com.redhat.rcm.version.report;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Map;
+
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
@@ -27,15 +33,9 @@ import org.codehaus.plexus.util.IOUtil;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.Map;
-
 @Component( role = Report.class, hint = RelocationsReport.ID )
 public class RelocationsReport
-    implements Report
+    extends AbstractReport
 {
 
     public static final String ID = "relocations-log";
@@ -64,7 +64,8 @@ public class RelocationsReport
             {
                 final File pom = pomEntry.getKey();
                 writer.printf( "%s\n---------------------------------------------------------\n", pom );
-                for ( final Map.Entry<ProjectKey, FullProjectKey> relo : pomEntry.getValue().entrySet() )
+                for ( final Map.Entry<ProjectKey, FullProjectKey> relo : pomEntry.getValue()
+                                                                                 .entrySet() )
                 {
                     writer.printf( "\n    %s => %s", relo.getKey(), relo.getValue() );
                 }
@@ -73,8 +74,8 @@ public class RelocationsReport
             }
 
             writer.printf( "\n\nALL AVAILABLE RELOCATIONS:\n---------------------------------------------------------\n" );
-            final Map<File, Map<VersionlessProjectKey, FullProjectKey>> byFile =
-                sessionData.getRelocations().getRelocationsByFile();
+            final Map<File, Map<VersionlessProjectKey, FullProjectKey>> byFile = sessionData.getRelocations()
+                                                                                            .getRelocationsByFile();
 
             for ( final Map.Entry<File, Map<VersionlessProjectKey, FullProjectKey>> fileEntry : byFile.entrySet() )
             {
@@ -96,6 +97,12 @@ public class RelocationsReport
         {
             IOUtil.close( writer );
         }
+    }
+
+    @Override
+    public String getDescription()
+    {
+        return "Report of available relocations and where they were actually applied.";
     }
 
 }

@@ -54,6 +54,7 @@ import com.redhat.rcm.version.maven.VManWorkspaceReader;
 import com.redhat.rcm.version.maven.WildcardProjectKey;
 import com.redhat.rcm.version.model.DependencyManagementKey;
 import com.redhat.rcm.version.model.Project;
+import com.redhat.rcm.version.report.Report;
 import com.redhat.rcm.version.util.ActivityLog;
 
 public class VersionManagerSession
@@ -102,7 +103,8 @@ public class VersionManagerSession
                                   final List<String> modderKeys, final boolean preserveFiles, final boolean strict,
                                   final boolean useEffectivePoms, final Map<String, String> relocatedCoords,
                                   final Map<String, String> propertyMappings,
-                                  final Set<VersionlessProjectKey> excludedModulePoms )
+                                  final Set<VersionlessProjectKey> excludedModulePoms,
+                                  final Map<String, String> userProperties )
     {
         this.workspace = workspace;
         this.reports = reports;
@@ -120,7 +122,7 @@ public class VersionManagerSession
 
         managedInfo =
             new ManagedInfo( this, removedPlugins, removedTests, extensionsWhitelist, modderKeys, relocatedCoords,
-                             propertyMappings, excludedModulePoms );
+                             propertyMappings, excludedModulePoms, userProperties );
         changeInfo = new ChangeInfo();
     }
 
@@ -520,6 +522,11 @@ public class VersionManagerSession
         return managedInfo.isCurrentProject( new FullProjectKey( parent ) );
     }
 
+    public String getUserProperty( final String key )
+    {
+        return managedInfo.getUserProperty( key );
+    }
+
     public List<String> getModderKeys()
     {
         return managedInfo.getModderKeys();
@@ -725,5 +732,10 @@ public class VersionManagerSession
     public Map<Dependency, Dependency> getDependencyModifications( final VersionlessProjectKey key )
     {
         return changeInfo.getDependencyModifications( key );
+    }
+
+    public String getReportProperty( final Report report, final String key )
+    {
+        return getUserProperty( "report." + report.getId() + "." + key );
     }
 }

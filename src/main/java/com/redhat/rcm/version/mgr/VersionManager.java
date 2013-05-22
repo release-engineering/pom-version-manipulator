@@ -595,6 +595,11 @@ public class VersionManager
         return modders;
     }
 
+    public Map<String, Report> getReports()
+    {
+        return reports;
+    }
+
     @Override
     public ComponentSelector getComponentSelector()
     {

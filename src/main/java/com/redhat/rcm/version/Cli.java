@@ -53,7 +53,9 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.log4j.Appender;
 import org.apache.log4j.AppenderSkeleton;
@@ -73,11 +75,13 @@ import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
+import org.kohsuke.args4j.spi.MapOptionHandler;
 
 import com.redhat.rcm.version.mgr.VersionManager;
 import com.redhat.rcm.version.mgr.mod.ProjectModder;
 import com.redhat.rcm.version.mgr.session.SessionBuilder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
+import com.redhat.rcm.version.report.Report;
 import com.redhat.rcm.version.util.InputUtils;
 import com.redhat.rcm.version.util.http.SSLUtils;
 
@@ -104,8 +108,11 @@ public class Cli
     @Option( name = "-h", aliases = { "--help" }, usage = "Print this message and quit" )
     private boolean help;
 
-    @Option( name = "-H", aliases = { "--help-modifications" }, usage = "Print the list of available modifications and quit" )
+    @Option( name = "-H", aliases = { "-hm", "--help-modifications" }, usage = "Print the list of available modifications and quit" )
     private boolean helpModders;
+
+    @Option( name = "-hr", aliases = { "--help-reports" }, usage = "Print the list of available reports, plus their configuration options, and quit" )
+    private boolean helpReporters;
 
     @Option( name = "--console", usage = "Log information to console IN ADDITION TO <workspace>/vman.log.\n" )
     private boolean console;
@@ -129,10 +136,10 @@ public class Cli
     private File capturePom;
 
     @Option( name = "-p", usage = "POM path pattern (glob).\nDefault: **/*.pom,**/pom.xml" )
-    private final String pomPattern = "**/*.pom,**/pom.xml";
+    private String pomPattern = "**/*.pom,**/pom.xml";
 
     @Option( name = "-P", aliases = { "--preserve" }, usage = "Write changed POMs back to original input files.\nDefault: false" )
-    private final boolean preserveFiles = false;
+    private boolean preserveFiles = false;
 
     @Option( name = "-r", aliases = { "--rm-plugins", "--removed-plugins" }, usage = "List of plugins (format: <groupId:artifactId>[,<groupId:artifactId>]) to REMOVE if found.\nProperty file equivalent: removed-plugins" )
     private String removedPluginsList;
@@ -144,7 +151,7 @@ public class Cli
     private String extensionsWhitelistList;
 
     @Option( name = "-R", aliases = { "--report-dir" }, usage = "Write reports here.\nDefault: <workspace>/reports" )
-    private final File reports = new File( "vman-workspace/reports" );
+    private File reports = new File( "vman-workspace/reports" );
 
     @Option( name = "-s", aliases = "--version-suffix", usage = "A suffix to append to each POM's version.\nProperty file equivalent: version-suffix" )
     private String versionSuffix;
@@ -164,11 +171,14 @@ public class Cli
     @Option( name = "-T", aliases = "--test-config", usage = "Test-load the configuration given, and print diagnostic information" )
     private boolean testConfig;
 
+    @Option( name = "-XR", handler = MapOptionHandler.class, aliases = "--user-prop", usage = "Add user-defined property of the form x=y that reports and other components can pick up on" )
+    private Map<String, String> reportProperties;
+
     @Option( name = "-v", aliases = "--version", usage = "Show version information and quit." )
     private boolean showVersion;
 
     @Option( name = "-W", aliases = { "--workspace" }, usage = "Backup original files here up before modifying.\nDefault: vman-workspace" )
-    private final File workspace = new File( "vman-workspace" );
+    private File workspace = new File( "vman-workspace" );
 
     @Option( name = "-Z", aliases = { "--no-system-exit" }, usage = "Don't call System.exit(..) with the return value (for embedding/testing)." )
     private boolean noSystemExit;
@@ -189,6 +199,8 @@ public class Cli
 
     @Deprecated
     public static final String REMOTE_REPOSITORY_PROPERTY = "remote-repository";
+
+    public static final String REPORT_PROPERTY_PREFIX = "report.";
 
     public static final String VERSION_SUFFIX_PROPERTY = "version-suffix";
 
@@ -251,7 +263,7 @@ public class Cli
 
     private boolean bootstrapRead;
 
-    private final File logFile = new File( workspace, "vman.log" );
+    private File logFile = new File( workspace, "vman.log" );
 
     private static int exitValue = Integer.MIN_VALUE;
 
@@ -264,7 +276,7 @@ public class Cli
             parser.parseArgument( args );
 
             final boolean useLog =
-                !( cli.noLogFile || cli.testConfig || /*cli.help ||*/cli.helpModders || cli.showVersion );
+                !( cli.noLogFile || cli.testConfig || /*cli.help ||*/cli.helpModders || cli.showVersion || cli.helpReporters );
 
             //            System.out.printf( "--no-console: %s \n\n--no-log-file: %s \n--test-config: %s\n--help: %s\n--help-modifications: %s\n--version: %s\nlogfile: %s\n\nUse logfile? %s\n\n",
             //                               cli.noConsole, cli.noLogFile, cli.testConfig, cli.help, cli.helpModders,
@@ -283,6 +295,10 @@ public class Cli
             else if ( cli.helpModders )
             {
                 printModders();
+            }
+            else if ( cli.helpReporters )
+            {
+                printReporters();
             }
             else if ( cli.showVersion )
             {
@@ -598,7 +614,8 @@ public class Cli
                                                     .withCoordinateRelocations( relocatedCoords )
                                                     .withPropertyMappings( propertyMappings )
                                                     .withExcludedModulePoms( pomExcludeModules )
-                                                    .withUseEffectivePoms( useEffectivePoms );
+                                                    .withUseEffectivePoms( useEffectivePoms )
+                                                    .withUserProperties( reportProperties );
 
         final VersionManagerSession session = builder.build();
 
@@ -655,6 +672,53 @@ public class Cli
         System.out.println( sb.toString() );
     }
 
+    private static void printReporters()
+    {
+        final Map<String, Report> reports = vman.getReports();
+
+        final List<String> keys = new ArrayList<String>( reports.keySet() );
+        Collections.sort( keys );
+
+        final int max = maxKeyLength( reports.keySet() );
+        final int valMax = 75 - max;
+
+        final String headerFmt = "%-" + max + "s    %-" + valMax + "s\n";
+
+        //        final int propMax = valMax - 8;
+        //        final String propFmt = "%-" + ( max + 8 ) + "s    %-" + propMax + "s\n";
+
+        final StringWriter sw = new StringWriter();
+        final PrintWriter pw = new PrintWriter( sw );
+
+        pw.println( "The following project reports are available: " );
+        for ( final String key : keys )
+        {
+            final Report r = reports.get( key );
+            printKVLine( key, r.getDescription(), headerFmt, valMax, pw );
+            final Map<String, String> props = r.getPropertyDescriptions();
+
+            if ( props != null && !props.isEmpty() )
+            {
+                pw.println( "\n  Available Properties:\n  ---------------------" );
+                pw.println();
+
+                for ( final Entry<String, String> entry : props.entrySet() )
+                {
+                    final String pk = entry.getKey();
+                    final String value = entry.getValue();
+
+                    pw.println( "  - " + REPORT_PROPERTY_PREFIX + key + "." + pk );
+                    pw.println( String.format( "%-75s", "        " + value ) );
+                }
+            }
+
+            pw.println();
+            pw.println();
+        }
+
+        System.out.println( sw.toString() );
+    }
+
     private static void printModders()
     {
         final Map<String, ProjectModder> modders = vman.getModders();
@@ -687,61 +751,74 @@ public class Cli
 
     private static String formatHelpMap( final LinkedHashMap<String, Object> map, final String itemSeparator )
     {
-        int max = 0;
-        for ( final String key : map.keySet() )
-        {
-            max = Math.max( max, key.length() );
-        }
+        final StringWriter sw = new StringWriter();
+        final PrintWriter pw = new PrintWriter( sw );
+
+        final int max = maxKeyLength( map.keySet() );
 
         final int descMax = 75 - max;
         final String fmt = "%-" + max + "s    %-" + descMax + "s" + itemSeparator;
 
-        final StringWriter sw = new StringWriter();
-        final PrintWriter pw = new PrintWriter( sw );
-
-        final List<String> lines = new ArrayList<String>();
         for ( final Map.Entry<String, Object> entry : map.entrySet() )
         {
             final String key = entry.getKey();
             final String description = entry.getValue() == null ? "-NONE-" : String.valueOf( entry.getValue() );
-
-            lines.clear();
-            final BreakIterator iter = BreakIterator.getLineInstance();
-            iter.setText( description );
-
-            int start = iter.first();
-            int end = BreakIterator.DONE;
-            final StringBuilder currentLine = new StringBuilder();
-            String seg;
-            while ( start != BreakIterator.DONE && ( end = iter.next() ) != BreakIterator.DONE )
-            {
-                seg = description.substring( start, end );
-                if ( currentLine.length() + seg.length() > descMax )
-                {
-                    lines.add( currentLine.toString() );
-                    currentLine.setLength( 0 );
-                }
-
-                currentLine.append( seg );
-                start = end;
-            }
-
-            if ( currentLine.length() > 0 )
-            {
-                lines.add( currentLine.toString() );
-            }
-
-            pw.printf( fmt, key, lines.isEmpty() ? "" : lines.get( 0 ) );
-            if ( lines.size() > 1 )
-            {
-                for ( int i = 1; i < lines.size(); i++ )
-                {
-                    pw.printf( fmt, "", lines.get( i ) );
-                }
-            }
+            printKVLine( key, description, fmt, descMax, pw );
         }
 
         return sw.toString();
+    }
+
+    private static void printKVLine( final String key, final String value, final String fmt, final int valMax,
+                                     final PrintWriter pw )
+    {
+        final List<String> lines = new ArrayList<String>();
+
+        final BreakIterator iter = BreakIterator.getLineInstance();
+        iter.setText( value );
+
+        int start = iter.first();
+        int end = BreakIterator.DONE;
+        final StringBuilder currentLine = new StringBuilder();
+        String seg;
+        while ( start != BreakIterator.DONE && ( end = iter.next() ) != BreakIterator.DONE )
+        {
+            seg = value.substring( start, end );
+            if ( currentLine.length() + seg.length() > valMax )
+            {
+                lines.add( currentLine.toString() );
+                currentLine.setLength( 0 );
+            }
+
+            currentLine.append( seg );
+            start = end;
+        }
+
+        if ( currentLine.length() > 0 )
+        {
+            lines.add( currentLine.toString() );
+        }
+
+        pw.printf( fmt, key, lines.isEmpty() ? "" : lines.get( 0 ) );
+        if ( lines.size() > 1 )
+        {
+            for ( int i = 1; i < lines.size(); i++ )
+            {
+                // blank string to serve for indentation in format with two fields.
+                pw.printf( fmt, "", lines.get( i ) );
+            }
+        }
+    }
+
+    private static int maxKeyLength( final Set<String> keys )
+    {
+        int max = 0;
+        for ( final String key : keys )
+        {
+            max = Math.max( max, key.length() );
+        }
+
+        return max;
     }
 
     private void loadPlugins()
@@ -1021,6 +1098,29 @@ public class Cli
                 {
                     truststorePath = props.getProperty( TRUSTSTORE_PATH_PROPERTY );
                 }
+
+                final Map<String, String> userProps = new HashMap<String, String>();
+                for ( final Enumeration<?> keys = props.keys(); keys.hasMoreElements(); )
+                {
+                    final String key = (String) keys.nextElement();
+                    if ( key.startsWith( REPORT_PROPERTY_PREFIX ) )
+                    {
+                        userProps.put( key.substring( REPORT_PROPERTY_PREFIX.length() ), props.getProperty( key ) );
+                    }
+                }
+
+                if ( !userProps.isEmpty() )
+                {
+                    if ( reportProperties == null )
+                    {
+                        reportProperties = userProps;
+                    }
+                    else
+                    {
+                        userProps.putAll( reportProperties );
+                        reportProperties = userProps;
+                    }
+                }
             }
             catch ( final IOException e )
             {
@@ -1040,8 +1140,8 @@ public class Cli
     /**
      * Try to load bootstrap configuration using the following order or preference:
      * 1. configured file (using -B option)
-     * 2. default file ($HOME/.vman.boot.properties)
-     * 3. embedded resource (classpath:bootstrap.properties)
+     * 2. embedded resource (classpath:bootstrap.properties)
+     * 3. default file ($HOME/.vman.boot.properties)
      *
      * @return The configuration file referenced by the bootstrap properties, or null if no bootstrap properties is
      *         found.
@@ -1056,23 +1156,20 @@ public class Cli
         Map<String, String> bootProps = null;
         if ( bootstrapConfig == null )
         {
-            if ( DEFAULT_BOOTSTRAP_CONFIG.exists() && DEFAULT_BOOTSTRAP_CONFIG.canRead() )
+            logger.info( "Reading bootstrap info from classpath resource: " + BOOTSTRAP_PROPERTIES );
+            final URL resource = getClasspathResource( BOOTSTRAP_PROPERTIES );
+            if ( resource != null )
+            {
+                bootstrapLocation = "classpath:" + resource;
+
+                bootProps = readClasspathProperties( BOOTSTRAP_PROPERTIES );
+            }
+            else if ( DEFAULT_BOOTSTRAP_CONFIG.exists() && DEFAULT_BOOTSTRAP_CONFIG.canRead() )
             {
                 logger.info( "Reading bootstrap info from: " + DEFAULT_BOOTSTRAP_CONFIG );
                 bootstrapLocation = "file:" + DEFAULT_BOOTSTRAP_CONFIG.getAbsolutePath();
 
                 bootProps = readProperties( DEFAULT_BOOTSTRAP_CONFIG );
-            }
-            else
-            {
-                logger.info( "Reading bootstrap info from classpath resource: " + BOOTSTRAP_PROPERTIES );
-                final URL resource = getClasspathResource( BOOTSTRAP_PROPERTIES );
-                if ( resource != null )
-                {
-                    bootstrapLocation = "classpath:" + resource;
-
-                    bootProps = readClasspathProperties( BOOTSTRAP_PROPERTIES );
-                }
             }
         }
         else
@@ -1165,5 +1262,445 @@ public class Cli
         parser.setUsageWidth( ( System.getenv( "COLUMNS" ) == null ? 100 : Integer.valueOf( System.getenv( "COLUMNS" ) ) ) );
         parser.printUsage( System.err );
         System.err.println();
+    }
+
+    public File getTarget()
+    {
+        return target;
+    }
+
+    public File getBomList()
+    {
+        return bomList;
+    }
+
+    public File getBootstrapConfig()
+    {
+        return bootstrapConfig;
+    }
+
+    public String getConfiguration()
+    {
+        return configuration;
+    }
+
+    public String getPomExcludePattern()
+    {
+        return pomExcludePattern;
+    }
+
+    public String getPomExcludeModules()
+    {
+        return pomExcludeModules;
+    }
+
+    public boolean isHelp()
+    {
+        return help;
+    }
+
+    public boolean isHelpModders()
+    {
+        return helpModders;
+    }
+
+    public boolean isConsole()
+    {
+        return console;
+    }
+
+    public boolean isNoConsole()
+    {
+        return noConsole;
+    }
+
+    public boolean isNoLogFile()
+    {
+        return noLogFile;
+    }
+
+    public File getLocalRepository()
+    {
+        return localRepository;
+    }
+
+    public String getRemoteRepositories()
+    {
+        return remoteRepositories;
+    }
+
+    public String getModifications()
+    {
+        return modifications;
+    }
+
+    public File getCapturePom()
+    {
+        return capturePom;
+    }
+
+    public String getPomPattern()
+    {
+        return pomPattern;
+    }
+
+    public boolean isPreserveFiles()
+    {
+        return preserveFiles;
+    }
+
+    public String getRemovedPluginsList()
+    {
+        return removedPluginsList;
+    }
+
+    public String getRemovedTestsList()
+    {
+        return removedTestsList;
+    }
+
+    public String getExtensionsWhitelistList()
+    {
+        return extensionsWhitelistList;
+    }
+
+    public File getReports()
+    {
+        return reports;
+    }
+
+    public String getVersionSuffix()
+    {
+        return versionSuffix;
+    }
+
+    public String getVersionModifier()
+    {
+        return versionModifier;
+    }
+
+    public boolean isStrict()
+    {
+        return strict;
+    }
+
+    public String getSettings()
+    {
+        return settings;
+    }
+
+    public String getToolchain()
+    {
+        return toolchain;
+    }
+
+    public boolean isTestConfig()
+    {
+        return testConfig;
+    }
+
+    public Map<String, String> getUserProperties()
+    {
+        return reportProperties;
+    }
+
+    public boolean isShowVersion()
+    {
+        return showVersion;
+    }
+
+    public File getWorkspace()
+    {
+        return workspace;
+    }
+
+    public boolean isNoSystemExit()
+    {
+        return noSystemExit;
+    }
+
+    public String getTruststorePath()
+    {
+        return truststorePath;
+    }
+
+    public boolean isUseEffectivePoms()
+    {
+        return useEffectivePoms;
+    }
+
+    public List<String> getBoms()
+    {
+        return boms;
+    }
+
+    public List<String> getRemovedPlugins()
+    {
+        return removedPlugins;
+    }
+
+    public List<String> getExtensionsWhitelist()
+    {
+        return extensionsWhitelist;
+    }
+
+    public List<String> getRemovedTests()
+    {
+        return removedTests;
+    }
+
+    public List<String> getModders()
+    {
+        return modders;
+    }
+
+    public Map<String, String> getRelocatedCoords()
+    {
+        return relocatedCoords;
+    }
+
+    public Map<String, String> getPropertyMappings()
+    {
+        return propertyMappings;
+    }
+
+    public String getBootstrapLocation()
+    {
+        return bootstrapLocation;
+    }
+
+    public String getConfigLocation()
+    {
+        return configLocation;
+    }
+
+    public boolean isBootstrapRead()
+    {
+        return bootstrapRead;
+    }
+
+    public File getLogFile()
+    {
+        return logFile;
+    }
+
+    public void setTarget( final File target )
+    {
+        this.target = target;
+    }
+
+    public void setBomList( final File bomList )
+    {
+        this.bomList = bomList;
+    }
+
+    public void setBootstrapConfig( final File bootstrapConfig )
+    {
+        this.bootstrapConfig = bootstrapConfig;
+    }
+
+    public void setConfiguration( final String configuration )
+    {
+        this.configuration = configuration;
+    }
+
+    public void setPomExcludePattern( final String pomExcludePattern )
+    {
+        this.pomExcludePattern = pomExcludePattern;
+    }
+
+    public void setPomExcludeModules( final String pomExcludeModules )
+    {
+        this.pomExcludeModules = pomExcludeModules;
+    }
+
+    public void setHelp( final boolean help )
+    {
+        this.help = help;
+    }
+
+    public void setHelpModders( final boolean helpModders )
+    {
+        this.helpModders = helpModders;
+    }
+
+    public void setConsole( final boolean console )
+    {
+        this.console = console;
+    }
+
+    public void setNoConsole( final boolean noConsole )
+    {
+        this.noConsole = noConsole;
+    }
+
+    public void setNoLogFile( final boolean noLogFile )
+    {
+        this.noLogFile = noLogFile;
+    }
+
+    public void setLocalRepository( final File localRepository )
+    {
+        this.localRepository = localRepository;
+    }
+
+    public void setRemoteRepositories( final String remoteRepositories )
+    {
+        this.remoteRepositories = remoteRepositories;
+    }
+
+    public void setModifications( final String modifications )
+    {
+        this.modifications = modifications;
+    }
+
+    public void setCapturePom( final File capturePom )
+    {
+        this.capturePom = capturePom;
+    }
+
+    public void setPomPattern( final String pomPattern )
+    {
+        this.pomPattern = pomPattern;
+    }
+
+    public void setPreserveFiles( final boolean preserveFiles )
+    {
+        this.preserveFiles = preserveFiles;
+    }
+
+    public void setRemovedPluginsList( final String removedPluginsList )
+    {
+        this.removedPluginsList = removedPluginsList;
+    }
+
+    public void setRemovedTestsList( final String removedTestsList )
+    {
+        this.removedTestsList = removedTestsList;
+    }
+
+    public void setExtensionsWhitelistList( final String extensionsWhitelistList )
+    {
+        this.extensionsWhitelistList = extensionsWhitelistList;
+    }
+
+    public void setReports( final File reports )
+    {
+        this.reports = reports;
+    }
+
+    public void setVersionSuffix( final String versionSuffix )
+    {
+        this.versionSuffix = versionSuffix;
+    }
+
+    public void setVersionModifier( final String versionModifier )
+    {
+        this.versionModifier = versionModifier;
+    }
+
+    public void setStrict( final boolean strict )
+    {
+        this.strict = strict;
+    }
+
+    public void setSettings( final String settings )
+    {
+        this.settings = settings;
+    }
+
+    public void setToolchain( final String toolchain )
+    {
+        this.toolchain = toolchain;
+    }
+
+    public void setTestConfig( final boolean testConfig )
+    {
+        this.testConfig = testConfig;
+    }
+
+    public void setUserProperties( final Map<String, String> userProperties )
+    {
+        this.reportProperties = userProperties;
+    }
+
+    public void setShowVersion( final boolean showVersion )
+    {
+        this.showVersion = showVersion;
+    }
+
+    public void setWorkspace( final File workspace )
+    {
+        this.workspace = workspace;
+    }
+
+    public void setNoSystemExit( final boolean noSystemExit )
+    {
+        this.noSystemExit = noSystemExit;
+    }
+
+    public void setTruststorePath( final String truststorePath )
+    {
+        this.truststorePath = truststorePath;
+    }
+
+    public void setUseEffectivePoms( final boolean useEffectivePoms )
+    {
+        this.useEffectivePoms = useEffectivePoms;
+    }
+
+    public void setBoms( final List<String> boms )
+    {
+        this.boms = boms;
+    }
+
+    public void setRemovedPlugins( final List<String> removedPlugins )
+    {
+        this.removedPlugins = removedPlugins;
+    }
+
+    public void setExtensionsWhitelist( final List<String> extensionsWhitelist )
+    {
+        this.extensionsWhitelist = extensionsWhitelist;
+    }
+
+    public void setRemovedTests( final List<String> removedTests )
+    {
+        this.removedTests = removedTests;
+    }
+
+    public void setModders( final List<String> modders )
+    {
+        this.modders = modders;
+    }
+
+    public void setRelocatedCoords( final Map<String, String> relocatedCoords )
+    {
+        this.relocatedCoords = relocatedCoords;
+    }
+
+    public void setPropertyMappings( final Map<String, String> propertyMappings )
+    {
+        this.propertyMappings = propertyMappings;
+    }
+
+    public void setBootstrapLocation( final String bootstrapLocation )
+    {
+        this.bootstrapLocation = bootstrapLocation;
+    }
+
+    public void setConfigLocation( final String configLocation )
+    {
+        this.configLocation = configLocation;
+    }
+
+    public void setBootstrapRead( final boolean bootstrapRead )
+    {
+        this.bootstrapRead = bootstrapRead;
+    }
+
+    public void setLogFile( final File logFile )
+    {
+        this.logFile = logFile;
     }
 }

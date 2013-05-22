@@ -18,6 +18,12 @@
 
 package com.redhat.rcm.version.report;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.Map;
+
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.util.IOUtil;
 
@@ -25,15 +31,9 @@ import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.util.ActivityLog;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.Map;
-
 @Component( role = Report.class, hint = ActivityLogReport.ID )
 public class ActivityLogReport
-    implements Report
+    extends AbstractReport
 {
 
     public static final String ID = "activity-log";
@@ -55,9 +55,11 @@ public class ActivityLogReport
         {
             writer = new BufferedWriter( new FileWriter( reportFile ) );
 
-            for ( final Map.Entry<File, ActivityLog> entry : sessionData.getLogs().entrySet() )
+            for ( final Map.Entry<File, ActivityLog> entry : sessionData.getLogs()
+                                                                        .entrySet() )
             {
-                writer.write( entry.getKey().getPath() );
+                writer.write( entry.getKey()
+                                   .getPath() );
                 writer.write( ":" );
                 writer.newLine();
                 writer.write( "-----------------------------------------------------------" );
@@ -81,6 +83,12 @@ public class ActivityLogReport
         {
             IOUtil.close( writer );
         }
+    }
+
+    @Override
+    public String getDescription()
+    {
+        return "Log of all activities recorded to the session during processing.";
     }
 
 }

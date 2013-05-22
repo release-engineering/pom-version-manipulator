@@ -32,7 +32,7 @@ import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
 @Component( role = Report.class, hint = ErrorReport.ID )
 public class ErrorReport
-    implements Report
+    extends AbstractReport
 {
 
     public static final String ID = "error-log";
@@ -76,6 +76,12 @@ public class ErrorReport
         {
             IOUtil.close( writer );
         }
+    }
+
+    @Override
+    public String getDescription()
+    {
+        return "Log of all errors recorded to the session during processing";
     }
 
 }

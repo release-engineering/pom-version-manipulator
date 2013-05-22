@@ -64,7 +64,7 @@ public class ManagedInfoTest
             new ManagedInfo( session, Collections.<String> emptyList(), Collections.<String> emptyList(),
                              Collections.<String> emptyList(), Collections.<String> emptyList(),
                              Collections.<String, String> emptyMap(), Collections.<String, String> emptyMap(),
-                             Collections.<VersionlessProjectKey> emptySet() );
+                             Collections.<VersionlessProjectKey> emptySet(), Collections.<String, String> emptyMap() );
 
         final Dependency dep1 = new Dependency();
         dep1.setGroupId( "org.foo" );
