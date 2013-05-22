@@ -57,6 +57,7 @@ import com.redhat.rcm.version.mgr.capture.MissingInfoCapture;
 import com.redhat.rcm.version.mgr.session.SessionBuilder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
+import com.redhat.rcm.version.model.ReadOnlyDependency;
 import com.redhat.rcm.version.testutil.TestProjectFixture;
 
 public class BomModderTest
@@ -927,6 +928,119 @@ public class BomModderTest
                                                                                            .getDependencies()
                                                                                            .isEmpty(), equalTo( true ) );
 
+    }
+
+    @Test
+    public void managedDepWithOverriddenScopeGetsVersionProperty()
+        throws Exception
+    {
+
+        final File pom = getResourceFile( "pom-override-managed-dep.xml" );
+        final File bom = getResourceFile( "bom-typed-min.xml" );
+
+        final VersionManagerSession session = new SessionBuilder( workspace, reports ).build();
+
+        fixture.getVman()
+               .configureSession( Collections.singletonList( bom.getAbsolutePath() ), null, session, pom, bom );
+
+        final Project project = fixture.loadProject( pom, session );
+
+        Model m = project.getModel();
+
+        assertThat( m.getDependencyManagement(), notNullValue() );
+        assertThat( m.getDependencyManagement()
+                     .getDependencies(), notNullValue() );
+        assertThat( m.getDependencyManagement()
+                     .getDependencies()
+                     .size(), equalTo( 1 ) );
+
+        Dependency dep = m.getDependencyManagement()
+                          .getDependencies()
+                          .get( 0 );
+
+        assertThat( dep.getGroupId(), equalTo( "group.id" ) );
+        assertThat( dep.getArtifactId(), equalTo( "some-artifact" ) );
+        assertThat( dep.getScope(), equalTo( "provided" ) );
+
+        final Project bomProject = fixture.loadProject( bom, session );
+
+        final Set<Project> projects = new HashSet<Project>();
+        projects.add( project );
+
+        session.setCurrentProjects( projects );
+
+        new BomModder().inject( project, session );
+
+        assertNoErrors( session );
+
+        m = project.getModel();
+
+        final StringWriter sw = new StringWriter();
+        new MavenXpp3Writer().write( sw, m );
+        System.out.println( sw.toString() );
+
+        assertBoms( m, bomProject.getKey() );
+
+        assertThat( m.getDependencyManagement(), notNullValue() );
+        assertThat( m.getDependencyManagement()
+                     .getDependencies(), notNullValue() );
+        assertThat( m.getDependencyManagement()
+                     .getDependencies()
+                     .size(), equalTo( 2 ) );
+
+        dep = m.getDependencyManagement()
+               .getDependencies()
+               .get( 1 );
+
+        assertThat( dep.getGroupId(), equalTo( "group.id" ) );
+        assertThat( dep.getArtifactId(), equalTo( "some-artifact" ) );
+        assertThat( dep.getVersion(), equalTo( "${version." + dep.getGroupId() + "-" + dep.getArtifactId() + "}" ) );
+        assertThat( dep.getScope(), equalTo( "provided" ) );
+    }
+
+    @Test
+    public void managedDepWithOverriddenScopeGetsVersionProperty_RecordedModificationContainsRealVersion()
+        throws Exception
+    {
+
+        final File pom = getResourceFile( "pom-override-managed-dep.xml" );
+        final File bom = getResourceFile( "bom-typed-min.xml" );
+
+        final VersionManagerSession session = new SessionBuilder( workspace, reports ).build();
+
+        fixture.getVman()
+               .configureSession( Collections.singletonList( bom.getAbsolutePath() ), null, session, pom, bom );
+
+        final Project project = fixture.loadProject( pom, session );
+
+        final Dependency pomDep = new ReadOnlyDependency( project.getModel()
+                                                                 .getDependencyManagement()
+                                                                 .getDependencies()
+                                                                 .get( 0 )
+                                                                 .clone() );
+
+        final Project bomProject = fixture.loadProject( bom, session );
+
+        final Set<Project> projects = new HashSet<Project>();
+        projects.add( project );
+
+        session.setCurrentProjects( projects );
+
+        new BomModder().inject( project, session );
+
+        assertNoErrors( session );
+
+        final Map<Dependency, Dependency> mods = session.getDependencyModifications( project.getVersionlessKey() );
+        assertThat( mods.size(), equalTo( 1 ) );
+
+        final Dependency bomDep = bomProject.getModel()
+                                            .getDependencyManagement()
+                                            .getDependencies()
+                                            .get( 0 );
+
+        final Dependency check = mods.get( pomDep );
+        assertThat( check, notNullValue() );
+        assertThat( check.getVersion(), equalTo( bomDep.getVersion() ) );
     }
 
 }

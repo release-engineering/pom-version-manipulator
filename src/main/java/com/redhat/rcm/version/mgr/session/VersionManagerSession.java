@@ -612,7 +612,7 @@ public class VersionManagerSession
             }
         }
         // Can't find a matching substitution in current pom chain; check the toolchain.
-        if ( result == null )
+        if ( result == null && getToolchainProject() != null )
         {
             props = getToolchainProject().getProperties();
             commonKeys = props.stringPropertyNames();
@@ -716,6 +716,7 @@ public class VersionManagerSession
     public VersionManagerSession addDependencyModification( final VersionlessProjectKey key, final Dependency from,
                                                             final Dependency to )
     {
+        logger.info( "Recording modification in: %s. %s modified to: %s", key, from, to );
         changeInfo.addDependencyModification( key, from, to );
 
         return this;

@@ -318,10 +318,8 @@ public class BomModder
                 }
                 else
                 {
-                    target.setVersion( session.replacePropertyVersion( project, d.getGroupId(), d.getArtifactId(),
-                                                                       d.getType(), d.getClassifier() ) );
-
-                    d.setVersion( target.getVersion() );
+                    d.setVersion( session.replacePropertyVersion( project, d.getGroupId(), d.getArtifactId(),
+                                                                  d.getType(), d.getClassifier() ) );
                     result = DepModResult.MODIFIED;
                 }
             }
