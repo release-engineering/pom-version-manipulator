@@ -44,12 +44,12 @@ public class PropertyMappings
     public PropertyMappings( final Map<String, String> newMappings, final VersionManagerSession session )
     {
         this.session = session;
-        addMappings( newMappings, session );
+        addMappings( null, newMappings, session );
     }
 
-    public PropertyMappings addBomPropertyMappings( final File bom, final Map<String, String> newMappings )
+    PropertyMappings addBomPropertyMappings( final File bom, Properties properties, final Map<String, String> newMappings )
     {
-        addMappings( newMappings, session );
+        addMappings( properties, newMappings, session );
         return this;
     }
 
@@ -65,7 +65,7 @@ public class PropertyMappings
         final StringBuffer buffer = new StringBuffer( raw );
         final Set<String> missing = new HashSet<String>();
         boolean changed = false;
-
+        
         do
         {
             changed = false;
@@ -109,7 +109,7 @@ public class PropertyMappings
         return buffer.toString();
     }
 
-    private void addMappings( final Map<String, String> newMappings, final VersionManagerSession session )
+    private void addMappings( Properties properties, final Map<String, String> newMappings, final VersionManagerSession session )
     {
         final Pattern pattern = Pattern.compile( EXPRESSION_PATTERN );
 
@@ -123,7 +123,9 @@ public class PropertyMappings
                 if ( matcher.matches() )
                 {
                     final String k = matcher.group( 1 );
-                    if ( !mappings.containsKey( k ) && !newMappings.containsKey( k ) )
+                    if ( ( !mappings.containsKey( k ) && !newMappings.containsKey( k ) ) ||
+                         // Its also an expression if the property exists in the global properties map.
+                         (properties != null && properties.containsKey( k ) ) )
                     {
                         expressions.put( entry.getKey(), matcher.group( 1 ) );
                     }
@@ -151,12 +153,12 @@ public class PropertyMappings
      */
     void updateProjectMap( final Properties properties )
     {
-        final Set<Map.Entry<String, String>> contents = expressions.entrySet();
+        Set<Map.Entry<String, String>> contents = expressions.entrySet();
         for ( final Iterator<Map.Entry<String, String>> i = contents.iterator(); i.hasNext(); )
         {
             final Map.Entry<String, String> v = i.next();
-
             final String value = properties.getProperty( v.getValue() );
+
             if ( value == null )
             {
                 continue;
