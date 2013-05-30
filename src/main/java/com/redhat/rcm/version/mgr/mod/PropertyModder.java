@@ -56,9 +56,12 @@ public class PropertyModder
         {
             final String value = propertyMappings.getMappedValue( key );
 
-            logger.info( "Replacing " + key + '/' + currentModel.get( key ) + " with: '" + value + "'" );
-            currentModel.put( key, value );
-            changed = true;
+            if (value != null)
+            {
+                logger.info( "Replacing " + key + '/' + currentModel.get( key ) + " with: '" + value + "'" );
+                currentModel.put( key, value );
+                changed = true;
+            }
         }
 
         return changed;
