@@ -248,7 +248,7 @@ class ManagedInfo
                     + Cli.PROPERTY_MAPPINGS_PROPERTY
                     + " configuration, which specifies a URL to a properties file. Please use this instead." );
 
-                propertyMappings.addBomPropertyMappings( bom, parseProperties( mappings ) );
+                propertyMappings.addBomPropertyMappings( bom, project.getProperties(), parseProperties( mappings ) );
             }
         }
 
