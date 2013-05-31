@@ -157,7 +157,7 @@ public class BomModder
         // the current projects list. (If the parent is a current project, we
         // want to inject the BOMs there instead.)
         final List<FullProjectKey> bomCoords = session.getBomCoords();
-        logger.info( "%d BOMs available for injection...is my parent ({}) being modified in this session? {}",
+        logger.info( "{} BOMs available for injection...is my parent ({}) being modified in this session? {}",
                      bomCoords.size(), project.getParent(), session.isCurrentProject( project.getParent() ) );
 
         if ( !session.isCurrentProject( project.getParent() ) && bomCoords != null && !bomCoords.isEmpty() )
@@ -184,7 +184,7 @@ public class BomModder
                 dep.setType( "pom" );
                 dep.setScope( Artifact.SCOPE_IMPORT );
 
-                logger.info( "Adding BOM: {} at index: %d of {}", dep, insertCounter, model );
+                logger.info( "Adding BOM: {} at index: {} of {}", dep, insertCounter, model );
 
                 changed = true;
                 dm.getDependencies()
