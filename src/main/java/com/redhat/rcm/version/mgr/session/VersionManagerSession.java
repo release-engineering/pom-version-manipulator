@@ -43,7 +43,8 @@ import org.apache.maven.model.Plugin;
 import org.apache.maven.model.ReportPlugin;
 import org.apache.maven.model.Repository;
 import org.apache.maven.project.MavenProject;
-import org.commonjava.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonatype.aether.RepositorySystemSession;
 import org.sonatype.aether.artifact.ArtifactType;
 import org.sonatype.aether.artifact.ArtifactTypeRegistry;
@@ -60,7 +61,7 @@ import com.redhat.rcm.version.util.ActivityLog;
 public class VersionManagerSession
     extends SimpleProjectToolsSession
 {
-    private final Logger logger = new Logger( getClass() );
+    private final Logger logger = LoggerFactory.getLogger( getClass() );
 
     private final List<Throwable> errors = new ArrayList<Throwable>();
 
@@ -723,7 +724,7 @@ public class VersionManagerSession
     public VersionManagerSession addDependencyModification( final VersionlessProjectKey key, final Dependency from,
                                                             final Dependency to )
     {
-        logger.info( "Recording modification in: %s. %s modified to: %s", key, from, to );
+        logger.info( "Recording modification in: {}. {} modified to: {}", key, from, to );
         changeInfo.addDependencyModification( key, from, to );
 
         return this;

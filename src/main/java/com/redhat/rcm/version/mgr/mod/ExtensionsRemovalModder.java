@@ -26,7 +26,8 @@ import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Extension;
 import org.apache.maven.model.Model;
 import org.codehaus.plexus.component.annotations.Component;
-import org.commonjava.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
@@ -35,7 +36,7 @@ import com.redhat.rcm.version.model.Project;
 public class ExtensionsRemovalModder
     implements ProjectModder
 {
-    private final Logger logger = new Logger( getClass() );
+    private final Logger logger = LoggerFactory.getLogger( getClass() );
 
     @Override
     public String getDescription()

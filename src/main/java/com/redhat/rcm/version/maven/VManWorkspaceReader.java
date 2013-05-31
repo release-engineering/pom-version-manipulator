@@ -9,7 +9,8 @@ import java.util.Map;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.project.MavenProject;
-import org.commonjava.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonatype.aether.artifact.Artifact;
 import org.sonatype.aether.repository.WorkspaceReader;
 import org.sonatype.aether.repository.WorkspaceRepository;
@@ -21,7 +22,7 @@ public class VManWorkspaceReader
     implements WorkspaceReader
 {
 
-    private final Logger logger = new Logger( getClass() );
+    private final Logger logger = LoggerFactory.getLogger( getClass() );
 
     private final WorkspaceRepository repo = new WorkspaceRepository( "vman", "vman" );
 
@@ -68,7 +69,7 @@ public class VManWorkspaceReader
     public File getSessionPOM( final FullProjectKey key )
     {
         File pom = session.getPeekedPom( key );
-        logger.info( "\n\nPeeked file for key: '%s' is: %s\n\n", key, pom );
+        logger.info( "Peeked file for key: '{}' is: {}", key, pom );
 
         if ( pom == null && key.equals( session.getToolchainKey() ) )
         {

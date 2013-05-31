@@ -23,7 +23,8 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.commonjava.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.ProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
@@ -33,7 +34,7 @@ import com.redhat.rcm.version.VManException;
 public class CoordinateRelocations
 {
 
-    private final Logger logger = new Logger( getClass() );
+    private final Logger logger = LoggerFactory.getLogger( getClass() );
 
     private final Map<VersionlessProjectKey, FullProjectKey> relocatedCoords =
         new HashMap<VersionlessProjectKey, FullProjectKey>();

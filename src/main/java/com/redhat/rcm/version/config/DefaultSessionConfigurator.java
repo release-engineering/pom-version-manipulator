@@ -51,7 +51,8 @@ import org.apache.maven.settings.building.SettingsBuildingException;
 import org.apache.maven.settings.building.SettingsBuildingResult;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.component.annotations.Requirement;
-import org.commonjava.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.maven.VManWorkspaceReader;
@@ -63,7 +64,7 @@ public class DefaultSessionConfigurator
     implements SessionConfigurator
 {
 
-    private final Logger logger = new Logger( getClass() );
+    private final Logger logger = LoggerFactory.getLogger( getClass() );
 
     @Requirement
     private ProjectLoader projectLoader;
@@ -151,7 +152,7 @@ public class DefaultSessionConfigurator
         final List<FullProjectKey> keys = new ArrayList<FullProjectKey>( result.keySet() );
         Collections.sort( keys );
 
-        logger.info( "PEEKed the following coordinates from pom file-list:\n\n  %s\n\n%d POMs could not be PEEKed.",
+        logger.info( "PEEKed the following coordinates from pom file-list:\n\n  {}\n\n%d POMs could not be PEEKed.",
                      join( keys, "\n  " ), ( poms.size() - keys.size() ) );
 
         return result;

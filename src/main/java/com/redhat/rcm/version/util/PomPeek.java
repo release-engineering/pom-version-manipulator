@@ -20,7 +20,8 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
 import org.apache.maven.mae.project.key.FullProjectKey;
-import org.commonjava.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PomPeek
 {
@@ -48,7 +49,7 @@ public class PomPeek
         }
     };
 
-    private final Logger logger = new Logger( getClass() );
+    private final Logger logger = LoggerFactory.getLogger( getClass() );
 
     private FullProjectKey key;
 
@@ -60,7 +61,7 @@ public class PomPeek
 
         if ( !createCoordinate() )
         {
-            logger.warn( "Could not peek at POM coordinate for: %s. "
+            logger.warn( "Could not peek at POM coordinate for: {}. "
                 + "This POM will NOT be available as an ancestor to other models during effective-model building.", pom );
         }
     }
@@ -184,21 +185,21 @@ public class PomPeek
         }
         catch ( final IOException e )
         {
-            logger.warn( "Failed to peek at POM coordinate for: %s. Reason: %s\n"
+            logger.warn( "Failed to peek at POM coordinate for: {}. Reason: {}\n"
                              + "This POM will NOT be available as an ancestor to other models during effective-model building.",
                          e,
                          pom, e.getMessage() );
         }
         catch ( final XMLStreamException e )
         {
-            logger.warn( "Failed to peek at POM coordinate for: %s. Reason: %s\n"
+            logger.warn( "Failed to peek at POM coordinate for: {}. Reason: {}\n"
                              + "This POM will NOT be available as an ancestor to other models during effective-model building.",
                          e,
                          pom, e.getMessage() );
         }
         catch ( final FactoryConfigurationError e )
         {
-            logger.warn( "Failed to peek at POM coordinate for: %s. Reason: %s\n"
+            logger.warn( "Failed to peek at POM coordinate for: {}. Reason: {}\n"
                              + "This POM will NOT be available as an ancestor to other models during effective-model building.",
                          e,
                          pom, e.getMessage() );

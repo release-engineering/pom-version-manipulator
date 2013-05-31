@@ -57,15 +57,15 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.codehaus.plexus.util.DirectoryScanner;
-import org.commonjava.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
 public final class InputUtils
 {
-
-    private static final Logger LOGGER = new Logger( InputUtils.class );
+    private static final Logger logger = LoggerFactory.getLogger( InputUtils.class );
 
     private static final int MAX_RETRIES = 5;
 
@@ -101,7 +101,7 @@ public final class InputUtils
 
         final String[] includedSubpaths = scanner.getIncludedFiles();
 
-        LOGGER.debug( "Scanning from " + basedir + " and got included files " + Arrays.toString( includedSubpaths )
+        logger.debug( "Scanning from " + basedir + " and got included files " + Arrays.toString( includedSubpaths )
             + " and got excluded files " + Arrays.toString( scanner.getExcludedFiles() ) );
 
         return includedSubpaths;
@@ -275,7 +275,7 @@ public final class InputUtils
                 idx = ln.indexOf( "=" );
                 if ( idx < 0 )
                 {
-                    LOGGER.warn( "Invalid property; key and value must not be empty! (line: '" + line + "')" );
+                    logger.warn( "Invalid property; key and value must not be empty! (line: '" + line + "')" );
                     continue;
                 }
                 final String k = propCleanup( ln.substring( 0, idx )
@@ -346,7 +346,7 @@ public final class InputUtils
 
         if ( location.startsWith( "http" ) )
         {
-            LOGGER.info( "Downloading: '" + location + "'..." );
+            logger.info( "Downloading: '" + location + "'..." );
 
             try
             {
@@ -363,7 +363,7 @@ public final class InputUtils
             }
             catch ( final MalformedURLException e )
             {
-                LOGGER.error( "Malformed URL: '" + location + "'", e );
+                logger.error( "Malformed URL: '" + location + "'", e );
                 throw new VManException( "Failed to download: %s. Reason: %s", e, location, e.getMessage() );
             }
 
@@ -389,7 +389,7 @@ public final class InputUtils
                         response = client.execute( get );
                         if ( response.containsHeader( "Cache-control" ) )
                         {
-                            LOGGER.info( "Waiting for server to generate cache..." );
+                            logger.info( "Waiting for server to generate cache..." );
                             get.abort();
                             try
                             {
@@ -425,8 +425,8 @@ public final class InputUtils
                     }
                     else
                     {
-                        LOGGER.info( String.format( "Received status: '%s' while downloading: %s",
-                                                    response.getStatusLine(), location ) );
+                        logger.info( "Received status: '{}' while downloading: {}",
+                                     response.getStatusLine(), location );
 
                         throw new VManException( "Received status: '%s' while downloading: %s",
                                                  response.getStatusLine(), location );
@@ -451,7 +451,7 @@ public final class InputUtils
         }
         else
         {
-            LOGGER.info( "Using local file: '" + location + "'..." );
+            logger.info( "Using local file: '" + location + "'..." );
 
             result = new File( location );
         }
@@ -473,22 +473,22 @@ public final class InputUtils
             }
             catch ( final KeyManagementException e )
             {
-                LOGGER.error( "Failed to setup SSL socket factory: %s", e, e.getMessage() );
+                logger.error( "Failed to setup SSL socket factory: {}", e, e.getMessage() );
                 throw new VManException( "Failed to setup SSL socket factory: %s", e, e.getMessage() );
             }
             catch ( final UnrecoverableKeyException e )
             {
-                LOGGER.error( "Failed to setup SSL socket factory: %s", e, e.getMessage() );
+                logger.error( "Failed to setup SSL socket factory: {}", e, e.getMessage() );
                 throw new VManException( "Failed to setup SSL socket factory: %s", e, e.getMessage() );
             }
             catch ( final NoSuchAlgorithmException e )
             {
-                LOGGER.error( "Failed to setup SSL socket factory: %s", e, e.getMessage() );
+                logger.error( "Failed to setup SSL socket factory: {}", e, e.getMessage() );
                 throw new VManException( "Failed to setup SSL socket factory: %s", e, e.getMessage() );
             }
             catch ( final KeyStoreException e )
             {
-                LOGGER.error( "Failed to setup SSL socket factory: %s", e, e.getMessage() );
+                logger.error( "Failed to setup SSL socket factory: {}", e, e.getMessage() );
                 throw new VManException( "Failed to setup SSL socket factory: %s", e, e.getMessage() );
             }
 

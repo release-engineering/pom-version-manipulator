@@ -30,7 +30,8 @@ import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Profile;
 import org.codehaus.plexus.component.annotations.Component;
-import org.commonjava.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.redhat.rcm.version.maven.WildcardProjectKey;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
@@ -41,7 +42,7 @@ import com.redhat.rcm.version.model.Project;
 public class TestRemovalModder
     implements ProjectModder
 {
-    private final Logger logger = new Logger( getClass() );
+    private final Logger logger = LoggerFactory.getLogger( getClass() );
 
     public static final String TEST_DEPS_PROFILE_ID = "_testDependencies";
 
@@ -76,7 +77,7 @@ public class TestRemovalModder
                     if ( dep.getScope() != null && dep.getScope()
                                                       .equals( "test" ) )
                     {
-                        logger.info( "Removing scoped test dependency %s for '%s'...", dep, project.getKey() );
+                        logger.info( "Removing scoped test dependency {} for '{}'...", dep, project.getKey() );
 
                         movedDeps.add( dep );
                         it.remove();
@@ -85,7 +86,7 @@ public class TestRemovalModder
                     final Dependency managed = session.getManagedDependency( depvpk );
                     if ( managed != null && dep.getScope() == null && "test".equals( managed.getScope() ) )
                     {
-                        logger.info( "Removing scoped test dependency %s for '%s'...", managed, project.getKey() );
+                        logger.info( "Removing scoped test dependency {} for '{}'...", managed, project.getKey() );
 
                         movedDeps.add( managed );
                         it.remove();
@@ -106,7 +107,7 @@ public class TestRemovalModder
                                 if ( depvpk.equals( depmgmtvpk ) && dep.getScope() == null
                                     && "test".equals( managedDep.getScope() ) )
                                 {
-                                    logger.info( "Removing scoped test dependency %s for '%s'...", managedDep,
+                                    logger.info( "Removing scoped test dependency {} for '{}'...", managedDep,
                                                  project.getKey() );
 
                                     movedDeps.add( managedDep );

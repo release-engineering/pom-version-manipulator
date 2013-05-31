@@ -28,7 +28,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
-import org.commonjava.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.redhat.rcm.version.mgr.mod.ProjectModder;
 
@@ -37,7 +38,7 @@ public final class SessionBuilder
     public static final List<String> STANDARD =
         new ArrayList<String>( Arrays.asList( ProjectModder.STANDARD_MODIFICATIONS ) );
 
-    private final Logger logger = new Logger( getClass() );
+    private final Logger logger = LoggerFactory.getLogger( getClass() );
 
     private final File workspace;
 
@@ -127,7 +128,7 @@ public final class SessionBuilder
             }
             catch ( final IllegalArgumentException e )
             {
-                logger.error( "Cannot parse excluded-module pom entry: '%s'. Reason: %s", e, entry, e.getMessage() );
+                logger.error( "Cannot parse excluded-module pom entry: '{}'. Reason: {}", e, entry, e.getMessage() );
             }
         }
 
