@@ -152,7 +152,7 @@ public class DefaultSessionConfigurator
         final List<FullProjectKey> keys = new ArrayList<FullProjectKey>( result.keySet() );
         Collections.sort( keys );
 
-        logger.info( "PEEKed the following coordinates from pom file-list:\n\n  {}\n\n%d POMs could not be PEEKed.",
+        logger.info( "PEEKed the following coordinates from pom file-list:\n\n  {}\n\n{} POMs could not be PEEKed.",
                      join( keys, "\n  " ), ( poms.size() - keys.size() ) );
 
         return result;
