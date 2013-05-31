@@ -18,6 +18,8 @@
 
 package com.redhat.rcm.version.mgr.verify;
 
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
@@ -43,16 +45,36 @@ public class ToolchainVerifier
             return;
         }
 
-        Set<VersionlessProjectKey> unmanaged = session.getUnmanagedPlugins( project.getPom() );
+        final LinkedHashSet<Project> currentProjects = session.getCurrentProjects();
+        final Set<VersionlessProjectKey> currentKeys = new HashSet<VersionlessProjectKey>();
+
+        for ( final Project p : currentProjects )
+        {
+            currentKeys.add( p.getVersionlessKey() );
+        }
+
+        final Set<VersionlessProjectKey> unmanaged = session.getUnmanagedPlugins( project.getPom() );
         if ( unmanaged != null && !unmanaged.isEmpty() )
         {
-            session.addError( new VManException(
-                                                 "The following plugins were NOT managed by the toolchain.\nProject: %s\nFile: %s\nPlugins:\n\n%s\n",
-                                                 project.getKey(),
-                                                 project.getPom(),
-                                                 new CollectionToString<VersionlessProjectKey>(
-                                                                                                unmanaged,
-                                                                                                new ObjectToString<VersionlessProjectKey>() ) ) );
+            int count = 0;
+            for ( final VersionlessProjectKey up : unmanaged )
+            {
+                if ( !currentKeys.contains( up ) )
+                {
+                    count++;
+                }
+            }
+
+            if ( count > 0 )
+            {
+                session.addError( new VManException(
+                                                     "The following plugins were NOT managed by the toolchain.\nProject: %s\nFile: %s\nPlugins:\n\n%s\n",
+                                                     project.getKey(),
+                                                     project.getPom(),
+                                                     new CollectionToString<VersionlessProjectKey>(
+                                                                                                    unmanaged,
+                                                                                                    new ObjectToString<VersionlessProjectKey>() ) ) );
+            }
         }
     }
 
