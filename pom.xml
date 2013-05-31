@@ -59,7 +59,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <mavenVersion>3.0.3</mavenVersion>
-    <slf4jVersion>1.6.1</slf4jVersion>
+    <slf4jVersion>1.7.5</slf4jVersion>
     <maeVersion>1.0-alpha-1</maeVersion>
   </properties>
   
@@ -79,6 +79,12 @@
     <dependency>
         <groupId>org.apache.maven.mae</groupId>
         <artifactId>mae-booter</artifactId>
+        <exclusions>
+            <exclusion>
+                <groupId>log4j</groupId>
+                <artifactId>log4j</artifactId>
+            </exclusion>
+        </exclusions>
     </dependency>
     <dependency>
         <groupId>org.apache.maven.mae.components</groupId>
@@ -136,22 +142,18 @@
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-log4j12</artifactId>
+      <artifactId>slf4j-jdk14</artifactId>
       <version>${slf4jVersion}</version>
     </dependency>
     <dependency>
-    	<groupId>org.slf4j</groupId>
-    	<artifactId>jul-to-slf4j</artifactId>
-    	<version>${slf4jVersion}</version>
+        <groupId>org.slf4j</groupId>
+        <artifactId>jcl-over-slf4j</artifactId>
+        <version>${slf4jVersion}</version>
     </dependency>
     <dependency>
-    	<groupId>org.slf4j</groupId>
-    	<artifactId>jcl-over-slf4j</artifactId>
-    	<version>${slf4jVersion}</version>
-    </dependency>
-    <dependency>
-      <groupId>log4j</groupId>
-      <artifactId>log4j</artifactId>
+        <groupId>org.slf4j</groupId>
+        <artifactId>log4j-over-slf4j</artifactId>
+        <version>${slf4jVersion}</version>
     </dependency>
     
     <dependency>
@@ -193,11 +195,6 @@
       <artifactId>jetty-server</artifactId>
       <version>8.1.5.v20120716</version>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.commonjava.util</groupId>
-      <artifactId>logging</artifactId>
-      <version>1.1</version>
     </dependency>
     <dependency>
       <groupId>org.sonatype.aether</groupId>

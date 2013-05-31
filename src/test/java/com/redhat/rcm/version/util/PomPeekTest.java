@@ -7,11 +7,11 @@ import static org.junit.Assert.assertThat;
 
 import java.io.File;
 
-import org.apache.log4j.Level;
 import org.apache.maven.mae.project.key.FullProjectKey;
-import org.commonjava.util.logging.Log4jUtil;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.redhat.rcm.version.fixture.LoggingFixture;
 
 public class PomPeekTest
 {
@@ -21,7 +21,7 @@ public class PomPeekTest
     @BeforeClass
     public static void logging()
     {
-        Log4jUtil.configure( Level.DEBUG );
+        LoggingFixture.setupLogging();
     }
 
     @Test

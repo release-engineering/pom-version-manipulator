@@ -58,7 +58,8 @@ import org.codehaus.plexus.component.annotations.Requirement;
 import org.codehaus.plexus.util.FileUtils;
 import org.codehaus.plexus.util.StringUtils;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
-import org.commonjava.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonatype.aether.impl.ArtifactResolver;
 import org.sonatype.aether.impl.RemoteRepositoryManager;
 
@@ -78,7 +79,7 @@ public class VersionManager
     extends AbstractMAEApplication
 {
 
-    private final Logger logger = new Logger( getClass() );
+    private final Logger logger = LoggerFactory.getLogger( getClass() );
 
     @Requirement
     private ModelBuilder modelBuilder;
@@ -338,7 +339,7 @@ public class VersionManager
 
                 if ( modulePom.isFile() )
                 {
-                    logger.info( "Adding POM from module: %s in POM: %s", modulePom, pom );
+                    logger.info( "Adding POM from module: {} in POM: {}", modulePom, pom );
                     pendingPoms.addLast( modulePom );
                 }
             }
@@ -382,7 +383,7 @@ public class VersionManager
         {
             if ( session.isExcludedModulePom( pom ) )
             {
-                logger.info( "Skipping excluded module pom: %s.", pom );
+                logger.info( "Skipping excluded module pom: {}.", pom );
                 continue;
             }
 

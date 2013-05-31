@@ -56,26 +56,21 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.FileHandler;
+import java.util.logging.Handler;
+import java.util.logging.Level;
 
-import org.apache.log4j.Appender;
-import org.apache.log4j.AppenderSkeleton;
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.FileAppender;
-import org.apache.log4j.Layout;
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.PatternLayout;
-import org.apache.log4j.spi.Configurator;
-import org.apache.log4j.spi.LoggerRepository;
 import org.apache.maven.mae.MAEException;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.codehaus.plexus.util.StringUtils;
-import org.commonjava.util.logging.Logger;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.spi.MapOptionHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.redhat.rcm.version.mgr.VersionManager;
 import com.redhat.rcm.version.mgr.mod.ProjectModder;
@@ -83,6 +78,7 @@ import com.redhat.rcm.version.mgr.session.SessionBuilder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.report.Report;
 import com.redhat.rcm.version.util.InputUtils;
+import com.redhat.rcm.version.util.VManFormatter;
 import com.redhat.rcm.version.util.http.SSLUtils;
 
 public class Cli
@@ -114,10 +110,7 @@ public class Cli
     @Option( name = "-hr", aliases = { "--help-reports" }, usage = "Print the list of available reports, plus their configuration options, and quit" )
     private boolean helpReporters;
 
-    @Option( name = "--console", usage = "Log information to console IN ADDITION TO <workspace>/vman.log.\n" )
-    private boolean console;
-
-    @Option( name = "--no-console", usage = "DON'T log information to console in addition to <workspace>/vman.log.\n" )
+   @Option( name = "--no-console", usage = "DON'T log information to console in addition to <workspace>/vman.log.\n" )
     private boolean noConsole;
 
     @Option( name = "--no-log-file", usage = "DON'T log information to <workspace>/vman.log.\n" )
@@ -267,6 +260,11 @@ public class Cli
 
     private static int exitValue = Integer.MIN_VALUE;
 
+    /**
+     * The global logger for vman. Set here to prevent it being gc'd.
+     */
+    private static final java.util.logging.Logger root = java.util.logging.Logger.getLogger( "com.redhat.rcm.version" );
+
     public static void main( final String[] args )
     {
         final Cli cli = new Cli();
@@ -278,12 +276,12 @@ public class Cli
             final boolean useLog =
                 !( cli.noLogFile || cli.testConfig || /*cli.help ||*/cli.helpModders || cli.showVersion || cli.helpReporters );
 
-            //            System.out.printf( "--no-console: %s \n\n--no-log-file: %s \n--test-config: %s\n--help: %s\n--help-modifications: %s\n--version: %s\nlogfile: %s\n\nUse logfile? %s\n\n",
-            //                               cli.noConsole, cli.noLogFile, cli.testConfig, cli.help, cli.helpModders,
-            //                               cli.showVersion, cli.logFile, useLog );
+//            System.out.printf( "--no-console: %s \n--no-log-file: %s \n--test-config: %s\n--help: %s\n--help-modifications: %s\n--version: %s\n\nUse logfile? %s\n\n",
+//                               cli.noConsole, cli.noLogFile, cli.testConfig, cli.help, cli.helpModders,
+//                               cli.showVersion, useLog );
 
             configureLogging( !cli.noConsole, useLog, cli.logFile );
-            new Logger( Cli.class ).info( "Testing log appenders..." );
+            LoggerFactory.getLogger( Cli.class ).info( "Testing log appenders..." );
 
             vman = VersionManager.getInstance();
 
@@ -434,9 +432,9 @@ public class Cli
     {
         System.out.println( "Log file is: " + logFile.getAbsolutePath() );
 
-        final Layout layout = new PatternLayout( "%5p [%t] - %m%n" );
+        
+        final List<Handler> handlers = new ArrayList<Handler>();
 
-        final List<AppenderSkeleton> appenders = new ArrayList<AppenderSkeleton>();
         if ( !useConsole && !useLogFile )
         {
             if ( !useLogFile )
@@ -448,17 +446,14 @@ public class Cli
 
         if ( useConsole )
         {
-            final ConsoleAppender console = new ConsoleAppender( layout );
-            console.setName( "console" );
-            console.setThreshold( Level.ALL );
-
-            appenders.add( console );
+            Handler chandler = new ConsoleHandler ();
+            chandler.setFormatter (new VManFormatter());
+            chandler.setLevel( Level.ALL);
+            handlers.add( chandler );
         }
 
         if ( useLogFile )
         {
-            System.out.println( "\n\nNOTE: See " + logFile + " for a COPY of console output.\n" );
-
             try
             {
                 final File dir = logFile.getParentFile();
@@ -467,12 +462,10 @@ public class Cli
                     throw new RuntimeException( "Failed to create parent directory for logfile: "
                         + dir.getAbsolutePath() );
                 }
-
-                final FileAppender file = new FileAppender( layout, logFile.getPath() );
-                file.setName( "logfile" );
-                file.setThreshold( Level.ALL );
-
-                appenders.add( file );
+                Handler fhandler = new FileHandler (logFile.getPath(), false);
+                fhandler.setFormatter (new VManFormatter());
+                fhandler.setLevel( Level.ALL );
+                handlers.add( fhandler );
             }
             catch ( final IOException e )
             {
@@ -486,49 +479,23 @@ public class Cli
             }
         }
 
-        // Clear the logfile for the next run.
-        if ( logFile != null )
+        root.setUseParentHandlers( false );
+        Handler[] currenthandlers = root.getHandlers();
+        for (Handler h : currenthandlers)
         {
-            logFile.delete();
+            h.close();
+            root.removeHandler(h);
         }
-
-        final Configurator log4jConfigurator = new Configurator()
+        for ( final Handler h : handlers)
         {
-            @Override
-            public void doConfigure( final URL notUsed, final LoggerRepository repo )
-            {
-                final Level level = Level.INFO;
-
-                repo.setThreshold( level );
-
-                final org.apache.log4j.Logger root = repo.getRootLogger();
-                root.removeAllAppenders();
-
-                root.setLevel( level );
-
-                for ( final AppenderSkeleton appender : appenders )
-                {
-                    appender.setThreshold( Level.ALL );
-                    root.addAppender( appender );
-                }
-
-                @SuppressWarnings( "unchecked" )
-                final ArrayList<Appender> allRoot = Collections.list( root.getAllAppenders() );
-                for ( final Appender appender : allRoot )
-                {
-                    System.out.println( "ROOT has appender: " + appender.getName() );
-                }
-
-            }
-        };
-
-        log4jConfigurator.doConfigure( null, LogManager.getLoggerRepository() );
+            root.addHandler( h );
+        }
     }
 
     public int run()
         throws MAEException, VManException, MalformedURLException
     {
-        final Logger logger = new Logger( getClass() );
+        final Logger logger = LoggerFactory.getLogger( getClass() );
 
         final VersionManagerSession session = initSession();
 
@@ -562,25 +529,21 @@ public class Cli
         {
             logger.warn( "\n\n\n\n\nMissing dependency/plugin information has been captured in:\n\n\t"
                 + capturePom.getAbsolutePath() + "\n\n\n\n" );
+        }
+
+        final List<Throwable> errors = session.getErrors();
+        if ( errors != null && !errors.isEmpty() )
+        {
+            logger.error( errors.size() + " errors detected!\n\n" );
+
+            int i = 1;
+            for ( final Throwable error : errors )
+            {
+                logger.error( "\n\n" + i, error );
+                i++;
+            }
 
             return -1;
-        }
-        else
-        {
-            final List<Throwable> errors = session.getErrors();
-            if ( errors != null && !errors.isEmpty() )
-            {
-                logger.error( errors.size() + " errors detected!\n\n" );
-
-                int i = 1;
-                for ( final Throwable error : errors )
-                {
-                    logger.error( "\n\n" + i, error );
-                    i++;
-                }
-
-                return -1;
-            }
         }
 
         return 0;
@@ -599,7 +562,7 @@ public class Cli
 
         loadAndNormalizeModifications();
 
-        final Logger logger = new Logger( getClass() );
+        final Logger logger = LoggerFactory.getLogger( getClass() );
         logger.info( "modifications = " + join( modders, " " ) );
 
         final SessionBuilder builder =
@@ -936,7 +899,7 @@ public class Cli
     private void loadConfiguration()
         throws VManException
     {
-        final Logger logger = new Logger( getClass() );
+        final Logger logger = LoggerFactory.getLogger( getClass() );
 
         File config = null;
 
@@ -1189,7 +1152,7 @@ public class Cli
     private File loadBootstrapConfig()
         throws VManException
     {
-        final Logger logger = new Logger( getClass() );
+        final Logger logger = LoggerFactory.getLogger( getClass() );
 
         Map<String, String> bootProps = null;
         if ( bootstrapConfig == null )
@@ -1340,11 +1303,6 @@ public class Cli
     public boolean isHelpModders()
     {
         return helpModders;
-    }
-
-    public boolean isConsole()
-    {
-        return console;
     }
 
     public boolean isNoConsole()
@@ -1560,11 +1518,6 @@ public class Cli
     public void setHelpModders( final boolean helpModders )
     {
         this.helpModders = helpModders;
-    }
-
-    public void setConsole( final boolean console )
-    {
-        this.console = console;
     }
 
     public void setNoConsole( final boolean noConsole )

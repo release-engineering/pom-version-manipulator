@@ -38,7 +38,8 @@ import org.apache.maven.model.Model;
 import org.apache.maven.model.ModelBase;
 import org.apache.maven.model.Profile;
 import org.codehaus.plexus.component.annotations.Component;
-import org.commonjava.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.DependencyManagementKey;
@@ -49,7 +50,7 @@ import com.redhat.rcm.version.model.ReadOnlyDependency;
 public class BomModder
     implements ProjectModder
 {
-    private final Logger logger = new Logger( getClass() );
+    private final Logger logger = LoggerFactory.getLogger( getClass() );
 
     @Override
     public String getDescription()
@@ -76,7 +77,7 @@ public class BomModder
 
         for ( final ModelBase base : bases )
         {
-            logger.info( "Processing: %s in model: %s", base, model );
+            logger.info( "Processing: {} in model: {}", base, model );
 
             DependencyManagement dm = null;
 
@@ -88,12 +89,12 @@ public class BomModder
                 {
                     final Dependency dep = it.next();
 
-                    logger.info( "Processing: %s", dep );
+                    logger.info( "Processing: {}", dep );
 
                     final DepModResult depResult = modifyDep( dep, project, pom, session, false );
                     if ( depResult == DepModResult.DELETED )
                     {
-                        logger.info( "Removing: %s", dep );
+                        logger.info( "Removing: {}", dep );
                         it.remove();
                         changed = true;
                     }
@@ -101,11 +102,11 @@ public class BomModder
                     {
                         if ( depResult == DepModResult.MODIFIED )
                         {
-                            logger.info( "Modified %s", dep );
+                            logger.info( "Modified {}", dep );
                         }
                         else
                         {
-                            logger.info( "NO CHANGE to: %s", dep );
+                            logger.info( "NO CHANGE to: {}", dep );
                         }
 
                         changed = DepModResult.MODIFIED == depResult || changed;
@@ -125,12 +126,12 @@ public class BomModder
                     {
                         final Dependency dep = it.next();
 
-                        logger.info( "Processing: %s", dep );
+                        logger.info( "Processing: {}", dep );
 
                         final DepModResult depResult = modifyDep( dep, project, pom, session, true );
                         if ( depResult == DepModResult.DELETED )
                         {
-                            logger.info( "Removing: %s", dep );
+                            logger.info( "Removing: {}", dep );
                             it.remove();
                             changed = true;
                         }
@@ -138,11 +139,11 @@ public class BomModder
                         {
                             if ( depResult == DepModResult.MODIFIED )
                             {
-                                logger.info( "Modified %s", dep );
+                                logger.info( "Modified {}", dep );
                             }
                             else
                             {
-                                logger.info( "NO CHANGE to: %s", dep );
+                                logger.info( "NO CHANGE to: {}", dep );
                             }
 
                             changed = DepModResult.MODIFIED == depResult || changed;
@@ -156,7 +157,7 @@ public class BomModder
         // the current projects list. (If the parent is a current project, we
         // want to inject the BOMs there instead.)
         final List<FullProjectKey> bomCoords = session.getBomCoords();
-        logger.info( "%d BOMs available for injection...is my parent (%s) being modified in this session? %s",
+        logger.info( "%d BOMs available for injection...is my parent ({}) being modified in this session? {}",
                      bomCoords.size(), project.getParent(), session.isCurrentProject( project.getParent() ) );
 
         if ( !session.isCurrentProject( project.getParent() ) && bomCoords != null && !bomCoords.isEmpty() )
@@ -183,7 +184,7 @@ public class BomModder
                 dep.setType( "pom" );
                 dep.setScope( Artifact.SCOPE_IMPORT );
 
-                logger.info( "Adding BOM: %s at index: %d of %s", dep, insertCounter, model );
+                logger.info( "Adding BOM: {} at index: %d of {}", dep, insertCounter, model );
 
                 changed = true;
                 dm.getDependencies()

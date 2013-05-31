@@ -42,7 +42,8 @@ import org.apache.maven.model.Parent;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginManagement;
 import org.apache.maven.project.MavenProject;
-import org.commonjava.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.redhat.rcm.version.Cli;
 import com.redhat.rcm.version.VManException;
@@ -52,7 +53,7 @@ import com.redhat.rcm.version.model.Project;
 
 class ManagedInfo
 {
-    private final Logger logger = new Logger( getClass() );
+    private final Logger logger = LoggerFactory.getLogger( getClass() );
 
     private static final String RELOCATIONS_KEY = "relocations";
 
@@ -423,7 +424,7 @@ class ManagedInfo
 
     File getPeekedPom( final FullProjectKey key )
     {
-        logger.info( "STORE: Peeked POM for: '%s' is: %s", key, peekedPoms.get( key ) );
+        logger.info( "STORE: Peeked POM for: '{}' is: {}", key, peekedPoms.get( key ) );
         return peekedPoms.get( key );
     }
 

@@ -23,7 +23,8 @@ import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
-import org.commonjava.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.DependencyManagementKey;
@@ -32,7 +33,7 @@ import com.redhat.rcm.version.model.Project;
 public abstract class AbstractVersionModder
     implements ProjectModder
 {
-    protected final Logger logger = new Logger( getClass() );
+    protected final Logger logger = LoggerFactory.getLogger( getClass() );
 
     protected abstract String getActionDescription();
 
