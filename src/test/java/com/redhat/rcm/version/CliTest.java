@@ -485,20 +485,6 @@ public class CliTest
         repo = folder.newFolder( "repository" );
     }
 
-    private void modifyRepo( final File... boms )
-        throws Exception
-    {
-        final File bomListing = writeBomList( boms );
-
-        final File config = writeConfig( new Properties() );
-
-        final String[] baseArgs =
-            { "--console", "-Z", "-C", config.getPath(), "-b", bomListing.getPath(), repo.getPath() };
-
-        Cli.main( baseArgs );
-        assertExitValue();
-    }
-
     private File writeBomList( final File... boms )
         throws IOException
     {

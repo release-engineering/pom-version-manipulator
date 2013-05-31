@@ -43,7 +43,8 @@ import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 import org.codehaus.plexus.util.IOUtil;
 import org.codehaus.plexus.util.WriterFactory;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
-import org.commonjava.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.jdom.Attribute;
 import org.jdom.Comment;
 import org.jdom.Document;
@@ -63,7 +64,7 @@ import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 public final class PomUtils
 {
 
-    private static final Logger LOGGER = new Logger( PomUtils.class );
+    private static final Logger logger = LoggerFactory.getLogger( PomUtils.class );
 
     private static final String DUMMY_PROPERTY_VALUE = "NOT_SET";
 
@@ -119,7 +120,7 @@ public final class PomUtils
                                         .setOmitDeclaration( false )
                                         .setOmitEncoding( false );
 
-            LOGGER.info( "Writing modified POM:\n\n" + new XMLOutputter( format ).outputString( doc ) );
+            logger.info( "Writing modified POM:\n\n" + new XMLOutputter( format ).outputString( doc ) );
 
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
             writer = WriterFactory.newWriter( baos, encoding );
@@ -268,7 +269,7 @@ public final class PomUtils
         }
         catch ( final JDOMException e )
         {
-            LOGGER.error( "Failed to select all nodes in the document.", e );
+            logger.error( "Failed to select all nodes in the document.", e );
         }
     }
 

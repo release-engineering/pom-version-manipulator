@@ -18,7 +18,8 @@
 
 package com.redhat.rcm.version.mgr.mod;
 
-import org.commonjava.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.maven.model.Model;
 import org.codehaus.plexus.component.annotations.Component;
 
@@ -33,7 +34,7 @@ import java.util.Set;
 public class PropertyModder
     implements ProjectModder
 {
-    private final Logger logger = new Logger( getClass() );
+    private final Logger logger = LoggerFactory.getLogger( getClass() );
 
     public String getDescription()
     {

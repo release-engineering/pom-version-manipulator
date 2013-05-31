@@ -36,7 +36,7 @@ import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 public class VManSessionInitializer
     implements SessionInitializer
 {
-    private static final Logger LOGGER = Logger.getLogger( VManSessionInitializer.class );
+    private static final Logger logger = Logger.getLogger( VManSessionInitializer.class );
 
     @Requirement
     private MAEServiceManager serviceManager;
@@ -194,7 +194,7 @@ public class VManSessionInitializer
         }
         else
         {
-            LOGGER.warn( "Cannot set proxy or authentication information on new RemoteRepositories; "
+            logger.warn( "Cannot set proxy or authentication information on new RemoteRepositories; "
                 + "RepositorySystemSession is not available in ProjectToolsSession instance." );
         }
 
