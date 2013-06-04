@@ -95,7 +95,7 @@ public class Cli
     @Option( name = "-C", aliases = "--config", usage = "Load default configuration for BOMs, toolchain, removedPluginsList, etc. from this file/url." )
     private String configuration;
 
-    @Option( name = "-e", usage = "POM exclude path pattern (glob)" )
+    @Option( name = "-e", usage = "POM exclude path pattern (glob)\nProperty file equivalent: pom-file-excludes" )
     private String pomExcludePattern;
 
     @Option( name = "-E", usage = "POM exclude module list (groupId:artifactId,groupId:artifactId...)\nProperty file equivalent: pom-module-excludes" )
@@ -208,6 +208,8 @@ public class Cli
     public static final String EXTENSIONS_WHITELIST_PROPERTY = "extensions-whitelist";
 
     public static final String POM_EXCLUDE_MODULE_PROPERTY = "pom-module-excludes";
+
+    public static final String POM_EXCLUDE_FILE_PROPERTY = "pom-file-excludes";
 
     public static final String REMOVED_TESTS_PROPERTY = "removed-tests";
 
@@ -982,6 +984,11 @@ public class Cli
                 if ( pomExcludeModules == null )
                 {
                     pomExcludeModules = props.getProperty( POM_EXCLUDE_MODULE_PROPERTY );
+                }
+
+                if ( pomExcludePattern == null )
+                {
+                    pomExcludePattern = props.getProperty( POM_EXCLUDE_FILE_PROPERTY );
                 }
 
                 if ( modifications == null )
