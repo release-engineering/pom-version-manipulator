@@ -39,7 +39,7 @@ public abstract class AbstractVersionModder
 
     protected abstract boolean initialiseModder( final Project project, final VersionManagerSession session );
 
-    protected abstract boolean verifyVersion( String version );
+    protected abstract boolean shouldModifyVersion( String version );
 
     protected abstract String replaceVersion( String model );
 
@@ -67,7 +67,7 @@ public abstract class AbstractVersionModder
             final Model model = project.getModel();
             final Parent parent = project.getParent();
 
-            if ( model.getVersion() != null && verifyVersion( model.getVersion() ) )
+            if ( model.getVersion() != null && shouldModifyVersion( model.getVersion() ) )
             {
                 logger.info( getActionDescription() + " in: " + model.getVersion() + "' for: " + model.getId() );
                 model.setVersion( replaceVersion( model.getVersion() ) );
@@ -113,7 +113,7 @@ public abstract class AbstractVersionModder
                 {
                     logger.info( "Parent: '" + parent.getId() + "' is current session (for: " + model.getId() + ")" );
                     // and if the parent ref's version doesn't end with the suffix we're using here...
-                    if ( verifyVersion( parent.getVersion() ) )
+                    if ( shouldModifyVersion( parent.getVersion() ) )
                     {
                         logger.info( getActionDescription() + " in: " + model.getVersion() + "' for: " + model.getId() );
                         parent.setVersion( replaceVersion( parent.getVersion() ) );
@@ -134,7 +134,7 @@ public abstract class AbstractVersionModder
                 {
                     // note it in the session that this parent POM hasn't been captured in our info.
                     session.addMissingParent( project );
-                    if ( !session.isStrict() && verifyVersion( parent.getVersion() ) )
+                    if ( !session.isStrict() && shouldModifyVersion( parent.getVersion() ) )
                     {
                         // if we're not operating in strict mode, and the parent isn't in the current
                         // VMan session, AND the parent ref version doesn't

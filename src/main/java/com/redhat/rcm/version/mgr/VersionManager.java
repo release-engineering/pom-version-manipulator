@@ -246,9 +246,81 @@ public class VersionManager
         final LinkedList<File> pendingPoms = new LinkedList<File>();
         pendingPoms.add( topPom );
 
+        final List<PomPeek> peeked = new ArrayList<PomPeek>();
+
         while ( !pendingPoms.isEmpty() )
         {
             final File pom = pendingPoms.removeFirst();
+            logger.info( "PEEK: " + pom );
+
+            final PomPeek peek = new PomPeek( pom );
+            final FullProjectKey key = peek.getKey();
+            if ( key != null )
+            {
+                session.addPeekPom( key, pom );
+                peeked.add( peek );
+
+                final File dir = pom.getParentFile();
+
+                final String relPath = peek.getParentRelativePath();
+                if ( relPath != null )
+                {
+                    logger.info( "Found parent relativePath: " + relPath + " in pom: " + pom );
+                    File parent = new File( dir, relPath );
+                    if ( parent.isDirectory() )
+                    {
+                        parent = new File( parent, "pom.xml" );
+                    }
+
+                    logger.info( "Looking for parent POM: " + parent );
+
+                    if ( parent.exists() )
+                    {
+                        pendingPoms.add( parent );
+                    }
+                    else
+                    {
+                        logger.info( "Skipping reference to non-existent parent relativePath: '" + relPath + "' in: "
+                            + pom );
+                    }
+                }
+
+                final Set<String> modules = peek.getModules();
+                if ( modules != null && !modules.isEmpty() )
+                {
+                    for ( final String module : modules )
+                    {
+                        logger.info( "Found module: " + module + " in pom: " + pom );
+                        File modPom = new File( dir, module );
+                        if ( modPom.isDirectory() )
+                        {
+                            modPom = new File( modPom, "pom.xml" );
+                        }
+
+                        logger.info( "Looking for module POM: " + modPom );
+
+                        if ( modPom.exists() )
+                        {
+                            pendingPoms.addLast( modPom );
+                        }
+                        else
+                        {
+                            logger.info( "Skipping reference to non-existent module: '" + module + "' in: " + pom );
+                        }
+                    }
+                }
+            }
+            else
+            {
+                logger.info( "Skipping " + pom + " as its a template file." );
+                continue;
+            }
+
+        }
+
+        for ( final PomPeek peek : peeked )
+        {
+            final File pom = peek.getPom();
 
             // Sucks, but we have to brute-force reading in the raw model.
             // The effective-model building, below, has a tantalizing getRawModel()
@@ -282,18 +354,6 @@ public class VersionManager
                 continue;
             }
 
-            final PomPeek peek = new PomPeek( pom );
-            final FullProjectKey key = peek.getKey();
-            if ( key != null )
-            {
-                session.addPeekPom( key, pom );
-            }
-            else
-            {
-                logger.info( "Skipping " + pom + " as its a template file." );
-                continue;
-            }
-
             final Project project;
             if ( session.isUseEffectivePoms() )
             {
@@ -324,25 +384,6 @@ public class VersionManager
             }
 
             projects.add( project );
-
-            final File dir = pom.getParentFile();
-            final Model model = session.isUseEffectivePoms() ? project.getEffectiveModel() : project.getOriginalModel();
-
-            final List<String> modules = model.getModules();
-            for ( final String module : modules )
-            {
-                File modulePom = new File( dir, module );
-                if ( !modulePom.isFile() )
-                {
-                    modulePom = new File( modulePom, "pom.xml" );
-                }
-
-                if ( modulePom.isFile() )
-                {
-                    logger.info( "Adding POM from module: {} in POM: {}", modulePom, pom );
-                    pendingPoms.addLast( modulePom );
-                }
-            }
         }
 
         return projects;

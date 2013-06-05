@@ -41,7 +41,7 @@ public class VersionSuffixModder extends AbstractVersionModder
     }
 
     @Override
-    protected boolean verifyVersion (String version)
+    protected boolean shouldModifyVersion (String version)
     {
         return !version.endsWith( suffix ) && !isTemplateVersion(version);
     }

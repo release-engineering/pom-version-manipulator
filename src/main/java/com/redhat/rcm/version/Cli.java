@@ -110,7 +110,7 @@ public class Cli
     @Option( name = "-hr", aliases = { "--help-reports" }, usage = "Print the list of available reports, plus their configuration options, and quit" )
     private boolean helpReporters;
 
-   @Option( name = "--no-console", usage = "DON'T log information to console in addition to <workspace>/vman.log.\n" )
+    @Option( name = "--no-console", usage = "DON'T log information to console in addition to <workspace>/vman.log.\n" )
     private boolean noConsole;
 
     @Option( name = "--no-log-file", usage = "DON'T log information to <workspace>/vman.log.\n" )
@@ -179,7 +179,7 @@ public class Cli
     @Option( name = "--trustpath", usage = "Directory containing .pem files with certificates of servers to trust. (Use 'classpath:' prefix for a directory embedded in the jar.)" )
     private String truststorePath = DEFAULT_TRUSTSTORE_PATH;
 
-    @Option( name = "--use-effective-poms", usage = "Disable resolution of effective POMs for projects being modified (May be useful if parent POMs aren't resolvable)." )
+    @Option( name = "--use-effective-poms", usage = "Enable resolution of effective POMs for projects being modified." )
     private boolean useEffectivePoms = false;
 
     private static final String DEFAULT_TRUSTSTORE_PATH = "classpath:ssl/trust";
@@ -278,12 +278,13 @@ public class Cli
             final boolean useLog =
                 !( cli.noLogFile || cli.testConfig || /*cli.help ||*/cli.helpModders || cli.showVersion || cli.helpReporters );
 
-//            System.out.printf( "--no-console: %s \n--no-log-file: %s \n--test-config: %s\n--help: %s\n--help-modifications: %s\n--version: %s\n\nUse logfile? %s\n\n",
-//                               cli.noConsole, cli.noLogFile, cli.testConfig, cli.help, cli.helpModders,
-//                               cli.showVersion, useLog );
+            //            System.out.printf( "--no-console: %s \n--no-log-file: %s \n--test-config: %s\n--help: %s\n--help-modifications: %s\n--version: %s\n\nUse logfile? %s\n\n",
+            //                               cli.noConsole, cli.noLogFile, cli.testConfig, cli.help, cli.helpModders,
+            //                               cli.showVersion, useLog );
 
             configureLogging( !cli.noConsole, useLog, cli.logFile );
-            LoggerFactory.getLogger( Cli.class ).info( "Testing log appenders..." );
+            LoggerFactory.getLogger( Cli.class )
+                         .info( "Testing log appenders..." );
 
             vman = VersionManager.getInstance();
 
@@ -434,7 +435,6 @@ public class Cli
     {
         System.out.println( "Log file is: " + logFile.getAbsolutePath() );
 
-        
         final List<Handler> handlers = new ArrayList<Handler>();
 
         if ( !useConsole && !useLogFile )
@@ -448,9 +448,9 @@ public class Cli
 
         if ( useConsole )
         {
-            Handler chandler = new ConsoleHandler ();
-            chandler.setFormatter (new VManFormatter());
-            chandler.setLevel( Level.ALL);
+            final Handler chandler = new ConsoleHandler();
+            chandler.setFormatter( new VManFormatter() );
+            chandler.setLevel( Level.ALL );
             handlers.add( chandler );
         }
 
@@ -464,8 +464,8 @@ public class Cli
                     throw new RuntimeException( "Failed to create parent directory for logfile: "
                         + dir.getAbsolutePath() );
                 }
-                Handler fhandler = new FileHandler (logFile.getPath(), false);
-                fhandler.setFormatter (new VManFormatter());
+                final Handler fhandler = new FileHandler( logFile.getPath(), false );
+                fhandler.setFormatter( new VManFormatter() );
                 fhandler.setLevel( Level.ALL );
                 handlers.add( fhandler );
             }
@@ -482,13 +482,13 @@ public class Cli
         }
 
         root.setUseParentHandlers( false );
-        Handler[] currenthandlers = root.getHandlers();
-        for (Handler h : currenthandlers)
+        final Handler[] currenthandlers = root.getHandlers();
+        for ( final Handler h : currenthandlers )
         {
             h.close();
-            root.removeHandler(h);
+            root.removeHandler( h );
         }
-        for ( final Handler h : handlers)
+        for ( final Handler h : handlers )
         {
             root.addHandler( h );
         }

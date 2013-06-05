@@ -6,6 +6,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
 import java.io.File;
+import java.util.Set;
 
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.junit.BeforeClass;
@@ -22,6 +23,19 @@ public class PomPeekTest
     public static void logging()
     {
         LoggingFixture.setupLogging();
+    }
+
+    @Test
+    public void findModules()
+    {
+        final File pom = getResourceFile( BASE + "contains-modules.pom" );
+        final PomPeek peek = new PomPeek( pom );
+        final Set<String> modules = peek.getModules();
+        assertThat( modules, notNullValue() );
+        assertThat( modules.size(), equalTo( 2 ) );
+        assertThat( modules.contains( "child1" ), equalTo( true ) );
+        assertThat( modules.contains( "child2" ), equalTo( true ) );
+        assertThat( modules.contains( "child3" ), equalTo( false ) );
     }
 
     @Test
