@@ -241,8 +241,83 @@ public class VersionManager
     protected LinkedHashSet<Project> loadProjectWithModules( final File topPom, final VersionManagerSession session )
         throws ProjectToolsException, IOException
     {
+        final List<PomPeek> peeked = peekAtPomHierarchy( topPom, session );
         final LinkedHashSet<Project> projects = new LinkedHashSet<Project>();
 
+        for ( final PomPeek peek : peeked )
+        {
+            final File pom = peek.getPom();
+
+            // Sucks, but we have to brute-force reading in the raw model.
+            // The effective-model building, below, has a tantalizing getRawModel()
+            // method on the result, BUT this seems to return models that have
+            // the plugin versions set inside profiles...so they're not entirely
+            // raw.
+            Model raw = null;
+            InputStream in = null;
+            try
+            {
+                in = new FileInputStream( pom );
+                raw = new MavenXpp3Reader().read( in );
+            }
+            catch ( final IOException e )
+            {
+                session.addError( new VManException( "Failed to build model for POM: %s.\n--> %s", e, pom,
+                                                     e.getMessage() ) );
+            }
+            catch ( final XmlPullParserException e )
+            {
+                session.addError( new VManException( "Failed to build model for POM: %s.\n--> %s", e, pom,
+                                                     e.getMessage() ) );
+            }
+            finally
+            {
+                closeQuietly( in );
+            }
+
+            if ( raw == null )
+            {
+                continue;
+            }
+
+            final Project project;
+            if ( session.isUseEffectivePoms() )
+            {
+                // FIXME: Need an option to disable this for self-contained use cases...
+                //    Is this the same as 'non-strict' mode??
+                final ModelBuildingRequest req = newModelBuildingRequest( pom, session );
+                ModelBuildingResult mbResult = null;
+                try
+                {
+                    mbResult = modelBuilder.build( req );
+                }
+                catch ( final ModelBuildingException e )
+                {
+                    session.addError( new VManException( "Failed to build model for POM: %s.\n--> %s", e, pom,
+                                                         e.getMessage() ) );
+                }
+
+                if ( mbResult == null )
+                {
+                    continue;
+                }
+
+                project = new Project( raw, mbResult, pom );
+            }
+            else
+            {
+                project = new Project( pom, raw );
+            }
+
+            projects.add( project );
+        }
+
+        return projects;
+    }
+
+    protected List<PomPeek> peekAtPomHierarchy( final File topPom, final VersionManagerSession session )
+        throws IOException
+    {
         final LinkedList<File> pendingPoms = new LinkedList<File>();
         pendingPoms.add( topPom.getCanonicalFile() );
 
@@ -329,75 +404,7 @@ public class VersionManager
             }
         }
 
-        for ( final PomPeek peek : peeked )
-        {
-            final File pom = peek.getPom();
-
-            // Sucks, but we have to brute-force reading in the raw model.
-            // The effective-model building, below, has a tantalizing getRawModel()
-            // method on the result, BUT this seems to return models that have
-            // the plugin versions set inside profiles...so they're not entirely
-            // raw.
-            Model raw = null;
-            InputStream in = null;
-            try
-            {
-                in = new FileInputStream( pom );
-                raw = new MavenXpp3Reader().read( in );
-            }
-            catch ( final IOException e )
-            {
-                session.addError( new VManException( "Failed to build model for POM: %s.\n--> %s", e, pom,
-                                                     e.getMessage() ) );
-            }
-            catch ( final XmlPullParserException e )
-            {
-                session.addError( new VManException( "Failed to build model for POM: %s.\n--> %s", e, pom,
-                                                     e.getMessage() ) );
-            }
-            finally
-            {
-                closeQuietly( in );
-            }
-
-            if ( raw == null )
-            {
-                continue;
-            }
-
-            final Project project;
-            if ( session.isUseEffectivePoms() )
-            {
-                // FIXME: Need an option to disable this for self-contained use cases...
-                //    Is this the same as 'non-strict' mode??
-                final ModelBuildingRequest req = newModelBuildingRequest( pom, session );
-                ModelBuildingResult mbResult = null;
-                try
-                {
-                    mbResult = modelBuilder.build( req );
-                }
-                catch ( final ModelBuildingException e )
-                {
-                    session.addError( new VManException( "Failed to build model for POM: %s.\n--> %s", e, pom,
-                                                         e.getMessage() ) );
-                }
-
-                if ( mbResult == null )
-                {
-                    continue;
-                }
-
-                project = new Project( raw, mbResult, pom );
-            }
-            else
-            {
-                project = new Project( pom, raw );
-            }
-
-            projects.add( project );
-        }
-
-        return projects;
+        return peeked;
     }
 
     private synchronized ModelBuildingRequest newModelBuildingRequest( final File pom,

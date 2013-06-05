@@ -36,6 +36,32 @@ public class VersionManagerTest
         setupVersionManager();
     }
 
+    @Test( timeout = 500 )
+    public void avoidDupeWhenHasChildExplicitRelativeParent()
+        throws Exception
+    {
+        final long start = System.currentTimeMillis();
+        final VersionManagerSession session = createVersionManagerSession();
+        final File pom = getResourceFile( BASE + "deloop-parent/pom.xml" );
+        final LinkedHashSet<Project> projects = vman.loadProjectWithModules( pom, session );
+
+        System.out.printf( "Projects:\n\n  %s\n", join( projects, "\n  " ) );
+
+        assertThat( projects, notNullValue() );
+        assertThat( projects.size(), equalTo( 2 ) );
+
+        final Set<FullProjectKey> keys = new HashSet<FullProjectKey>();
+        for ( final Project project : projects )
+        {
+            keys.add( project.getKey() );
+        }
+
+        assertThat( keys.contains( new FullProjectKey( "test", "deloop-parent", "1" ) ), equalTo( true ) );
+        assertThat( keys.contains( new FullProjectKey( "test", "deloop-child", "1" ) ), equalTo( true ) );
+
+        System.out.printf( "Elapsed: %d ms\n", ( System.currentTimeMillis() - start ) );
+    }
+
     @Test
     public void loadParentFromSubModulesDir()
         throws Exception
