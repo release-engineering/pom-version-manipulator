@@ -255,6 +255,8 @@ public class VersionManager
         while ( !pendingPoms.isEmpty() )
         {
             final File pom = pendingPoms.removeFirst();
+            seen.add( pom );
+
             logger.info( "PEEK: " + pom );
 
             final PomPeek peek = new PomPeek( pom );
@@ -324,9 +326,7 @@ public class VersionManager
             else
             {
                 logger.info( "Skipping " + pom + " as its a template file." );
-                continue;
             }
-
         }
 
         for ( final PomPeek peek : peeked )
