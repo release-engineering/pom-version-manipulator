@@ -666,7 +666,7 @@ public class BOMManagementTest
 
     @Test
     public void injectBOMsAheadOfPreexistingBOMInStrictMode()
-        throws ProjectToolsException, ModelBuildingException
+        throws ProjectToolsException, ModelBuildingException, IOException
     {
         final File pom = getResourceFile( "pom-with-existing-import.xml" );
         final File originalBom = getResourceFile( "some-bom.xml" );

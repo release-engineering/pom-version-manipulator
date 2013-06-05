@@ -137,7 +137,7 @@ public class TestProjectFixture
     }
 
     public Project loadProject( final File pom, final VersionManagerSession session )
-        throws ProjectToolsException, ModelBuildingException
+        throws ProjectToolsException, ModelBuildingException, IOException
     {
         return testVman.loadProjectWithModules( pom, session )
                        .iterator()

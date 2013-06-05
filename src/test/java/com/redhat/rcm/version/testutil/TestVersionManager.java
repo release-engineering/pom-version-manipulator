@@ -18,6 +18,7 @@
 package com.redhat.rcm.version.testutil;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -81,7 +82,7 @@ public class TestVersionManager
 
     @Override
     public LinkedHashSet<Project> loadProjectWithModules( final File pom, final VersionManagerSession session )
-        throws ProjectToolsException
+        throws ProjectToolsException, IOException
     {
         return super.loadProjectWithModules( pom, session );
     }

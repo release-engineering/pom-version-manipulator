@@ -239,13 +239,17 @@ public class VersionManager
     }
 
     protected LinkedHashSet<Project> loadProjectWithModules( final File topPom, final VersionManagerSession session )
-        throws ProjectToolsException
+        throws ProjectToolsException, IOException
     {
         final LinkedHashSet<Project> projects = new LinkedHashSet<Project>();
 
         final LinkedList<File> pendingPoms = new LinkedList<File>();
-        pendingPoms.add( topPom );
+        pendingPoms.add( topPom.getCanonicalFile() );
 
+        final String topDir = topPom.getParentFile()
+                                    .getCanonicalPath();
+
+        final Set<File> seen = new HashSet<File>();
         final List<PomPeek> peeked = new ArrayList<PomPeek>();
 
         while ( !pendingPoms.isEmpty() )
@@ -274,7 +278,11 @@ public class VersionManager
 
                     logger.info( "Looking for parent POM: " + parent );
 
-                    if ( parent.exists() )
+                    parent = parent.getCanonicalFile();
+                    if ( parent.getParentFile()
+                               .getCanonicalPath()
+                               .startsWith( topDir ) && parent.exists() && !seen.contains( parent )
+                        && !pendingPoms.contains( parent ) )
                     {
                         pendingPoms.add( parent );
                     }
@@ -299,7 +307,10 @@ public class VersionManager
 
                         logger.info( "Looking for module POM: " + modPom );
 
-                        if ( modPom.exists() )
+                        if ( modPom.getParentFile()
+                                   .getCanonicalPath()
+                                   .startsWith( topDir ) && modPom.exists() && !seen.contains( modPom )
+                            && !pendingPoms.contains( modPom ) )
                         {
                             pendingPoms.addLast( modPom );
                         }
@@ -437,6 +448,10 @@ public class VersionManager
                 }
             }
             catch ( final ProjectToolsException e )
+            {
+                session.addError( e );
+            }
+            catch ( final IOException e )
             {
                 session.addError( e );
             }
