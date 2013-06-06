@@ -671,6 +671,10 @@ public class VersionManagerSession
             {
                 version = managed.getVersion();
             }
+            else
+            {
+                addMissingVersionProperty( direct, version );
+            }
 
             project.getModel()
                    .getProperties()
