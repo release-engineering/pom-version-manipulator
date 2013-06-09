@@ -499,7 +499,7 @@ public class Cli
 
         final VersionManagerSession session = initSession();
 
-        if ( boms == null || boms.isEmpty() )
+        if ( session.getModderKeys().contains( "bom-realignment" ) && ( boms == null || boms.isEmpty() ) )
         {
             logger.error( "You must specify at least one BOM." );
             return -2;
