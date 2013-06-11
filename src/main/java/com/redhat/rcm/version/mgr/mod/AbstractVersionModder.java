@@ -128,6 +128,11 @@ public abstract class AbstractVersionModder
                         + "' is already set to toolchain for: " + model.getId() + ". Nothing to do.." );
                     // NOP.
                 }
+                else if (session.getRelocation (vpk) != null)
+                {
+                    logger.info ( "Original parent " + vpk + " has been relocated to " + tk + " ; nothing to do.");
+                    // NOP.
+                }
                 // if we do have a toolchain POM, and the parent ref for this project isn't listed in
                 // a BOM (I know, that's weird)...
                 else if ( version == null )
