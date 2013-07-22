@@ -33,7 +33,7 @@ public class VersionSuffixVerifier
     @Override
     public void verify( final Project project, final VersionManagerSession session )
     {
-        if ( session.isStrict() && session.isMissingParent( project ) )
+        if ( !session.isStrict() && session.isMissingParent( project ) )
         {
             session.addError( new VManException(
                                                  "The project parent version was NOT specified in a BOM.\nParent: %s\nProject: %s\nFile: %s\n",
