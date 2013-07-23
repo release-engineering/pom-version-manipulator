@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.util.IOUtil;
@@ -33,11 +34,11 @@ import org.codehaus.plexus.util.IOUtil;
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
-@Component( role = Report.class, hint = MissingVersionsReport.ID )
-public class MissingVersionsReport
+@Component( role = Report.class, hint = UnmappedDependenciesReport.ID )
+public class UnmappedDependenciesReport
     extends AbstractReport
 {
-    public static final String ID = "missing-versions.log";
+    public static final String ID = "unmapped-dependencies.md";
 
     @Override
     public String getId()
@@ -56,10 +57,14 @@ public class MissingVersionsReport
         {
             writer = new BufferedWriter( new FileWriter( reportFile ) );
 
-            final Map<VersionlessProjectKey, Set<File>> missing =
-                new TreeMap<VersionlessProjectKey, Set<File>>( sessionData.getMissingVersions() );
-            for ( final Map.Entry<VersionlessProjectKey, Set<File>> entry : missing.entrySet() )
+            // NOTE: Using Markdown format...
+            writer.write( "# Unmapped Dependencies\n\n\n" );
+
+            final Map<FullProjectKey, Set<File>> missing =
+                new TreeMap<FullProjectKey, Set<File>>( sessionData.getMissingVersions() );
+            for ( final Map.Entry<FullProjectKey, Set<File>> entry : missing.entrySet() )
             {
+                writer.write( "  - " );
                 writer.write( entry.getKey()
                                    .toString() );
                 writer.newLine();
@@ -68,26 +73,21 @@ public class MissingVersionsReport
             if ( !missing.isEmpty() )
             {
                 writer.newLine();
-                writer.write( "Details:" );
-                writer.newLine();
-                writer.write( "--------" );
+                writer.write( "## Details:");
                 writer.newLine();
                 writer.newLine();
             }
 
-            for ( final Map.Entry<VersionlessProjectKey, Set<File>> entry : missing.entrySet() )
+            for ( final Map.Entry<FullProjectKey, Set<File>> entry : missing.entrySet() )
             {
-                writer.write( entry.getKey()
-                                   .toString() );
-                writer.write( ":" );
-                writer.newLine();
-                writer.write( "-----------------------------------------------------------" );
+                writer.write( "### " );
+                writer.write( new VersionlessProjectKey (entry.getKey()).toString() );
                 writer.newLine();
                 writer.newLine();
 
                 for ( final File pom : entry.getValue() )
                 {
-                    writer.write( "\t- " );
+                    writer.write( "  - " );
                     writer.write( pom.getPath() );
                     writer.newLine();
                 }

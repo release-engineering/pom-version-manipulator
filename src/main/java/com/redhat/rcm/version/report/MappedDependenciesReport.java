@@ -36,7 +36,7 @@ import com.redhat.rcm.version.model.DependencyManagementKey;
 public class MappedDependenciesReport
     extends AbstractReport
 {
-    public static final String ID = "mapped-dependencies.txt";
+    public static final String ID = "mapped-dependencies.md";
 
     @Override
     public String getId()
@@ -62,11 +62,10 @@ public class MappedDependenciesReport
                 final Map<DependencyManagementKey, String> deps =
                     new TreeMap<DependencyManagementKey, String>( bomEntry.getValue() );
 
+                writer.write( "# " );
                 writer.write( bom.getPath() );
                 writer.write( " (" + deps.size() + " entries):" );
 
-                writer.newLine();
-                writer.write( "------------------------------------------------------" );
                 writer.newLine();
                 writer.newLine();
 
@@ -74,15 +73,17 @@ public class MappedDependenciesReport
                 {
                     final DependencyManagementKey key = depEntry.getKey();
                     final String version = depEntry.getValue();
-
-                    writer.write( key.toString() );
-                    writer.write( " = " );
-                    writer.write( version );
-                    writer.newLine();
+                    
+                    /* @formatter:off */
+                    // NOTE: Using Markdown format...
+                    final String out = String.format(
+                       "  - %s = %s\n",
+                       key.toString(), version
+                    );
+                    /* @formatter:on */
+                    
+                    writer.write( out );
                 }
-
-                writer.newLine();
-                writer.newLine();
                 writer.newLine();
             }
         }

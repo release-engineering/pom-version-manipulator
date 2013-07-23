@@ -33,7 +33,7 @@ public final class ReadOnlyDependency
 
     public ReadOnlyDependency( final Dependency dep )
     {
-        this.dep = dep;
+        this.dep = dep.clone();
     }
 
     @Override
