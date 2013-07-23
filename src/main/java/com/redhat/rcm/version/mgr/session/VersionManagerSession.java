@@ -287,7 +287,7 @@ public class VersionManagerSession
         return changeInfo.getMissingDependencies( key );
     }
 
-    public Map<VersionlessProjectKey, Set<File>> getMissingVersions()
+    public Map<FullProjectKey, Set<File>> getMissingVersions()
     {
         return changeInfo.getMissingVersions();
     }
@@ -326,13 +326,6 @@ public class VersionManagerSession
         throws VManException
     {
         managedInfo.addBOM( bom, project );
-
-        return this;
-    }
-
-    public VersionManagerSession mapDependency( final File srcBom, final Dependency dep )
-    {
-        managedInfo.mapDependency( srcBom, dep );
 
         return this;
     }

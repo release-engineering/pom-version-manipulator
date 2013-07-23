@@ -41,8 +41,8 @@ class ChangeInfo
 
     private final Set<Project> missingParents = new HashSet<Project>();
 
-    private final Map<VersionlessProjectKey, Set<File>> missingVersions =
-        new HashMap<VersionlessProjectKey, Set<File>>();
+    private final Map<FullProjectKey, Set<File>> missingVersions =
+        new HashMap<FullProjectKey, Set<File>>();
 
     private final Map<VersionlessProjectKey, Set<VersionlessProjectKey>> missingVersionsByProject =
         new HashMap<VersionlessProjectKey, Set<VersionlessProjectKey>>();
@@ -102,12 +102,13 @@ class ChangeInfo
     void addMissingDependency( final Project project, final Dependency dep )
     {
         final VersionlessProjectKey depKey = new VersionlessProjectKey( dep );
+        final FullProjectKey versionedDepKey = new FullProjectKey( dep );
 
-        Set<File> poms = missingVersions.get( depKey );
+        Set<File> poms = missingVersions.get( versionedDepKey );
         if ( poms == null )
         {
             poms = new HashSet<File>();
-            missingVersions.put( depKey, poms );
+            missingVersions.put( versionedDepKey, poms );
         }
 
         poms.add( project.getPom() );
@@ -127,7 +128,6 @@ class ChangeInfo
             deps = new HashSet<Dependency>();
             missingDeps.put( depKey, deps );
         }
-
         deps.add( new ReadOnlyDependency( dep ) );
     }
 
@@ -166,7 +166,7 @@ class ChangeInfo
         return missingDeps.get( key );
     }
 
-    Map<VersionlessProjectKey, Set<File>> getMissingVersions()
+    Map<FullProjectKey, Set<File>> getMissingVersions()
     {
         return missingVersions;
     }

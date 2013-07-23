@@ -101,7 +101,7 @@ public final class InputUtils
 
         final String[] includedSubpaths = scanner.getIncludedFiles();
 
-        logger.debug( "Scanning from " + basedir + " and got included files " + Arrays.toString( includedSubpaths )
+        logger.info( "Scanning from " + basedir + " and got included files " + Arrays.toString( includedSubpaths )
             + " and got excluded files " + Arrays.toString( scanner.getExcludedFiles() ) );
 
         return includedSubpaths;
