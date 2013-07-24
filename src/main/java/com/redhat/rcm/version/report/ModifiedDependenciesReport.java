@@ -78,12 +78,11 @@ public class ModifiedDependenciesReport
                 /* @formatter:off */
                 // NOTE: Using Markdown format...
                 final String out = String.format( 
-                    "## %s\n" +
+                    "### %s\n" +
+                    "  POM: %s<br/>\n" +
+                    "  %d modified dependencies\n" +
                     "\n" +
-                    "  - POM: %s\n" +
-                    "  - %d modified dependencies\n" +
-                    "\n" +
-                    "### Modifications:\n" +
+                    "#### Modifications:\n" +
                     "\n",
                     project.getKey(), project.getPom(), mods.size() 
                 );
