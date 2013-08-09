@@ -18,17 +18,17 @@
 
 package com.redhat.rcm.version.mgr.mod;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.Properties;
+import java.util.Set;
+
 import org.apache.maven.model.Model;
 import org.codehaus.plexus.component.annotations.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.redhat.rcm.version.mgr.session.PropertyMappings;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
-
-import java.util.Properties;
-import java.util.Set;
 
 @Component( role = ProjectModder.class, hint = "property" )
 public class PropertyModder
@@ -36,6 +36,7 @@ public class PropertyModder
 {
     private final Logger logger = LoggerFactory.getLogger( getClass() );
 
+    @Override
     public String getDescription()
     {
         return "Change property mappings to use those declared in the supplied BOM file(s).";
@@ -55,9 +56,9 @@ public class PropertyModder
 
         for ( final String key : commonKeys )
         {
-            final String value = propertyMappings.getMappedValue( key );
+            final String value = propertyMappings.getMappedValue( key, session );
 
-            if (value != null)
+            if ( value != null )
             {
                 logger.info( "Replacing " + key + '/' + currentModel.get( key ) + " with: '" + value + "'" );
                 currentModel.put( key, value );

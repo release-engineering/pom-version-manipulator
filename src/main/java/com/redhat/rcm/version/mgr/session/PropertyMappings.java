@@ -19,7 +19,6 @@ package com.redhat.rcm.version.mgr.session;
 
 import java.io.File;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
@@ -27,8 +26,13 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.codehaus.plexus.interpolation.InterpolationException;
+import org.codehaus.plexus.interpolation.MapBasedValueSource;
+import org.codehaus.plexus.interpolation.StringSearchInterpolator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.redhat.rcm.version.VManException;
 
 public class PropertyMappings
 {
@@ -48,13 +52,14 @@ public class PropertyMappings
         addMappings( null, newMappings, session );
     }
 
-    PropertyMappings addBomPropertyMappings( final File bom, Properties properties, final Map<String, String> newMappings )
+    PropertyMappings addBomPropertyMappings( final File bom, final Properties properties,
+                                             final Map<String, String> newMappings )
     {
         addMappings( properties, newMappings, session );
         return this;
     }
 
-    public String getMappedValue( final String key )
+    public String getMappedValue( final String key, final VersionManagerSession session )
     {
         final String raw = mappings.get( key );
 
@@ -63,54 +68,23 @@ public class PropertyMappings
             return null;
         }
 
-        final StringBuffer buffer = new StringBuffer( raw );
-        final Set<String> missing = new HashSet<String>();
-        boolean changed = false;
-        
-        do
+        final StringSearchInterpolator interpolator = new StringSearchInterpolator( "@", "@" );
+        interpolator.addValueSource( new MapBasedValueSource( mappings ) );
+        try
         {
-            changed = false;
-            final Pattern pattern = Pattern.compile( EXPRESSION_PATTERN );
-            final Matcher matcher = pattern.matcher( buffer.toString() );
-
-            if ( matcher.find() )
-            {
-                buffer.setLength( 0 );
-                matcher.reset();
-            }
-            else
-            {
-                return buffer.toString();
-            }
-
-            while ( matcher.find() )
-            {
-                final String k = matcher.group( 1 );
-                if ( missing.contains( k ) )
-                {
-                    continue;
-                }
-
-                final String value = mappings.get( k );
-                if ( value != null )
-                {
-                    matcher.appendReplacement( buffer, value );
-                    changed = true;
-                }
-                else
-                {
-                    missing.add( k );
-                }
-            }
-
-            matcher.appendTail( buffer );
+            return interpolator.interpolate( raw );
         }
-        while ( changed );
+        catch ( final InterpolationException e )
+        {
+            logger.error( "Invalid expression: '%s'. Reason: %s", e, raw, e.getMessage() );
+            session.addError( new VManException( "Invalid expression: '%s'. Reason: %s", e, raw, e.getMessage() ) );
+        }
 
-        return buffer.toString();
+        return null;
     }
 
-    private void addMappings( Properties properties, final Map<String, String> newMappings, final VersionManagerSession session )
+    private void addMappings( final Properties properties, final Map<String, String> newMappings,
+                              final VersionManagerSession session )
     {
         final Pattern pattern = Pattern.compile( EXPRESSION_PATTERN );
 
@@ -125,8 +99,8 @@ public class PropertyMappings
                 {
                     final String k = matcher.group( 1 );
                     if ( ( !mappings.containsKey( k ) && !newMappings.containsKey( k ) ) ||
-                         // Its also an expression if the property exists in the global properties map.
-                         (properties != null && properties.containsKey( k ) ) )
+                    // Its also an expression if the property exists in the global properties map.
+                        ( properties != null && properties.containsKey( k ) ) )
                     {
                         expressions.put( entry.getKey(), matcher.group( 1 ) );
                     }
@@ -154,7 +128,7 @@ public class PropertyMappings
      */
     void updateProjectMap( final Properties properties )
     {
-        Set<Map.Entry<String, String>> contents = expressions.entrySet();
+        final Set<Map.Entry<String, String>> contents = expressions.entrySet();
         for ( final Iterator<Map.Entry<String, String>> i = contents.iterator(); i.hasNext(); )
         {
             final Map.Entry<String, String> v = i.next();
