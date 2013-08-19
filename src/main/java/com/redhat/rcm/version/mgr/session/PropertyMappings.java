@@ -44,18 +44,25 @@ public class PropertyMappings
 
     private final Map<String, String> expressions = new HashMap<String, String>();
 
-    private final VersionManagerSession session;
-
-    public PropertyMappings( final Map<String, String> newMappings, final VersionManagerSession session )
+    public PropertyMappings( final Map<String, String> newMappings )
     {
-        this.session = session;
-        addMappings( null, newMappings, session );
+        addMappings( null, newMappings );
     }
 
     PropertyMappings addBomPropertyMappings( final File bom, final Properties properties,
                                              final Map<String, String> newMappings )
     {
-        addMappings( properties, newMappings, session );
+        addMappings( properties, newMappings );
+
+        final Map<String, String> fromProps = new HashMap<String, String>();
+        for ( final String key : properties.stringPropertyNames() )
+        {
+            fromProps.put( key, properties.getProperty( key ) );
+        }
+
+        // Add the BOM's own properties into the mappings...
+        addMappings( properties, fromProps );
+
         return this;
     }
 
@@ -83,8 +90,7 @@ public class PropertyMappings
         return null;
     }
 
-    private void addMappings( final Properties properties, final Map<String, String> newMappings,
-                              final VersionManagerSession session )
+    private void addMappings( final Properties properties, final Map<String, String> newMappings )
     {
         final Pattern pattern = Pattern.compile( EXPRESSION_PATTERN );
 

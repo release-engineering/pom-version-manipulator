@@ -20,7 +20,7 @@ public class PropertyMappingsTest
         mappings.put( "baz", "thbbbt" );
 
         final VersionManagerSession session = new SessionBuilder( null ).build();
-        final PropertyMappings pm = new PropertyMappings( mappings, session );
+        final PropertyMappings pm = new PropertyMappings( mappings );
 
         assertThat( pm.getMappedValue( "foo", session ), equalTo( "bar" ) );
     }
@@ -33,7 +33,7 @@ public class PropertyMappingsTest
         mappings.put( "baz", "thbbbt" );
 
         final VersionManagerSession session = new SessionBuilder( null ).build();
-        final PropertyMappings pm = new PropertyMappings( mappings, session );
+        final PropertyMappings pm = new PropertyMappings( mappings );
 
         assertThat( pm.getMappedValue( "blat", session ), nullValue() );
     }
@@ -46,7 +46,7 @@ public class PropertyMappingsTest
         mappings.put( "baz", "thbbbt" );
 
         final VersionManagerSession session = new SessionBuilder( null ).build();
-        final PropertyMappings pm = new PropertyMappings( mappings, session );
+        final PropertyMappings pm = new PropertyMappings( mappings );
 
         assertThat( pm.getMappedValue( "foo", session ), equalTo( "thbbbt" ) );
     }
@@ -59,7 +59,7 @@ public class PropertyMappingsTest
         mappings.put( "baz", "thbbbt" );
 
         final VersionManagerSession session = new SessionBuilder( null ).build();
-        final PropertyMappings pm = new PropertyMappings( mappings, session );
+        final PropertyMappings pm = new PropertyMappings( mappings );
 
         assertThat( pm.getMappedValue( "foo", session ), equalTo( "blat, thbbbt" ) );
     }
@@ -72,7 +72,7 @@ public class PropertyMappingsTest
         mappings.put( "baz", "thbbbt" );
 
         final VersionManagerSession session = new SessionBuilder( null ).build();
-        final PropertyMappings pm = new PropertyMappings( mappings, session );
+        final PropertyMappings pm = new PropertyMappings( mappings );
 
         assertThat( pm.getMappedValue( "foo", session ), equalTo( "blat, thbbbt >@missing@< thbbbt" ) );
     }
@@ -85,7 +85,7 @@ public class PropertyMappingsTest
         mappings.put( "baz", "@foo@" );
 
         final VersionManagerSession session = new SessionBuilder( null ).build();
-        final PropertyMappings pm = new PropertyMappings( mappings, session );
+        final PropertyMappings pm = new PropertyMappings( mappings );
 
         assertThat( pm.getMappedValue( "foo", session ), nullValue() );
     }

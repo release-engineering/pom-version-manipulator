@@ -111,7 +111,7 @@ class ManagedInfo
         this.excludedModulePoms = excludedModulePoms;
         this.userProperties = userProperties;
         this.relocatedCoords = new CoordinateRelocations( relocatedCoords, session );
-        this.propertyMappings = new PropertyMappings( propertyMappings, session );
+        this.propertyMappings = new PropertyMappings( propertyMappings );
 
         if ( removedPlugins != null )
         {
