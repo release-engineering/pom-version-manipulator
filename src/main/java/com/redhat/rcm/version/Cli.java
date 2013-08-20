@@ -957,7 +957,7 @@ public class Cli
                 }
 
                 final List<String> mappingsLocations = readListProperty( props, PROPERTY_MAPPINGS_PROPERTY );
-                if ( propertyMappings != null )
+                if ( mappingsLocations != null )
                 {
                     this.propertyMappings = readPropertiesList( mappingsLocations, downloadsDir, true );
                 }

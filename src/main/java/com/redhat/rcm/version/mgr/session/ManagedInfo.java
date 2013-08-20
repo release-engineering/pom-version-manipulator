@@ -231,9 +231,9 @@ class ManagedInfo
         if ( properties != null )
         {
             final String relocations = properties.getProperty( RELOCATIONS_KEY );
-            logger.info( "Got relocations:\n\n" + relocations );
             if ( relocations != null )
             {
+                logger.info( "Got relocations:\n\n" + relocations );
                 logger.warn( "[DEPRECATED] BOM-based coordinate relocations have been replaced by the "
                     + Cli.RELOCATIONS_PROPERTY
                     + " configuration, which specifies a URL to a properties file. Please use this instead." );
@@ -242,14 +242,18 @@ class ManagedInfo
             }
 
             final String mappings = properties.getProperty( MAPPINGS_KEY );
-            logger.info( "Got mappings:\n\n" + mappings );
             if ( mappings != null )
             {
+                logger.info( "Got mappings:\n\n" + mappings );
                 logger.warn( "[DEPRECATED] BOM-based property mappings have been replaced by the "
                     + Cli.PROPERTY_MAPPINGS_PROPERTY
                     + " configuration, which specifies a URL to a properties file. Please use this instead." );
 
                 propertyMappings.addBomPropertyMappings( bom, project.getProperties(), parseProperties( mappings ) );
+            }
+            else
+            {
+                propertyMappings.addBomPropertyMappings( bom, project.getProperties ());
             }
         }
 
