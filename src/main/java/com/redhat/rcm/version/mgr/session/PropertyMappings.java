@@ -49,6 +49,11 @@ public class PropertyMappings
         addMappings( null, newMappings );
     }
 
+    PropertyMappings addBomPropertyMappings( final File bom, final Properties properties )
+    {
+        return addBomPropertyMappings( bom, properties, mappings );
+    }
+    
     PropertyMappings addBomPropertyMappings( final File bom, final Properties properties,
                                              final Map<String, String> newMappings )
     {
