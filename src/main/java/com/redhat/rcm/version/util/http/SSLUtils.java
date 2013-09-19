@@ -41,11 +41,15 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.redhat.rcm.version.VManException;
-import com.redhat.rcm.version.util.InputUtils;
 
 public final class SSLUtils
 {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger( SSLUtils.class );
 
     private static final String CLASSPATH_PREFIX = "classpath:";
 
@@ -102,8 +106,7 @@ public final class SSLUtils
         }
         catch ( final KeyManagementException e )
         {
-            throw new VManException( "Failed to initialize SSLContext with new PEM-based TrustStore: %s", e,
-                                     e.getMessage() );
+            throw new VManException( "Failed to initialize SSLContext with new PEM-based TrustStore: %s", e, e.getMessage() );
         }
 
         SSLContext.setDefault( ctx );
@@ -112,52 +115,52 @@ public final class SSLUtils
     private static TrustManager loadTrustManager( final String basedir )
         throws VManException
     {
-        KeyStore ks;
-        try
-        {
-            ks = KeyStore.getInstance( KeyStore.getDefaultType() );
-            ks.load( null );
-        }
-        catch ( final KeyStoreException e )
-        {
-            throw new VManException( "Failed to load trust-store KeyStore instance: %s", e, e.getMessage() );
-        }
-        catch ( final NoSuchAlgorithmException e )
-        {
-            throw new VManException( "Failed to load trust-store KeyStore instance: %s", e, e.getMessage() );
-        }
-        catch ( final CertificateException e )
-        {
-            throw new VManException( "Failed to load trust-store KeyStore instance: %s", e, e.getMessage() );
-        }
-        catch ( final IOException e )
-        {
-            throw new VManException( "Failed to load trust-store KeyStore instance: %s", e, e.getMessage() );
-        }
+        //        KeyStore ks;
+        //        try
+        //        {
+        //            ks = KeyStore.getInstance( KeyStore.getDefaultType() );
+        //            ks.load( null );
+        //        }
+        //        catch ( final KeyStoreException e )
+        //        {
+        //            throw new VManException( "Failed to load trust-store KeyStore instance: %s", e, e.getMessage() );
+        //        }
+        //        catch ( final NoSuchAlgorithmException e )
+        //        {
+        //            throw new VManException( "Failed to load trust-store KeyStore instance: %s", e, e.getMessage() );
+        //        }
+        //        catch ( final CertificateException e )
+        //        {
+        //            throw new VManException( "Failed to load trust-store KeyStore instance: %s", e, e.getMessage() );
+        //        }
+        //        catch ( final IOException e )
+        //        {
+        //            throw new VManException( "Failed to load trust-store KeyStore instance: %s", e, e.getMessage() );
+        //        }
+        //
+        //        if ( basedir.startsWith( CLASSPATH_PREFIX ) )
+        //        {
+        //            final String cpDir = basedir.substring( CLASSPATH_PREFIX.length() );
+        //            loadFromClasspath( cpDir, ks );
+        //        }
+        //        else
+        //        {
+        //            final File dir = new File( basedir );
+        //            if ( dir.exists() && dir.isDirectory() )
+        //            {
+        //                final String[] fnames = dir.list();
+        //                if ( fnames != null )
+        //                {
+        //                    for ( final String fname : fnames )
+        //                    {
+        //                        final File f = new File( dir, fname );
+        //                        loadFromFile( f.getPath(), ks );
+        //                    }
+        //                }
+        //            }
+        //        }
 
-        if ( basedir.startsWith( CLASSPATH_PREFIX ) )
-        {
-            final String cpDir = basedir.substring( CLASSPATH_PREFIX.length() );
-            loadFromClasspath( cpDir, ks );
-        }
-        else
-        {
-            final File dir = new File( basedir );
-            if ( dir.exists() && dir.isDirectory() )
-            {
-                final String[] fnames = dir.list();
-                if ( fnames != null )
-                {
-                    for ( final String fname : fnames )
-                    {
-                        final File f = new File( dir, fname );
-                        loadFromFile( f.getPath(), ks );
-                    }
-                }
-            }
-        }
-
-        InputUtils.setTrustKeyStore( ks );
+        //        InputUtils.setTrustKeyStore( ks );
 
         TrustManagerFactory dtmf;
         try
@@ -184,43 +187,43 @@ public final class SSLUtils
             }
         }
 
-        try
-        {
-            if ( ks.size() < 1 )
-            {
-                return dtm;
-            }
-        }
-        catch ( final KeyStoreException e )
-        {
-        }
-
-        TrustManagerFactory tmf;
-        try
-        {
-            tmf = TrustManagerFactory.getInstance( TrustManagerFactory.getDefaultAlgorithm() );
-            tmf.init( ks );
-        }
-        catch ( final NoSuchAlgorithmException e )
-        {
-            throw new VManException( "Failed to initialize trust-store from .pem files: %s", e, e.getMessage() );
-        }
-        catch ( final KeyStoreException e )
-        {
-            throw new VManException( "Failed to initialize trust-store from .pem files: %s", e, e.getMessage() );
-        }
-
-        X509TrustManager tm = null;
-        for ( final TrustManager ctm : tmf.getTrustManagers() )
-        {
-            if ( ctm instanceof X509TrustManager )
-            {
-                tm = (X509TrustManager) ctm;
-                break;
-            }
-        }
-
-        return new MultiTrustManager( tm, dtm );
+        //        try
+        //        {
+        //            if ( ks.size() < 1 )
+        //            {
+        return dtm;
+        //            }
+        //        }
+        //        catch ( final KeyStoreException e )
+        //        {
+        //        }
+        //
+        //        TrustManagerFactory tmf;
+        //        try
+        //        {
+        //            tmf = TrustManagerFactory.getInstance( TrustManagerFactory.getDefaultAlgorithm() );
+        //            tmf.init( ks );
+        //        }
+        //        catch ( final NoSuchAlgorithmException e )
+        //        {
+        //            throw new VManException( "Failed to initialize trust-store from .pem files: %s", e, e.getMessage() );
+        //        }
+        //        catch ( final KeyStoreException e )
+        //        {
+        //            throw new VManException( "Failed to initialize trust-store from .pem files: %s", e, e.getMessage() );
+        //        }
+        //
+        //        X509TrustManager tm = null;
+        //        for ( final TrustManager ctm : tmf.getTrustManagers() )
+        //        {
+        //            if ( ctm instanceof X509TrustManager )
+        //            {
+        //                tm = (X509TrustManager) ctm;
+        //                break;
+        //            }
+        //        }
+        //
+        //        return new MultiTrustManager( tm, dtm );
     }
 
     private static void loadFromClasspath( final String basepath, final KeyStore ks )
@@ -235,8 +238,7 @@ public final class SSLUtils
         }
         catch ( final IOException e )
         {
-            throw new VManException( "Failed to scan classpath for certificate base path: %s. Reason: %s", e, basepath,
-                                     e.getMessage() );
+            throw new VManException( "Failed to scan classpath for certificate base path: %s. Reason: %s", e, basepath, e.getMessage() );
         }
 
         final List<URL> urls = Collections.list( resources );
@@ -259,6 +261,8 @@ public final class SSLUtils
         final File f = new File( path );
         if ( f.exists() && f.isFile() )
         {
+            LOGGER.info( "Loading SSL server PEM from file: " + f );
+
             InputStream is = null;
             try
             {
@@ -267,23 +271,19 @@ public final class SSLUtils
             }
             catch ( final CertificateException e )
             {
-                throw new VManException( "Failed to read classpath certificate file: %s. Reason: %s", e, f,
-                                         e.getMessage() );
+                throw new VManException( "Failed to read classpath certificate file: %s. Reason: %s", e, f, e.getMessage() );
             }
             catch ( final KeyStoreException e )
             {
-                throw new VManException( "Failed to add certificate from classpath file: %s. Reason: %s", e, f,
-                                         e.getMessage() );
+                throw new VManException( "Failed to add certificate from classpath file: %s. Reason: %s", e, f, e.getMessage() );
             }
             catch ( final NoSuchAlgorithmException e )
             {
-                throw new VManException( "Failed to read classpath certificate file: %s. Reason: %s", e, f,
-                                         e.getMessage() );
+                throw new VManException( "Failed to read classpath certificate file: %s. Reason: %s", e, f, e.getMessage() );
             }
             catch ( final IOException e )
             {
-                throw new VManException( "Failed to read classpath certificate file: %s. Reason: %s", e, f,
-                                         e.getMessage() );
+                throw new VManException( "Failed to read classpath certificate file: %s. Reason: %s", e, f, e.getMessage() );
             }
             finally
             {
@@ -326,6 +326,7 @@ public final class SSLUtils
                 final String name = entry.getName();
                 if ( name.startsWith( basepath ) )
                 {
+                    LOGGER.info( "Loading SSL server PEM from: " + name + " in jar: " + jar );
                     final InputStream is = jf.getInputStream( entry );
                     try
                     {
@@ -333,21 +334,18 @@ public final class SSLUtils
                     }
                     catch ( final CertificateException e )
                     {
-                        throw new VManException(
-                                                 "Failed to read certificates from classpath jar entry: %s!%s. Reason: %s",
-                                                 e, jar, name, e.getMessage() );
+                        throw new VManException( "Failed to read certificates from classpath jar entry: %s!%s. Reason: %s", e, jar, name,
+                                                 e.getMessage() );
                     }
                     catch ( final KeyStoreException e )
                     {
-                        throw new VManException(
-                                                 "Failed to read certificates from classpath jar entry: %s!%s. Reason: %s",
-                                                 e, jar, name, e.getMessage() );
+                        throw new VManException( "Failed to read certificates from classpath jar entry: %s!%s. Reason: %s", e, jar, name,
+                                                 e.getMessage() );
                     }
                     catch ( final NoSuchAlgorithmException e )
                     {
-                        throw new VManException(
-                                                 "Failed to read certificates from classpath jar entry: %s!%s. Reason: %s",
-                                                 e, jar, name, e.getMessage() );
+                        throw new VManException( "Failed to read certificates from classpath jar entry: %s!%s. Reason: %s", e, jar, name,
+                                                 e.getMessage() );
                     }
                     finally
                     {

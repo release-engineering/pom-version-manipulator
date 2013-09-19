@@ -53,6 +53,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.conn.params.ConnRouteParams;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
@@ -73,8 +74,7 @@ public final class InputUtils
     {
     }
 
-    public static String[] getIncludedSubpaths( final File basedir, final String includes, final String excludes,
-                                                final VersionManagerSession session )
+    public static String[] getIncludedSubpaths( final File basedir, final String includes, final String excludes, final VersionManagerSession session )
     {
         final DirectoryScanner scanner = new DirectoryScanner();
         scanner.setBasedir( basedir );
@@ -92,8 +92,7 @@ public final class InputUtils
         scanner.setExcludes( excluded );
         scanner.addDefaultExcludes();
 
-        final String[] included =
-            includes == null ? new String[] { "**/pom.xml", "**/*.pom" } : includes.split( "\\s*,\\s*" );
+        final String[] included = includes == null ? new String[] { "**/pom.xml", "**/*.pom" } : includes.split( "\\s*,\\s*" );
 
         scanner.setIncludes( included );
 
@@ -101,8 +100,8 @@ public final class InputUtils
 
         final String[] includedSubpaths = scanner.getIncludedFiles();
 
-        logger.info( "Scanning from " + basedir + " and got included files " + Arrays.toString( includedSubpaths )
-            + " and got excluded files " + Arrays.toString( scanner.getExcludedFiles() ) );
+        logger.info( "Scanning from " + basedir + " and got included files " + Arrays.toString( includedSubpaths ) + " and got excluded files "
+            + Arrays.toString( scanner.getExcludedFiles() ) );
 
         return includedSubpaths;
     }
@@ -125,8 +124,7 @@ public final class InputUtils
         return readFileProperty( props, property, downloadsDir, false );
     }
 
-    public static File readFileProperty( final Properties props, final String property, final File downloadsDir,
-                                         final boolean deleteExisting )
+    public static File readFileProperty( final Properties props, final String property, final File downloadsDir, final boolean deleteExisting )
         throws VManException
     {
         final String val = props.getProperty( property );
@@ -138,8 +136,8 @@ public final class InputUtils
         return null;
     }
 
-    public static Map<String, String> readPropertiesList( final List<String> propertiesLocations,
-                                                          final File downloadsDir, final boolean deleteExisting )
+    public static Map<String, String> readPropertiesList( final List<String> propertiesLocations, final File downloadsDir,
+                                                          final boolean deleteExisting )
         throws VManException
     {
         if ( propertiesLocations == null )
@@ -174,8 +172,7 @@ public final class InputUtils
         return result;
     }
 
-    public static Map<String, String> readProperties( final String propertiesLocation, final File downloadsDir,
-                                                      final boolean deleteExisting )
+    public static Map<String, String> readProperties( final String propertiesLocation, final File downloadsDir, final boolean deleteExisting )
         throws VManException
     {
         final File properties = getFile( propertiesLocation, downloadsDir, deleteExisting );
@@ -408,9 +405,7 @@ public final class InputUtils
 
                     if ( response.containsHeader( "Cache-control" ) )
                     {
-                        throw new VManException(
-                                                 "Failed to read: %s. Cache-control header was present in final attempt.",
-                                                 location );
+                        throw new VManException( "Failed to read: %s. Cache-control header was present in final attempt.", location );
                     }
 
                     final int code = response.getStatusLine()
@@ -425,11 +420,9 @@ public final class InputUtils
                     }
                     else
                     {
-                        logger.info( "Received status: '{}' while downloading: {}",
-                                     response.getStatusLine(), location );
+                        logger.info( "Received status: '{}' while downloading: {}", response.getStatusLine(), location );
 
-                        throw new VManException( "Received status: '%s' while downloading: %s",
-                                                 response.getStatusLine(), location );
+                        throw new VManException( "Received status: '%s' while downloading: %s", response.getStatusLine(), location );
                     }
                 }
                 catch ( final ClientProtocolException e )
@@ -468,8 +461,11 @@ public final class InputUtils
             try
             {
                 sslSocketFactory =
-                    new SSLSocketFactory( SSLSocketFactory.TLS, null, null, trustKs, null, null,
+                    new SSLSocketFactory( SSLSocketFactory.TLS, null, null, trustKs, null, new TrustSelfSignedStrategy(),
                                           SSLSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER );
+                //                sslSocketFactory =
+                //                    new SSLSocketFactory( SSLSocketFactory.TLS, null, null, trustKs, null, null,
+                //                                          SSLSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER );
             }
             catch ( final KeyManagementException e )
             {
