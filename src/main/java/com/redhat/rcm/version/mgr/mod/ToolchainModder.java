@@ -107,12 +107,10 @@ public class ToolchainModder
         return changed;
     }
 
-    private boolean adjustReportPlugins( final Project project, final List<ModelBase> bases,
-                                         final Set<VersionlessProjectKey> pluginRefs,
+    private boolean adjustReportPlugins( final Project project, final List<ModelBase> bases, final Set<VersionlessProjectKey> pluginRefs,
                                          final VersionManagerSession session )
     {
-        final VersionlessProjectKey parentKey =
-            project.getParent() != null ? new VersionlessProjectKey( project.getParent() ) : null;
+        final VersionlessProjectKey parentKey = project.getParent() != null ? new VersionlessProjectKey( project.getParent() ) : null;
 
         boolean changed = false;
 
@@ -225,8 +223,7 @@ public class ToolchainModder
                     changed = true;
                 }
 
-                final VersionlessProjectKey vtk =
-                    new VersionlessProjectKey( toolchainKey.getGroupId(), toolchainKey.getArtifactId() );
+                final VersionlessProjectKey vtk = new VersionlessProjectKey( toolchainKey.getGroupId(), toolchainKey.getArtifactId() );
 
                 final VersionlessProjectKey vpk = new VersionlessProjectKey( parent );
 
@@ -245,8 +242,7 @@ public class ToolchainModder
         return changed;
     }
 
-    private boolean injectPluginManagement( final Project project, final Set<VersionlessProjectKey> pluginRefs,
-                                            final VersionManagerSession session )
+    private boolean injectPluginManagement( final Project project, final Set<VersionlessProjectKey> pluginRefs, final VersionManagerSession session )
     {
         logger.info( "Injecting pluginManagement section from toolchain for: " + project.getKey() );
 
@@ -297,8 +293,7 @@ public class ToolchainModder
         return changed;
     }
 
-    private boolean injectPluginUsages( final Project project, final Set<VersionlessProjectKey> pluginRefs,
-                                        final VersionManagerSession session )
+    private boolean injectPluginUsages( final Project project, final Set<VersionlessProjectKey> pluginRefs, final VersionManagerSession session )
     {
         logger.info( "Injecting plugin usages from toolchain for project: " + project.getKey() );
 
@@ -347,8 +342,7 @@ public class ToolchainModder
         return changed;
     }
 
-    private boolean stripRemovedPlugins( final Project project, final List<ModelBase> bases,
-                                         final VersionManagerSession session )
+    private boolean stripRemovedPlugins( final Project project, final List<ModelBase> bases, final VersionManagerSession session )
     {
         logger.info( "Deleting plugins marked for removal for project: " + project.getKey() );
 
@@ -405,8 +399,7 @@ public class ToolchainModder
             final Reporting reporting = base.getReporting();
             if ( reporting != null )
             {
-                final Map<String, ReportPlugin> pluginMap =
-                    new HashMap<String, ReportPlugin>( reporting.getReportPluginsAsMap() );
+                final Map<String, ReportPlugin> pluginMap = new HashMap<String, ReportPlugin>( reporting.getReportPluginsAsMap() );
                 for ( final VersionlessProjectKey key : removedPlugins )
                 {
                     final ReportPlugin existing = pluginMap.get( key.getId() );
@@ -424,22 +417,18 @@ public class ToolchainModder
         return changed;
     }
 
-    private boolean stripToolchainPluginInfo( final Project project, final List<ModelBase> bases,
-                                              final Set<VersionlessProjectKey> pluginRefs,
+    private boolean stripToolchainPluginInfo( final Project project, final List<ModelBase> bases, final Set<VersionlessProjectKey> pluginRefs,
                                               final VersionManagerSession session )
     {
         logger.info( "Stripping toolchain plugin info for project: " + project.getKey() );
         boolean changed = false;
         for ( final ModelBase base : bases )
         {
-            changed =
-                stripToolchainPluginInfo( project, base, project.getPlugins( base ), pluginRefs, session ) || changed;
+            changed = stripToolchainPluginInfo( project, base, project.getPlugins( base ), pluginRefs, session, false ) || changed;
 
             logger.info( "Stripping toolchain pluginManagement info for project: " + project.getKey() );
 
-            changed =
-                stripToolchainPluginInfo( project, base, project.getManagedPlugins( base ), pluginRefs, session )
-                    || changed;
+            changed = stripToolchainPluginInfo( project, base, project.getManagedPlugins( base ), pluginRefs, session, true ) || changed;
         }
 
         project.flushPluginMaps();
@@ -448,8 +437,7 @@ public class ToolchainModder
     }
 
     private boolean stripToolchainPluginInfo( final Project project, final ModelBase base, final List<Plugin> plugins,
-                                              final Set<VersionlessProjectKey> pluginRefs,
-                                              final VersionManagerSession session )
+                                              final Set<VersionlessProjectKey> pluginRefs, final VersionManagerSession session, final boolean managed )
     {
         boolean changed = false;
         if ( plugins != null )
@@ -504,21 +492,20 @@ public class ToolchainModder
                     // Unless strict mode is set, remove the plugin version. It SHOULD come from the toolchain.
                     // The capture-POM will assist with adding missing plugins to the toolchain.
                     plugin.setVersion( null );
+                    changed = true;
                 }
 
                 if ( managedPlugin != null )
                 {
                     logger.info( "Stripping plugin version from: " + pluginKey );
 
-                    if ( isEmpty( plugin.getDependencies() ) && isEmpty( plugin.getExecutions() )
-                        && plugin.getConfiguration() == null )
+                    if ( managed && isEmpty( plugin.getDependencies() ) && isEmpty( plugin.getExecutions() ) && plugin.getConfiguration() == null )
                     {
                         logger.info( "Removing plugin: " + pluginKey );
 
                         plugins.remove( plugin );
+                        changed = true;
                     }
-
-                    changed = true;
 
                     final VersionlessProjectKey parentKey = project.getVersionlessParentKey();
                     if ( parentKey != null )

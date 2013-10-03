@@ -124,8 +124,7 @@ public class ToolchainManagementTest
 
         final Project project = new Project( original );
         final SessionBuilder builder =
-            new SessionBuilder( workspace, reports ).withCoordinateRelocation( "org.test:old-parent:1.0",
-                                                                               "org.test:new-parent:2.0" );
+            new SessionBuilder( workspace, reports ).withCoordinateRelocation( "org.test:old-parent:1.0", "org.test:new-parent:2.0" );
 
         final VersionManagerSession session = builder.build();
         session.setToolchain( new File( toolchainPath ), toolchainProject );
@@ -256,8 +255,7 @@ public class ToolchainManagementTest
         assertReportPlugins( original, 1, mavenPlugin( "maven-checkstyle-plugin" ).version( null ) );
         assertPluginManagementPlugins( original, -1 );
 
-        final Project project =
-            adjustSingle( "Adjust report plugin version in POM that inherits from toolchain", path, toolchainPath );
+        final Project project = adjustSingle( "Adjust report plugin version in POM that inherits from toolchain", path, toolchainPath );
 
         assertReportPlugins( project.getModel(), 1, mavenPlugin( "maven-checkstyle-plugin" ).version( "2.6" ) );
         assertPluginManagementPlugins( project.getModel(), -1 );
@@ -275,8 +273,7 @@ public class ToolchainManagementTest
         assertReportPlugins( original, 1, mavenPlugin( "maven-checkstyle-plugin" ).version( "2.2" ) );
         assertPluginManagementPlugins( original, -1 );
 
-        final Project project =
-            adjustSingle( "Adjust report plugin version in POM that inherits from toolchain", path, toolchainPath );
+        final Project project = adjustSingle( "Adjust report plugin version in POM that inherits from toolchain", path, toolchainPath );
 
         assertReportPlugins( project.getModel(), 1, mavenPlugin( "maven-checkstyle-plugin" ).version( "2.6" ) );
         assertPluginManagementPlugins( project.getModel(), -1 );
@@ -294,8 +291,7 @@ public class ToolchainManagementTest
         assertReportPlugins( original, 1, mavenPlugin( "maven-checkstyle-plugin" ).version( null ) );
         assertPluginManagementPlugins( original, -1 );
 
-        final Project project =
-            adjustSingle( "Adjust report plugin version in POM not inherited from toolchain", path, toolchainPath );
+        final Project project = adjustSingle( "Adjust report plugin version in POM not inherited from toolchain", path, toolchainPath );
 
         assertReportPlugins( project.getModel(), 1, mavenPlugin( "maven-checkstyle-plugin" ).version( "2.6" ) );
         assertPluginManagementPlugins( project.getModel(), -1 );
@@ -319,8 +315,7 @@ public class ToolchainManagementTest
         assertReportPlugins( original, 1, mavenPlugin( "maven-checkstyle-plugin" ).version( "2.2" ) );
         assertPluginManagementPlugins( original, -1 );
 
-        final Project project =
-            adjustSingle( "Adjust report plugin version in POM not inherited from toolchain", path, toolchainPath );
+        final Project project = adjustSingle( "Adjust report plugin version in POM not inherited from toolchain", path, toolchainPath );
 
         assertReportPlugins( project.getModel(), 1, mavenPlugin( "maven-checkstyle-plugin" ).version( "2.6" ) );
         assertPluginManagementPlugins( project.getModel(), -1 );
@@ -435,8 +430,8 @@ public class ToolchainManagementTest
         assertPluginManagementPlugins( original, -1 );
 
         final Project project =
-            adjustSingle( "Inject plugin execution into POM not inheriting from "
-                + "toolchain that already has another execution of the plugin", path, toolchainPath );
+            adjustSingle( "Inject plugin execution into POM not inheriting from " + "toolchain that already has another execution of the plugin",
+                          path, toolchainPath );
 
         assertBuildPlugins( project.getModel(), 1, mavenPlugin( "maven-source-plugin" ).version( null )
                                                                                        .execution( "other-source-jar" ) );
@@ -466,8 +461,8 @@ public class ToolchainManagementTest
         assertPluginManagementPlugins( original, -1 );
 
         final Project project =
-            adjustSingle( "Leave existing plugin execution in POM not inheriting from "
-                + "toolchain when it collides with the injected one", path, toolchainPath );
+            adjustSingle( "Leave existing plugin execution in POM not inheriting from " + "toolchain when it collides with the injected one", path,
+                          toolchainPath );
 
         assertBuildPlugins( project.getModel(), 1, mavenPlugin( "maven-source-plugin" ).version( null )
                                                                                        .execution( "create-source-jar" ) );
@@ -541,9 +536,7 @@ public class ToolchainManagementTest
     public void adjustNonManagedPluginForInheritedToolchain()
         throws Throwable
     {
-        final Project project =
-            adjustSingle( "Adjust single non-managed plugin in POM inherited from toolchain",
-                          "child-nonManaged-1.0.pom" );
+        final Project project = adjustSingle( "Adjust single non-managed plugin in POM inherited from toolchain", "child-nonManaged-1.0.pom" );
 
         final Model changed = project.getModel();
 
@@ -563,8 +556,7 @@ public class ToolchainManagementTest
     public void adjustManagedPluginForInheritedToolchain()
         throws Throwable
     {
-        final Project project =
-            adjustSingle( "Adjust managed plugin in POM inherited from toolchain", "child-managed-1.0.pom" );
+        final Project project = adjustSingle( "Adjust managed plugin in POM inherited from toolchain", "child-managed-1.0.pom" );
 
         final Model changed = project.getModel();
 
@@ -588,8 +580,7 @@ public class ToolchainManagementTest
         throws Throwable
     {
         final Project project =
-            adjustSingle( "Adjust non-managed plugin in POM NOT inheriting from toolchain",
-                          "external-withParent-nonManaged-1.0.pom" );
+            adjustSingle( "Adjust non-managed plugin in POM NOT inheriting from toolchain", "external-withParent-nonManaged-1.0.pom" );
 
         final Model changed = project.getModel();
         System.out.println( "Verifying POM: " + project.getPom() );
@@ -624,8 +615,7 @@ public class ToolchainManagementTest
         throws Throwable
     {
         final Project project =
-            adjustSingle( "Adjust single non-managed plugin in POM to be inherited from toolchain",
-                          "external-noParent-nonManaged-1.0.pom" );
+            adjustSingle( "Adjust single non-managed plugin in POM to be inherited from toolchain", "external-noParent-nonManaged-1.0.pom" );
 
         final Model changed = project.getModel();
 
@@ -650,12 +640,11 @@ public class ToolchainManagementTest
     }
 
     @Test
-    public void removeEmptyNonManagedPluginForInheritedToolchain()
+    public void removeVersionForEmptyNonManagedPluginForInheritedToolchain()
         throws Throwable
     {
         final Project project =
-            adjustSingle( "Adjust single non-managed plugin in POM inherited from toolchain",
-                          "child-nonManaged-emptyPlugin-1.0.pom" );
+            adjustSingle( "Adjust single non-managed plugin in POM inherited from toolchain", "child-nonManaged-emptyPlugin-1.0.pom" );
 
         final Model changed = project.getModel();
 
@@ -663,16 +652,20 @@ public class ToolchainManagementTest
         assertThat( build, notNullValue() );
 
         final List<Plugin> plugins = build.getPlugins();
-        assertThat( plugins == null || plugins.isEmpty(), is( true ) );
+        assertThat( plugins, notNullValue() );
+        assertThat( plugins.size(), equalTo( 1 ) );
+
+        final Plugin plugin = plugins.get( 0 );
+        assertThat( plugin, notNullValue() );
+        assertThat( plugin.getVersion(), nullValue() );
     }
 
     @Test
-    public void removeEmptyNonManagedPluginForInjectedToolchainParent()
+    public void removeVersionForEmptyNonManagedPluginForInjectedToolchainParent()
         throws Throwable
     {
         final Project project =
-            adjustSingle( "Adjust single non-managed plugin in POM inherited from toolchain",
-                          "external-noParent-nonManaged-emptyPlugin-1.0.pom" );
+            adjustSingle( "Adjust single non-managed plugin in POM inherited from toolchain", "external-noParent-nonManaged-emptyPlugin-1.0.pom" );
 
         final Model changed = project.getModel();
 
@@ -688,15 +681,19 @@ public class ToolchainManagementTest
         assertThat( build, notNullValue() );
 
         final List<Plugin> plugins = build.getPlugins();
-        assertThat( plugins == null || plugins.isEmpty(), is( true ) );
+        assertThat( plugins, notNullValue() );
+        assertThat( plugins.size(), equalTo( 1 ) );
+
+        final Plugin plugin = plugins.get( 0 );
+        assertThat( plugin, notNullValue() );
+        assertThat( plugin.getVersion(), nullValue() );
     }
 
     @Test
     public void removeEmptyManagedPluginForInheritedToolchain()
         throws Throwable
     {
-        final Project project =
-            adjustSingle( "Adjust managed plugin in POM inherited from toolchain", "child-managed-emptyPlugin-1.0.pom" );
+        final Project project = adjustSingle( "Adjust managed plugin in POM inherited from toolchain", "child-managed-emptyPlugin-1.0.pom" );
 
         final Model changed = project.getModel();
 
@@ -711,12 +708,11 @@ public class ToolchainManagementTest
     }
 
     @Test
-    public void removeEmptyNonManagedPluginForNonInheritedToolchain()
+    public void removeVersionForEmptyNonManagedPluginForNonInheritedToolchain()
         throws Throwable
     {
         final Project project =
-            adjustSingle( "Adjust non-managed plugin in POM NOT inheriting from toolchain",
-                          "external-withParent-nonManaged-emptyPlugin-1.0.pom" );
+            adjustSingle( "Adjust non-managed plugin in POM NOT inheriting from toolchain", "external-withParent-nonManaged-emptyPlugin-1.0.pom" );
 
         final Model changed = project.getModel();
 
@@ -724,19 +720,12 @@ public class ToolchainManagementTest
         assertThat( build, notNullValue() );
 
         final List<Plugin> plugins = build.getPlugins();
-        assertThat( plugins == null || plugins.isEmpty(), is( true ) );
+        assertThat( plugins, notNullValue() );
+        assertThat( plugins.size(), equalTo( 1 ) );
 
-        // NOTE: PluginManagement MUST be injected into the highest level possible!
-        // Since all non-toolchain parent POMs MUST be built for the repository to be
-        // complete, we can inject it there.
-        // PluginManagement pm = build.getPluginManagement();
-        // assertThat( pm, notNullValue() );
-        //
-        // Map<String, Plugin> pluginMap = pm.getPluginsAsMap();
-        // assertThat( pluginMap, notNullValue() );
-        //
-        // Plugin plugin = pluginMap.get( "org.apache.maven.plugins:maven-compiler-plugin" );
-        // assertThat( plugin.getVersion(), equalTo( "2.0" ) );
+        final Plugin plugin = plugins.get( 0 );
+        assertThat( plugin, notNullValue() );
+        assertThat( plugin.getVersion(), nullValue() );
     }
 
     private Project adjustSingle( final String description, final String pomPath )
@@ -751,8 +740,7 @@ public class ToolchainManagementTest
         return adjustSingle( description, pomPath, toolchainPath, null );
     }
 
-    private Project adjustSingle( final String description, final String pomPath, final String toolchainPath,
-                                  final List<String> removedPlugins )
+    private Project adjustSingle( final String description, final String pomPath, final String toolchainPath, final List<String> removedPlugins )
         throws Throwable
     {
         try
@@ -765,15 +753,14 @@ public class ToolchainManagementTest
             final File pom = new File( repo, srcPom.getName() );
             copyFile( srcPom, pom );
 
-            final VersionManagerSession session = newVersionManagerSession
-                            ( workspace, reports, null, removedPlugins, 
-                              Collections.<String> emptyList() );
+            final VersionManagerSession session =
+                newVersionManagerSession( workspace, reports, null, removedPlugins, Collections.<String> emptyList() );
 
             final File remoteRepo = getResourceFile( TOOLCHAIN_TEST_POMS + "repo" );
             session.setRemoteRepositories( remoteRepo.toURI()
-                                                   .normalize()
-                                                   .toURL()
-                                                   .toExternalForm() );
+                                                     .normalize()
+                                                     .toURL()
+                                                     .toExternalForm() );
 
             final Set<File> modified = vman.modifyVersions( pom, null, toolchain, session );
             assertNoErrors( session );
@@ -794,8 +781,7 @@ public class ToolchainManagementTest
         }
     }
 
-    private void adjustNone( final String description, final String pomPath, final String toolchainPath,
-                             final List<String> removedPlugins )
+    private void adjustNone( final String description, final String pomPath, final String toolchainPath, final List<String> removedPlugins )
         throws Throwable
     {
         try
@@ -808,15 +794,14 @@ public class ToolchainManagementTest
             final File pom = new File( repo, srcPom.getName() );
             copyFile( srcPom, pom );
 
-            final VersionManagerSession session = newVersionManagerSession
-                            ( workspace, reports, null, removedPlugins, 
-                              Collections.<String> emptyList() );
+            final VersionManagerSession session =
+                newVersionManagerSession( workspace, reports, null, removedPlugins, Collections.<String> emptyList() );
 
             final File remoteRepo = getResourceFile( TOOLCHAIN_TEST_POMS + "repo" );
             session.setRemoteRepositories( remoteRepo.toURI()
-                                                   .normalize()
-                                                   .toURL()
-                                                   .toExternalForm() );
+                                                     .normalize()
+                                                     .toURL()
+                                                     .toExternalForm() );
 
             final Set<File> modified = vman.modifyVersions( pom, null, toolchain, session );
             assertNoErrors( session );
@@ -842,8 +827,7 @@ public class ToolchainManagementTest
         return toolchainKey;
     }
 
-    private void assertParent( final Model model, final String groupId, final String artifactId, final String version,
-                               final boolean matches )
+    private void assertParent( final Model model, final String groupId, final String artifactId, final String version, final boolean matches )
     {
         assertThat( "Model is null.", model, notNullValue() );
 
@@ -904,8 +888,7 @@ public class ToolchainManagementTest
         assertPlugins( build, pluginCount, pluginCheckSet );
     }
 
-    private void assertPluginManagementPlugins( final Model model, final int pluginCount,
-                                                final PluginMatcher... pluginCheckSet )
+    private void assertPluginManagementPlugins( final Model model, final int pluginCount, final PluginMatcher... pluginCheckSet )
     {
         if ( pluginCount < 1 && ( model.getBuild() == null || model.getBuild()
                                                                    .getPluginManagement() == null ) )
@@ -922,8 +905,7 @@ public class ToolchainManagementTest
         assertPlugins( pm, pluginCount, pluginCheckSet );
     }
 
-    private void assertPlugins( final PluginContainer pluginContainer, final int pluginCount,
-                                final PluginMatcher... pluginCheckSet )
+    private void assertPlugins( final PluginContainer pluginContainer, final int pluginCount, final PluginMatcher... pluginCheckSet )
     {
         if ( pluginCount > 0 )
         {
@@ -954,8 +936,7 @@ public class ToolchainManagementTest
 
                         for ( final PluginExecution pe : executions )
                         {
-                            assertThat( "Plugin execution: " + pe.getId() + " not allowed!", checks.eids(),
-                                        hasItem( pe.getId() ) );
+                            assertThat( "Plugin execution: " + pe.getId() + " not allowed!", checks.eids(), hasItem( pe.getId() ) );
                             checks.eids()
                                   .remove( pe.getId() );
                         }
@@ -1018,8 +999,7 @@ public class ToolchainManagementTest
 
                         for ( final ReportSet rs : reportSets )
                         {
-                            assertThat( "Plugin execution: " + rs.getId() + " not allowed!", checks.eids(),
-                                        hasItem( rs.getId() ) );
+                            assertThat( "Plugin execution: " + rs.getId() + " not allowed!", checks.eids(), hasItem( rs.getId() ) );
                             checks.eids()
                                   .remove( rs.getId() );
                         }
