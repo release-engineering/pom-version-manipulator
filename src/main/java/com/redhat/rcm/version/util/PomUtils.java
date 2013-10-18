@@ -19,18 +19,15 @@
 package com.redhat.rcm.version.util;
 
 import static java.io.File.separatorChar;
-import static org.apache.commons.lang.StringUtils.isEmpty;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
-import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Properties;
 import java.util.Set;
 
 import org.apache.maven.mae.project.key.ProjectKey;
@@ -43,30 +40,28 @@ import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 import org.codehaus.plexus.util.IOUtil;
 import org.codehaus.plexus.util.WriterFactory;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.jdom.Attribute;
 import org.jdom.Comment;
 import org.jdom.Document;
 import org.jdom.Element;
 import org.jdom.JDOMException;
 import org.jdom.Namespace;
+import org.jdom.Text;
 import org.jdom.filter.ContentFilter;
 import org.jdom.input.SAXBuilder;
 import org.jdom.output.Format;
 import org.jdom.output.Format.TextMode;
 import org.jdom.output.XMLOutputter;
 import org.jdom.xpath.XPath;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.redhat.rcm.version.VManException;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 
 public final class PomUtils
 {
-
     private static final Logger logger = LoggerFactory.getLogger( PomUtils.class );
-
-    private static final String DUMMY_PROPERTY_VALUE = "NOT_SET";
 
     private PomUtils()
     {
@@ -118,7 +113,8 @@ public final class PomUtils
                                         .setTextMode( TextMode.PRESERVE )
                                         .setLineSeparator( System.getProperty( "line.separator" ) )
                                         .setOmitDeclaration( false )
-                                        .setOmitEncoding( false );
+                                        .setOmitEncoding( false )
+                                        .setExpandEmptyElements( true );
 
             logger.info( "Writing modified POM:\n\n" + new XMLOutputter( format ).outputString( doc ) );
 
@@ -204,20 +200,6 @@ public final class PomUtils
         if ( profiles != null )
         {
             bases.addAll( profiles );
-        }
-
-        for ( final ModelBase base : bases )
-        {
-            final Properties p = base.getProperties();
-            for ( final Enumeration<?> e = p.keys(); e.hasMoreElements(); )
-            {
-                final String key = (String) e.nextElement();
-                final String value = p.getProperty( key );
-                if ( isEmpty( value ) )
-                {
-                    p.setProperty( key, DUMMY_PROPERTY_VALUE );
-                }
-            }
         }
     }
 
