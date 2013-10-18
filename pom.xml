@@ -26,7 +26,7 @@
   
   <groupId>org.commonjava.redhat</groupId>
   <artifactId>pom-version-manipulator</artifactId>
-  <version>1.3.6</version>
+  <version>1.3.7-SNAPSHOT</version>
 
   <name>POM Artifact-Version Manipulator</name>
   <description>Tool used to standardize dependency, plugin, and parent versions to a single set of reference POMs...along with other, related standardizations.</description>
