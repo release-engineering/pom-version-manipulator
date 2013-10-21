@@ -46,7 +46,6 @@ import org.jdom.Document;
 import org.jdom.Element;
 import org.jdom.JDOMException;
 import org.jdom.Namespace;
-import org.jdom.Text;
 import org.jdom.filter.ContentFilter;
 import org.jdom.input.SAXBuilder;
 import org.jdom.output.Format;
@@ -150,7 +149,25 @@ public final class PomUtils
                    .add( "Writing modified POM: %s", out );
 
             writer = WriterFactory.newWriter( out, encoding );
-            new XMLOutputter( format ).output( doc, writer );
+
+            final List<?> rootComments = doc.getContent ( new ContentFilter( ContentFilter.COMMENT ) );
+
+            XMLOutputter xmlo = new XMLOutputter ( format )
+            {
+                @Override
+                protected void printComment(Writer out, Comment comment)
+                    throws IOException {
+                    super.printComment (out, comment);
+
+                    // If root level comments exist and is the current Comment object
+                    // output an extra newline to tidy the output
+                    if (rootComments.contains( comment) )
+                    {
+                        out.write(System.getProperty( "line.separator" )); 
+                    }
+                }
+            };
+            xmlo.output( doc, writer );
 
             if ( relocatePom && !out.equals( pom ) )
             {
