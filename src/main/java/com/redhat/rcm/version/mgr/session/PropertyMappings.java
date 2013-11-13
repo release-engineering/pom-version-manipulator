@@ -53,7 +53,7 @@ public class PropertyMappings
     {
         return addBomPropertyMappings( bom, properties, mappings );
     }
-    
+
     PropertyMappings addBomPropertyMappings( final File bom, final Properties properties,
                                              final Map<String, String> newMappings )
     {
@@ -120,7 +120,8 @@ public class PropertyMappings
                         mappings.put( entry.getKey(), val );
                     }
                 }
-                else
+                // Only add the mapping if a previous BOM has not already added it.
+                else if ( !mappings.containsKey( entry.getKey() ))
                 {
                     mappings.put( entry.getKey(), val );
                 }
