@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.maven.mae.project.key.VersionlessProjectKey;
+import org.apache.maven.model.Build;
 import org.apache.maven.model.Extension;
 import org.apache.maven.model.Model;
 import org.codehaus.plexus.component.annotations.Component;
@@ -85,6 +86,14 @@ public class ExtensionsRemovalModder
         }
         else
         {
+
+            Build build = model.getBuild();
+            if ( build == null )
+            {
+                build = new Build();
+                model.setBuild( build );
+            }
+
             model.getBuild()
                  .setExtensions( Collections.<Extension> emptyList() );
             changed = true;
