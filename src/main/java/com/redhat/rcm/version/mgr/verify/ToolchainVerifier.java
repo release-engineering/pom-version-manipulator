@@ -31,7 +31,7 @@ import com.redhat.rcm.version.model.Project;
 import com.redhat.rcm.version.util.CollectionToString;
 import com.redhat.rcm.version.util.ObjectToString;
 
-@Component( role = ProjectVerifier.class, hint = "toolchain-realignment" )
+//@Component( role = ProjectVerifier.class, hint = "toolchain-realignment" )
 public class ToolchainVerifier
     implements ProjectVerifier
 {
