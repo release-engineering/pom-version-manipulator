@@ -233,8 +233,7 @@ public class Cli
 
     public static final String USE_EFFECTIVE_POMS_PROPERTY = "use-effective-poms";
 
-    private static final File DEFAULT_BOOTSTRAP_CONFIG = new File( System.getProperty( "user.home" ),
-                                                                   ".vman.boot.properties" );
+    private static final File DEFAULT_BOOTSTRAP_CONFIG = new File( System.getProperty( "user.home" ), ".vman.boot.properties" );
 
     private static VersionManager vman;
 
@@ -275,8 +274,7 @@ public class Cli
         {
             parser.parseArgument( args );
 
-            final boolean useLog =
-                !( cli.noLogFile || cli.testConfig || /*cli.help ||*/cli.helpModders || cli.showVersion || cli.helpReporters );
+            final boolean useLog = !( cli.noLogFile || cli.testConfig || /*cli.help ||*/cli.helpModders || cli.showVersion || cli.helpReporters );
 
             //            System.out.printf( "--no-console: %s \n--no-log-file: %s \n--test-config: %s\n--help: %s\n--help-modifications: %s\n--version: %s\n\nUse logfile? %s\n\n",
             //                               cli.noConsole, cli.noLogFile, cli.testConfig, cli.help, cli.helpModders,
@@ -426,8 +424,7 @@ public class Cli
         }
 
         System.out.println();
-        System.out.printf( "Errors:\n-------------------------------------------------\n%s\n\n",
-                           errors.isEmpty() ? "-NONE" : join( errors, "\n\n" ) );
+        System.out.printf( "Errors:\n-------------------------------------------------\n%s\n\n", errors.isEmpty() ? "-NONE" : join( errors, "\n\n" ) );
         System.out.println();
     }
 
@@ -461,8 +458,7 @@ public class Cli
                 final File dir = logFile.getParentFile();
                 if ( dir != null && !dir.isDirectory() && !dir.mkdirs() )
                 {
-                    throw new RuntimeException( "Failed to create parent directory for logfile: "
-                        + dir.getAbsolutePath() );
+                    throw new RuntimeException( "Failed to create parent directory for logfile: " + dir.getAbsolutePath() );
                 }
                 final Handler fhandler = new FileHandler( logFile.getPath(), false );
                 fhandler.setFormatter( new VManFormatter() );
@@ -474,8 +470,7 @@ public class Cli
                 final StringWriter sw = new StringWriter();
                 final PrintWriter pw = new PrintWriter( sw );
                 e.printStackTrace( pw );
-                System.out.printf( "ERROR: Failed to initialize log file: %s. Reason: %s\n\n%s\n\n", logFile,
-                                   e.getMessage(), sw.toString() );
+                System.out.printf( "ERROR: Failed to initialize log file: %s. Reason: %s\n\n%s\n\n", logFile, e.getMessage(), sw.toString() );
 
                 throw new RuntimeException( "Failed to initialize logfile." );
             }
@@ -501,7 +496,8 @@ public class Cli
 
         final VersionManagerSession session = initSession();
 
-        if ( session.getModderKeys().contains( "bom-realignment" ) && ( boms == null || boms.isEmpty() ) )
+        if ( session.getModderKeys()
+                    .contains( "bom-realignment" ) && ( boms == null || boms.isEmpty() ) )
         {
             logger.error( "You must specify at least one BOM." );
             return -2;
@@ -510,9 +506,8 @@ public class Cli
         if ( session.getErrors()
                     .isEmpty() )
         {
-            logger.info( "Modifying POM(s).\n\nTarget:\n\t" + target + "\n\nBOMs:\n\t"
-                + StringUtils.join( boms.iterator(), "\n\t" ) + "\n\nWorkspace:\n\t" + workspace + "\n\nReports:\n\t"
-                + reports );
+            logger.info( "Modifying POM(s).\n\nTarget:\n\t" + target + "\n\nBOMs:\n\t" + StringUtils.join( boms.iterator(), "\n\t" )
+                + "\n\nWorkspace:\n\t" + workspace + "\n\nReports:\n\t" + reports );
 
             if ( target.isDirectory() )
             {
@@ -529,8 +524,7 @@ public class Cli
 
         if ( capturePom != null && capturePom.exists() )
         {
-            logger.warn( "\n\n\n\n\nMissing dependency/plugin information has been captured in:\n\n\t"
-                + capturePom.getAbsolutePath() + "\n\n\n\n" );
+            logger.warn( "\n\n\n\n\nMissing dependency/plugin information has been captured in:\n\n\t" + capturePom.getAbsolutePath() + "\n\n\n\n" );
         }
 
         final List<Throwable> errors = session.getErrors();
@@ -567,20 +561,19 @@ public class Cli
         final Logger logger = LoggerFactory.getLogger( getClass() );
         logger.info( "modifications = " + join( modders, " " ) );
 
-        final SessionBuilder builder =
-            new SessionBuilder( workspace, reports ).withVersionSuffix( versionSuffix )
-                                                    .withVersionModifier( versionModifier )
-                                                    .withRemovedPlugins( removedPlugins )
-                                                    .withRemovedTests( removedTests )
-                                                    .withExtensionsWhitelist( extensionsWhitelist )
-                                                    .withModders( modders )
-                                                    .withPreserveFiles( preserveFiles )
-                                                    .withStrict( strict )
-                                                    .withCoordinateRelocations( relocatedCoords )
-                                                    .withPropertyMappings( propertyMappings )
-                                                    .withExcludedModulePoms( pomExcludeModules )
-                                                    .withUseEffectivePoms( useEffectivePoms )
-                                                    .withUserProperties( reportProperties );
+        final SessionBuilder builder = new SessionBuilder( workspace, reports ).withVersionSuffix( versionSuffix )
+                                                                               .withVersionModifier( versionModifier )
+                                                                               .withRemovedPlugins( removedPlugins )
+                                                                               .withRemovedTests( removedTests )
+                                                                               .withExtensionsWhitelist( extensionsWhitelist )
+                                                                               .withModders( modders )
+                                                                               .withPreserveFiles( preserveFiles )
+                                                                               .withStrict( strict )
+                                                                               .withCoordinateRelocations( relocatedCoords )
+                                                                               .withPropertyMappings( propertyMappings )
+                                                                               .withExcludedModulePoms( pomExcludeModules )
+                                                                               .withUseEffectivePoms( useEffectivePoms )
+                                                                               .withUserProperties( reportProperties );
 
         final VersionManagerSession session = builder.build();
 
@@ -592,8 +585,7 @@ public class Cli
             }
             catch ( final MalformedURLException e )
             {
-                throw new VManException( "Cannot initialize remote repositories: %s. Error: %s", e, remoteRepositories,
-                                         e.getMessage() );
+                throw new VManException( "Cannot initialize remote repositories: %s. Error: %s", e, remoteRepositories, e.getMessage() );
             }
         }
 
@@ -772,8 +764,7 @@ public class Cli
         }
     }
 
-    private static void printKVLine( final String key, final String value, final String fmt, final int valMax,
-                                     final PrintWriter pw )
+    private static void printKVLine( final String key, final String value, final String fmt, final int valMax, final PrintWriter pw )
     {
         final List<String> lines = new ArrayList<String>();
 
@@ -892,7 +883,7 @@ public class Cli
 
         if ( loadStandards )
         {
-            mods.addAll( Arrays.asList( ProjectModder.STANDARD_MODIFICATIONS ) );
+            mods.addAll( ProjectModder.STANDARD_MODIFICATIONS );
         }
 
         modders = mods;
@@ -1091,15 +1082,12 @@ public class Cli
 
                 if ( !strict )
                 {
-                    strict =
-                        Boolean.valueOf( props.getProperty( STRICT_MODE_PROPERTY, Boolean.toString( Boolean.FALSE ) ) );
+                    strict = Boolean.valueOf( props.getProperty( STRICT_MODE_PROPERTY, Boolean.toString( Boolean.FALSE ) ) );
                 }
 
                 if ( !useEffectivePoms )
                 {
-                    useEffectivePoms =
-                        Boolean.valueOf( props.getProperty( USE_EFFECTIVE_POMS_PROPERTY,
-                                                            Boolean.toString( Boolean.FALSE ) ) );
+                    useEffectivePoms = Boolean.valueOf( props.getProperty( USE_EFFECTIVE_POMS_PROPERTY, Boolean.toString( Boolean.FALSE ) ) );
                 }
 
                 if ( truststorePath == null )
@@ -1205,16 +1193,14 @@ public class Cli
                 logger.info( "Reading configuration from: " + configLocation );
                 try
                 {
-                    final File file =
-                        getFile( configLocation, new File( System.getProperty( "java.io.tmpdir" ) ), true );
+                    final File file = getFile( configLocation, new File( System.getProperty( "java.io.tmpdir" ) ), true );
 
                     logger.info( "...downloaded to file: " + file );
                     return file;
                 }
                 catch ( final VManException e )
                 {
-                    logger.error( "Failed to download configuration from: " + configLocation + ". Reason: "
-                                      + e.getMessage(), e );
+                    logger.error( "Failed to download configuration from: " + configLocation + ". Reason: " + e.getMessage(), e );
                     throw e;
                 }
             }

@@ -18,6 +18,7 @@
 
 package com.redhat.rcm.version.mgr;
 
+import static com.redhat.rcm.version.mgr.mod.ProjectModder.IMPLIED_MODIFICATIONS;
 import static com.redhat.rcm.version.util.InputUtils.getIncludedSubpaths;
 import static com.redhat.rcm.version.util.PomUtils.writeModifiedPom;
 import static org.apache.commons.io.IOUtils.closeQuietly;
@@ -156,9 +157,8 @@ public class VersionManager
         }
     }
 
-    public Set<File> modifyVersions( final File dir, final String pomNamePattern, final String pomExcludePattern,
-                                     final List<String> boms, final String toolchain,
-                                     final VersionManagerSession session )
+    public Set<File> modifyVersions( final File dir, final String pomNamePattern, final String pomExcludePattern, final List<String> boms,
+                                     final String toolchain, final VersionManagerSession session )
         throws VManException
     {
         final String[] includedSubpaths = getIncludedSubpaths( dir, pomNamePattern, pomExcludePattern, session );
@@ -189,15 +189,13 @@ public class VersionManager
 
         final Set<File> outFiles = modVersions( dir, session, session.isPreserveFiles(), pomFileArray );
 
-        logger.info( "Modified " + outFiles.size() + " POM versions in directory.\n\n\tDirectory: " + dir
-            + "\n\tBOMs:\t" + StringUtils.join( boms.iterator(), "\n\t\t" ) + "\n\tPOM Backups: "
-            + session.getBackups() + "\n\n" );
+        logger.info( "Modified " + outFiles.size() + " POM versions in directory.\n\n\tDirectory: " + dir + "\n\tBOMs:\t"
+            + StringUtils.join( boms.iterator(), "\n\t\t" ) + "\n\tPOM Backups: " + session.getBackups() + "\n\n" );
 
         return outFiles;
     }
 
-    public Set<File> modifyVersions( File pom, final List<String> boms, final String toolchain,
-                                     final VersionManagerSession session )
+    public Set<File> modifyVersions( File pom, final List<String> boms, final String toolchain, final VersionManagerSession session )
         throws VManException
     {
         try
@@ -218,15 +216,13 @@ public class VersionManager
                                    .next();
 
             logger.info( "Modified POM versions.\n\n\tTop POM: " + out + "\n\tBOMs:\t"
-                + ( boms == null ? "-NONE-" : StringUtils.join( boms.iterator(), "\n\t\t" ) ) + "\n\tPOM Backups: "
-                + session.getBackups() + "\n\n" );
+                + ( boms == null ? "-NONE-" : StringUtils.join( boms.iterator(), "\n\t\t" ) ) + "\n\tPOM Backups: " + session.getBackups() + "\n\n" );
         }
 
         return result;
     }
 
-    public void configureSession( final List<String> boms, final String toolchain, final VersionManagerSession session,
-                                  final File... pomFiles )
+    public void configureSession( final List<String> boms, final String toolchain, final VersionManagerSession session, final File... pomFiles )
         throws VManException
     {
         sessionConfigurator.configureSession( boms, toolchain, session, pomFiles );
@@ -262,13 +258,11 @@ public class VersionManager
             }
             catch ( final IOException e )
             {
-                session.addError( new VManException( "Failed to build model for POM: %s.\n--> %s", e, pom,
-                                                     e.getMessage() ) );
+                session.addError( new VManException( "Failed to build model for POM: %s.\n--> %s", e, pom, e.getMessage() ) );
             }
             catch ( final XmlPullParserException e )
             {
-                session.addError( new VManException( "Failed to build model for POM: %s.\n--> %s", e, pom,
-                                                     e.getMessage() ) );
+                session.addError( new VManException( "Failed to build model for POM: %s.\n--> %s", e, pom, e.getMessage() ) );
             }
             finally
             {
@@ -293,8 +287,7 @@ public class VersionManager
                 }
                 catch ( final ModelBuildingException e )
                 {
-                    session.addError( new VManException( "Failed to build model for POM: %s.\n--> %s", e, pom,
-                                                         e.getMessage() ) );
+                    session.addError( new VManException( "Failed to build model for POM: %s.\n--> %s", e, pom, e.getMessage() ) );
                 }
 
                 if ( mbResult == null )
@@ -358,15 +351,13 @@ public class VersionManager
                     parent = parent.getCanonicalFile();
                     if ( parent.getParentFile()
                                .getCanonicalPath()
-                               .startsWith( topDir ) && parent.exists() && !seen.contains( parent )
-                        && !pendingPoms.contains( parent ) )
+                               .startsWith( topDir ) && parent.exists() && !seen.contains( parent ) && !pendingPoms.contains( parent ) )
                     {
                         pendingPoms.add( parent );
                     }
                     else
                     {
-                        logger.info( "Skipping reference to non-existent parent relativePath: '" + relPath + "' in: "
-                            + pom );
+                        logger.info( "Skipping reference to non-existent parent relativePath: '" + relPath + "' in: " + pom );
                     }
                 }
 
@@ -386,8 +377,7 @@ public class VersionManager
 
                         if ( modPom.getParentFile()
                                    .getCanonicalPath()
-                                   .startsWith( topDir ) && modPom.exists() && !seen.contains( modPom )
-                            && !pendingPoms.contains( modPom ) )
+                                   .startsWith( topDir ) && modPom.exists() && !seen.contains( modPom ) && !pendingPoms.contains( modPom ) )
                         {
                             pendingPoms.addLast( modPom );
                         }
@@ -407,8 +397,7 @@ public class VersionManager
         return peeked;
     }
 
-    private synchronized ModelBuildingRequest newModelBuildingRequest( final File pom,
-                                                                       final VersionManagerSession session )
+    private synchronized ModelBuildingRequest newModelBuildingRequest( final File pom, final VersionManagerSession session )
     {
         if ( baseMbr == null )
         {
@@ -424,16 +413,14 @@ public class VersionManager
         final DefaultModelBuildingRequest req = new DefaultModelBuildingRequest( baseMbr );
         req.setModelSource( new FileModelSource( pom ) );
 
-        final VManModelResolver resolver =
-            new VManModelResolver( session, pom, artifactResolver, remoteRepositoryManager );
+        final VManModelResolver resolver = new VManModelResolver( session, pom, artifactResolver, remoteRepositoryManager );
 
         req.setModelResolver( resolver );
 
         return req;
     }
 
-    private Set<File> modVersions( final File basedir, final VersionManagerSession session, final boolean preserveDirs,
-                                   final File... pomFiles )
+    private Set<File> modVersions( final File basedir, final VersionManagerSession session, final boolean preserveDirs, final File... pomFiles )
     {
         final Set<File> result = new LinkedHashSet<File>();
 
@@ -479,7 +466,8 @@ public class VersionManager
         {
             logger.info( "Modifying '" + project.getKey() + "'..." );
 
-            final List<String> modderKeys = session.getModderKeys();
+            List<String> modderKeys = session.getModderKeys();
+            modderKeys = calculateActualModderKeys( modderKeys );
             Collections.sort( modderKeys, ProjectModder.KEY_COMPARATOR );
 
             boolean changed = false;
@@ -495,9 +483,8 @@ public class VersionManager
                         continue;
                     }
 
-                    logger.info( "Modifying '" + project.getKey() + " using: '" + key + "' with modder "
-                        + modder.getClass()
-                                .getName() );
+                    logger.info( "Modifying '" + project.getKey() + " using: '" + key + "' with modder " + modder.getClass()
+                                                                                                                 .getName() );
                     changed = modder.inject( project, session ) || changed;
                 }
             }
@@ -554,16 +541,36 @@ public class VersionManager
             capturer.captureMissing( session );
 
             logger.warn( "\n\n\n\nMissing version information has been logged to:\n\n\t" + session.getCapturePom()
-                                                                                                  .getAbsolutePath()
-                + "\n\n\n\n" );
+                                                                                                  .getAbsolutePath() + "\n\n\n\n" );
         }
 
         return result;
     }
 
-    private File writePom( final Model model, final ProjectKey originalCoord, final String originalVersion,
-                           final File pom, final File basedir, final VersionManagerSession session,
-                           final boolean preserveDirs )
+    private List<String> calculateActualModderKeys( final List<String> modders )
+    {
+        final List<String> keys = new ArrayList<String>( modders );
+        for ( final String key : modders )
+        {
+            final Set<String> implications = IMPLIED_MODIFICATIONS.get( key );
+            if ( implications != null )
+            {
+                final int idx = keys.indexOf( key );
+                for ( final String implied : implications )
+                {
+                    if ( !keys.contains( implied ) )
+                    {
+                        keys.add( idx, implied );
+                    }
+                }
+            }
+        }
+
+        return keys;
+    }
+
+    private File writePom( final Model model, final ProjectKey originalCoord, final String originalVersion, final File pom, final File basedir,
+                           final VersionManagerSession session, final boolean preserveDirs )
     {
         File backup = pom;
 
@@ -590,8 +597,7 @@ public class VersionManager
             }
             catch ( final IOException e )
             {
-                session.addError( new VManException( "Error making backup of POM: %s.\n\tTarget: %s\n\tReason: %s", e,
-                                                     pom, backup, e.getMessage() ) );
+                session.addError( new VManException( "Error making backup of POM: %s.\n\tTarget: %s\n\tReason: %s", e, pom, backup, e.getMessage() ) );
                 return null;
             }
         }

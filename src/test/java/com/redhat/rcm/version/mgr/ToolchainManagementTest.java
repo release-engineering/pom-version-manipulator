@@ -106,44 +106,6 @@ public class ToolchainManagementTest
     }
 
     @Test
-    public void relocateParent()
-        throws Throwable
-    {
-        final String path = "relocate-parent.pom";
-        final Model original = loadModel( TOOLCHAIN_TEST_POMS + path );
-
-        final String toolchainPath = EMPTY_TOOLCHAIN_PATH;
-        final Model toolchainModel = loadModel( toolchainPath );
-        final MavenProject toolchainProject = new MavenProject( toolchainModel );
-        toolchainProject.setOriginalModel( toolchainModel );
-
-        Parent parent = original.getParent();
-        assertThat( parent, notNullValue() );
-        assertThat( parent.getArtifactId(), equalTo( "old-parent" ) );
-        assertThat( parent.getVersion(), equalTo( "1.0" ) );
-
-        final Project project = new Project( original );
-        final SessionBuilder builder =
-            new SessionBuilder( workspace, reports ).withCoordinateRelocation( "org.test:old-parent:1.0", "org.test:new-parent:2.0" );
-
-        final VersionManagerSession session = builder.build();
-        session.setToolchain( new File( toolchainPath ), toolchainProject );
-
-        final boolean changed = new ToolchainModder().inject( project, session );
-
-        dumpModel( project.getModel() );
-
-        assertThat( changed, equalTo( true ) );
-        assertNoErrors( session );
-
-        parent = project.getModel()
-                        .getParent();
-        assertThat( parent, notNullValue() );
-        assertThat( parent.getArtifactId(), equalTo( "new-parent" ) );
-        assertThat( parent.getVersion(), equalTo( "2.0" ) );
-    }
-
-    @Test
     public void relocatePlugin()
         throws Throwable
     {

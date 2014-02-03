@@ -18,7 +18,13 @@
 
 package com.redhat.rcm.version.mgr.mod;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
 import com.redhat.rcm.version.model.Project;
@@ -27,9 +33,29 @@ public interface ProjectModder
 {
     String STANDARD_MODS_ALIAS = "[standard]";
 
-    String[] STANDARD_MODIFICATIONS = { "version-suffix", "toolchain-realignment", "bom-realignment", "repo-removal" };
+    List<String> STANDARD_MODIFICATIONS = new ArrayList<String>()
+    {
+        {
+            add( "version-suffix" );
+            add( "parent-realignment" );
+            add( "toolchain-realignment" );
+            add( "bom-realignment" );
+            add( "repo-removal" );
+        }
 
-    String[] MODIFICATION_ORDER = { "version-suffix", "version", "bom-realignment" };
+        private static final long serialVersionUID = 1L;
+    };
+
+    String[] MODIFICATION_ORDER = { "version-suffix", "version", "bom-realignment", "parent-realignment", "toolchain-realignment" };
+
+    Map<String, Set<String>> IMPLIED_MODIFICATIONS = new HashMap<String, Set<String>>()
+    {
+        {
+            put( "toolchain-realignment", Collections.singleton( "parent-realignment" ) );
+        }
+
+        private static final long serialVersionUID = 1L;
+    };
 
     Comparator<String> KEY_COMPARATOR = new Comparator<String>()
     {

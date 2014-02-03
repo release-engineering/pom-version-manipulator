@@ -17,6 +17,8 @@
 
 package com.redhat.rcm.version.mgr.session;
 
+import static com.redhat.rcm.version.mgr.mod.ProjectModder.STANDARD_MODIFICATIONS;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,13 +33,8 @@ import org.apache.maven.mae.project.key.VersionlessProjectKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.redhat.rcm.version.mgr.mod.ProjectModder;
-
 public final class SessionBuilder
 {
-    public static final List<String> STANDARD =
-        new ArrayList<String>( Arrays.asList( ProjectModder.STANDARD_MODIFICATIONS ) );
-
     private final Logger logger = LoggerFactory.getLogger( getClass() );
 
     private final File workspace;
@@ -56,7 +53,7 @@ public final class SessionBuilder
 
     private Collection<String> extensionsWhitelist = new HashSet<String>();
 
-    private final List<String> modders = new ArrayList<String>( STANDARD );
+    private final List<String> modders = new ArrayList<String>( STANDARD_MODIFICATIONS );
 
     private boolean preserveFiles = false;
 
@@ -88,9 +85,8 @@ public final class SessionBuilder
     public VersionManagerSession build()
     {
         final VersionManagerSession sess =
-            new VersionManagerSession( workspace, reports, versionSuffix, versionModifier, removedPlugins,
-                                       removedTests, extensionsWhitelist, modders, preserveFiles, strict,
-                                       useEffectivePoms, coordinateRelocations, propertyMappings, excludedModulePoms,
+            new VersionManagerSession( workspace, reports, versionSuffix, versionModifier, removedPlugins, removedTests, extensionsWhitelist,
+                                       modders, preserveFiles, strict, useEffectivePoms, coordinateRelocations, propertyMappings, excludedModulePoms,
                                        userProperties );
 
         sess.setLocalRepositoryDirectory( localRepo == null ? new File( workspace, "local-repository" ) : localRepo );

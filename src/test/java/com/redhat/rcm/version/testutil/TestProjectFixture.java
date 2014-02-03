@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -82,25 +81,21 @@ public class TestProjectFixture
     //        setCurrentProjects( session, Arrays.asList( models ) );
     //    }
     //
-    public static VersionManagerSession newVersionManagerSession( final File workspace, final File reports,
-                                                                  final String suffix, final String modifier )
+    public static VersionManagerSession newVersionManagerSession( final File workspace, final File reports, final String suffix, final String modifier )
     {
         return new SessionBuilder( workspace, reports ).withVersionSuffix( suffix )
                                                        .withVersionModifier( modifier )
                                                        .build();
     }
 
-    public static VersionManagerSession newVersionManagerSession( final File workspace, final File reports,
-                                                                  final String suffix )
+    public static VersionManagerSession newVersionManagerSession( final File workspace, final File reports, final String suffix )
     {
         return new SessionBuilder( workspace, reports ).withVersionSuffix( suffix )
                                                        .build();
     }
 
-    public static VersionManagerSession newVersionManagerSession( final File workspace, final File reports,
-                                                                  final String suffix,
-                                                                  final Collection<String> removedPlugins,
-                                                                  final Collection<String> removedTests )
+    public static VersionManagerSession newVersionManagerSession( final File workspace, final File reports, final String suffix,
+                                                                  final Collection<String> removedPlugins, final Collection<String> removedTests )
     {
         return new SessionBuilder( workspace, reports ).withVersionSuffix( suffix )
                                                        .withRemovedPlugins( removedPlugins )
@@ -110,7 +105,7 @@ public class TestProjectFixture
 
     public static Set<String> getStandardModders()
     {
-        return new HashSet<String>( Arrays.asList( ProjectModder.STANDARD_MODIFICATIONS ) );
+        return new HashSet<String>( ProjectModder.STANDARD_MODIFICATIONS );
     }
 
     public static File getResourceFile( final String path )

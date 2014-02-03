@@ -33,7 +33,6 @@ import org.apache.maven.model.Build;
 import org.apache.maven.model.BuildBase;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.ModelBase;
-import org.apache.maven.model.Parent;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginManagement;
 import org.apache.maven.model.Profile;
@@ -71,8 +70,6 @@ public class ToolchainModder
         {
             return changed;
         }
-
-        changed = attemptToolchainParentInjection( project, session ) || changed;
 
         final Set<VersionlessProjectKey> pluginRefs = new HashSet<VersionlessProjectKey>();
         pluginRefs.addAll( session.getChildPluginReferences( new VersionlessProjectKey( project.getKey() ) ) );
@@ -180,63 +177,6 @@ public class ToolchainModder
                     idx++;
                 }
             }
-        }
-
-        return changed;
-    }
-
-    private boolean attemptToolchainParentInjection( final Project project, final VersionManagerSession session )
-    {
-        final Model model = project.getModel();
-        final FullProjectKey toolchainKey = session.getToolchainKey();
-
-        boolean changed = false;
-        Parent parent = model.getParent();
-
-        if ( toolchainKey != null )
-        {
-            if ( parent == null )
-            {
-                logger.info( "Injecting toolchain as parent for: " + project.getKey() );
-
-                parent = new Parent();
-                parent.setGroupId( toolchainKey.getGroupId() );
-                parent.setArtifactId( toolchainKey.getArtifactId() );
-                parent.setVersion( toolchainKey.getVersion() );
-
-                model.setParent( parent );
-                // session.addProject( project );
-
-                changed = true;
-            }
-            else
-            {
-                final FullProjectKey fullParentKey = new FullProjectKey( parent );
-                final FullProjectKey relocation = session.getRelocation( fullParentKey );
-                if ( relocation != null )
-                {
-                    logger.info( "Relocating parent: " + parent + " to: " + relocation );
-
-                    parent.setGroupId( relocation.getGroupId() );
-                    parent.setArtifactId( relocation.getArtifactId() );
-                    parent.setVersion( relocation.getVersion() );
-                    changed = true;
-                }
-
-                final VersionlessProjectKey vtk = new VersionlessProjectKey( toolchainKey.getGroupId(), toolchainKey.getArtifactId() );
-
-                final VersionlessProjectKey vpk = new VersionlessProjectKey( parent );
-
-                if ( vtk.equals( vpk ) && !toolchainKey.equals( fullParentKey ) )
-                {
-                    parent.setVersion( toolchainKey.getVersion() );
-                    changed = true;
-                }
-            }
-        }
-        else
-        {
-            logger.info( "Toolchain not specified. Skipping toolchain-parent injection..." );
         }
 
         return changed;
