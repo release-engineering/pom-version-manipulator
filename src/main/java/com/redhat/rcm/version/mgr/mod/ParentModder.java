@@ -27,10 +27,16 @@ public class ParentModder
     @Override
     public boolean inject( final Project project, final VersionManagerSession session )
     {
+        boolean changed = false;
+
+        if ( session.getToolchainKey() == null )
+        {
+            return changed;
+        }
+
         final Model model = project.getModel();
         final FullProjectKey toolchainKey = session.getToolchainKey();
 
-        boolean changed = false;
         Parent parent = model.getParent();
 
         if ( toolchainKey != null )
