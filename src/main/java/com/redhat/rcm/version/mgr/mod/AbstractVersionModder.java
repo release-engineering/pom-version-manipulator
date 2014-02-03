@@ -80,29 +80,26 @@ public abstract class AbstractVersionModder
                 final VersionlessProjectKey vpk = new VersionlessProjectKey( parent );
 
                 Dependency managed =
-                    session.getManagedDependency( new DependencyManagementKey( parent.getGroupId(),
-                                                                               parent.getArtifactId(), "pom", null ) );
+                    session.getManagedDependency( new DependencyManagementKey( parent.getGroupId(), parent.getArtifactId(), "pom", null ) );
 
                 if ( managed == null )
                 {
                     // if we don't find the one with the specific "pom" type, look for the generic one
                     // if we find that, we can list the specific one as a missing parent/dep and use the info from
                     // the generic one for the version, etc.
-                    managed =
-                        session.getManagedDependency( new DependencyManagementKey( parent.getGroupId(),
-                                                                                   parent.getArtifactId() ) );
+                    managed = session.getManagedDependency( new DependencyManagementKey( parent.getGroupId(), parent.getArtifactId() ) );
                     if ( managed != null )
                     {
                         // TODO: Are BOTH of the following actions (missing parent, missing dep) REALLY appropriate??
                         session.addMissingParent( project );
 
-                        final Dependency d = new Dependency();
-                        d.setGroupId( parent.getGroupId() );
-                        d.setArtifactId( parent.getArtifactId() );
-                        d.setVersion( managed.getVersion() );
-                        d.setType( "pom" );
-
-                        session.addMissingDependency( project, d );
+                        //                        final Dependency d = new Dependency();
+                        //                        d.setGroupId( parent.getGroupId() );
+                        //                        d.setArtifactId( parent.getArtifactId() );
+                        //                        d.setVersion( managed.getVersion() );
+                        //                        d.setType( "pom" );
+                        //
+                        //                        session.addMissingDependency( project, d );
                     }
                 }
 
@@ -124,13 +121,13 @@ public abstract class AbstractVersionModder
                 // toolchain POM already, don't mess with the rest of this stuff.
                 else if ( tk == null || new VersionlessProjectKey( tk ).equals( vpk ) )
                 {
-                    logger.info( "Toolchain key: '" + tk + "' is null, or parent: '" + parent.getId()
-                        + "' is already set to toolchain for: " + model.getId() + ". Nothing to do.." );
+                    logger.info( "Toolchain key: '" + tk + "' is null, or parent: '" + parent.getId() + "' is already set to toolchain for: "
+                        + model.getId() + ". Nothing to do.." );
                     // NOP.
                 }
-                else if (session.getRelocation (vpk) != null)
+                else if ( session.getRelocation( vpk ) != null )
                 {
-                    logger.info ( "Original parent " + vpk + " has been relocated to " + tk + " ; nothing to do.");
+                    logger.info( "Original parent " + vpk + " has been relocated to " + tk + " ; nothing to do." );
                     // NOP.
                 }
                 // if we do have a toolchain POM, and the parent ref for this project isn't listed in
@@ -150,8 +147,7 @@ public abstract class AbstractVersionModder
                     }
                     else
                     {
-                        logger.info( "NOT replacing snapshot for parent version: '" + parent.getVersion() + "' for: "
-                            + model.getId()
+                        logger.info( "NOT replacing snapshot for parent version: '" + parent.getVersion() + "' for: " + model.getId()
                             + "; either we're operating in strict mode, or the parent version is correct." );
                     }
                 }
@@ -159,8 +155,8 @@ public abstract class AbstractVersionModder
                 else if ( !parent.getVersion()
                                  .equals( version ) )
                 {
-                    logger.info( "Adjusting parent version to: '" + version + "' (was: '" + parent.getVersion()
-                        + "') for parent: '" + parent.getId() + "' in POM: " + model.getId() );
+                    logger.info( "Adjusting parent version to: '" + version + "' (was: '" + parent.getVersion() + "') for parent: '" + parent.getId()
+                        + "' in POM: " + model.getId() );
 
                     // adjust the parent version to match the BOM.
                     parent.setVersion( version );
