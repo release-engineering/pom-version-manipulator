@@ -496,7 +496,8 @@ public class VersionManager
                     final ProjectVerifier verifier = verifiers.get( key );
                     if ( verifier != null )
                     {
-                        logger.info( "Verifying '" + project.getKey() + "' (" + key + ")..." );
+                        logger.info( "Verifying '" + project.getKey() + "' (" + key + ") with verifier " + verifier.getClass()
+                                                                                                                   .getName() );
                         verifier.verify( project, session );
                     }
                 }
