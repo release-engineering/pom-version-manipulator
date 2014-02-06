@@ -1,18 +1,18 @@
 /*
  * Copyright (c) 2010 Red Hat, Inc.
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
  * by the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see 
+ * along with this program.  If not, see
  * <http://www.gnu.org/licenses>.
  */
 
@@ -35,6 +35,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
@@ -63,6 +64,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.redhat.rcm.version.fixture.LoggingFixture;
+import com.redhat.rcm.version.mgr.mod.ParentModder;
 import com.redhat.rcm.version.mgr.mod.ToolchainModder;
 import com.redhat.rcm.version.mgr.session.SessionBuilder;
 import com.redhat.rcm.version.mgr.session.VersionManagerSession;
@@ -103,6 +105,44 @@ public class ToolchainManagementTest
     public void teardown()
     {
         LoggingFixture.flushLogging();
+    }
+
+    @Test
+    public void adjustOnlyParent() throws Throwable
+    {
+        final String path = "external-noParent-nonManaged-emptyPlugin-1.0.pom";
+        final Model original = loadModel( TOOLCHAIN_TEST_POMS + path );
+        final Project project = new Project( original );
+        final Parent parent = original.getParent();
+
+        final String toolchainPath = EMPTY_TOOLCHAIN_PATH;
+        final Model toolchainModel = loadModel( toolchainPath );
+        final MavenProject toolchainProject = new MavenProject( toolchainModel );
+        toolchainProject.setOriginalModel( toolchainModel );
+
+        final VersionManagerSession session = newVersionManagerSession( workspace, reports, null );
+
+        session.setToolchain( new File( TOOLCHAIN_PATH ), toolchainProject );
+
+        assertThat( parent, nullValue() );
+
+        final boolean changed = new ParentModder().inject( project, session );
+
+        dumpModel( project.getModel() );
+
+        assertThat( changed, equalTo( true ) );
+
+        Parent newParent = project.getModel().getParent();
+
+        assertThat( newParent, notNullValue() );
+
+        assertTrue( newParent.getArtifactId().equals( "toolchain-parent" ) );
+
+        // Ensure that the ParentModder has not aligned the plugins.
+        for (Plugin p : project.getBuild().getPlugins())
+        {
+            assertTrue ( p.getVersion() != null && p.getVersion().length() != 0 );
+        }
     }
 
     @Test

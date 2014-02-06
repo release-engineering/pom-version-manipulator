@@ -180,6 +180,7 @@ These are the plugins that will alter the pom files. There is a standard set and
 
     toolchain-realignment    Forcibly realign POM build section to use plugins
                              declared in the supplied toolchain POM (if present).
+                             Automatically implies using the parent-injection modder.
 
     version-suffix           Modify the POM version to include the supplied
                              version suffix.
@@ -205,6 +206,7 @@ The optional ones are:
                              may be specified explicitly as groupId:artifactId or by using wildcards
                              using the Java regex syntax.
 
+    parent-injection         This injects the toolchain parent into the parent POM.
 Details on the Java regex pattern syntax may be found [here](http://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html).
 
 In order to add optional modifiers to the standard list use either
