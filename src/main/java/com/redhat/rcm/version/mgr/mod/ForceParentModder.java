@@ -1,14 +1,13 @@
 package com.redhat.rcm.version.mgr.mod;
 
+import com.redhat.rcm.version.mgr.session.VersionManagerSession;
+import com.redhat.rcm.version.model.Project;
 import org.apache.maven.mae.project.key.FullProjectKey;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
 import org.codehaus.plexus.component.annotations.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.redhat.rcm.version.mgr.session.VersionManagerSession;
-import com.redhat.rcm.version.model.Project;
 
 @Component( role = ProjectModder.class, hint = "force-parent-realignment" )
 public class ForceParentModder
@@ -35,20 +34,24 @@ public class ForceParentModder
         final Model model = project.getModel();
         final FullProjectKey toolchainKey = session.getToolchainKey();
 
-        Parent parent;
+        Parent parent = model.getParent();
 
         if ( toolchainKey != null )
         {
             logger.info( "Injecting toolchain as parent for: " + project.getKey() );
 
-            parent = new Parent();
-            parent.setGroupId( toolchainKey.getGroupId() );
-            parent.setArtifactId( toolchainKey.getArtifactId() );
-            parent.setVersion( toolchainKey.getVersion() );
+            // Force relocation if its not in the same project tree (i.e. a parent inheritance to outside)
+            if (parent == null || ! project.getGroupId().equals(parent.getGroupId() ))
+            {
+                parent = new Parent();
+                parent.setGroupId(toolchainKey.getGroupId());
+                parent.setArtifactId(toolchainKey.getArtifactId());
+                parent.setVersion(toolchainKey.getVersion());
 
-            model.setParent( parent );
+                model.setParent(parent);
 
-            changed = true;
+                changed = true;
+            }
         }
         else
         {
