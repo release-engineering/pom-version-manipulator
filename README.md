@@ -1,6 +1,14 @@
 VMan (pom Version MANipulator) README
 =====================================
 
+<table border="3">
+<tr>
+<td>
+    <b>WARNING</b> : This extension has been deprecated and its functionality rolled into https://github.com/release-engineering/pom-manipulation-ext.
+</td>
+</tr>
+</table>
+
 VMan is a utility to help manage dependencies and plugins, using information
 specified in a series of BOM (Bill-of-Materials POM) files, a toolchain POM
 file, and optionally, a list of banned plugin coordinates.
